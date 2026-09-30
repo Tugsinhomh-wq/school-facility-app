@@ -43,6 +43,11 @@ WHERE r.is_bookable = TRUE;
 REVOKE ALL ON v_live_room_status FROM anon, PUBLIC;
 GRANT SELECT ON v_live_room_status TO authenticated;
 
+-- B1b. Run the view with the caller's rights, so Row Level Security applies to it (clears the
+--      Supabase "Security Definer View" error). Effect: booked_by shows only the caller's own
+--      name, or every name for staff. The live card does not use that column.
+ALTER VIEW v_live_room_status SET (security_invoker = true);
+
 -- B2. Double booking is impossible: a room cannot have two overlapping active reservations.
 --     The calendar warns in real time, this constraint is what settles a race between two people.
 CREATE EXTENSION IF NOT EXISTS btree_gist WITH SCHEMA extensions;
