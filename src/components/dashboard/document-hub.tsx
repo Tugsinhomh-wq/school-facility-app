@@ -9,7 +9,7 @@ import type { Memorandum } from "@/types/database";
 
 export function DocumentHub({ documents, canDraft }: { documents: Memorandum[]; canDraft: boolean }) {
   return (
-    <BentoCard className="md:col-span-3 lg:col-span-6">
+    <BentoCard className="md:col-span-3 lg:col-span-4">
       <div className="flex items-center gap-2">
         <ScrollText className="size-5 text-muted-foreground" aria-hidden />
         <h2 className="text-lg font-semibold">บันทึกข้อความ</h2>

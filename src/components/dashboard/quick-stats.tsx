@@ -1,4 +1,4 @@
-import { CheckCircle2, Clock, Hourglass, Wallet } from "lucide-react";
+import { CheckCircle2, Clock, DoorOpen, Hourglass, Wallet } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { BentoCard } from "@/components/ui/bento-grid";
@@ -6,7 +6,7 @@ import { NumberTicker } from "@/components/ui/number-ticker";
 import type { DashboardData } from "@/lib/data/dashboard";
 import { STATUS_LABEL } from "@/lib/ticket-meta";
 
-export function QuickStats({ stats }: { stats: DashboardData["stats"] }) {
+export function QuickStats({ stats, roomsInUseToday }: { stats: DashboardData["stats"]; roomsInUseToday: number }) {
   const items = [
     { label: STATUS_LABEL.pending, value: stats.pending, icon: Clock, tone: "bg-orange-100 text-orange-800 dark:bg-orange-500/20 dark:text-orange-300" },
     { label: STATUS_LABEL.in_progress, value: stats.in_progress, icon: Hourglass, tone: "bg-sky-100 text-sky-800 dark:bg-sky-500/20 dark:text-sky-300" },
@@ -16,7 +16,7 @@ export function QuickStats({ stats }: { stats: DashboardData["stats"] }) {
   return (
     <BentoCard className="md:col-span-6 lg:col-span-7">
       <h2 className="text-lg font-semibold">สถานะงานซ่อมทั้งหมด</h2>
-      <dl className="mt-4 grid flex-1 grid-cols-2 gap-y-6 sm:grid-cols-4 sm:divide-x sm:divide-border">
+      <dl className="mt-4 grid flex-1 grid-cols-2 gap-y-6 sm:grid-cols-5 sm:divide-x sm:divide-border">
         {items.map(({ label, value, icon: Icon, tone }) => (
           <div key={label} className="flex flex-col justify-between gap-3 sm:px-4 sm:first:pl-0">
             <dt>
@@ -26,22 +26,37 @@ export function QuickStats({ stats }: { stats: DashboardData["stats"] }) {
               </Badge>
             </dt>
             <dd>
-              <span className="text-6xl font-semibold leading-none">
+              <span className="text-5xl font-semibold leading-none">
                 <NumberTicker value={value} />
               </span>
               <span className="ml-1.5 text-sm text-muted-foreground">เรื่อง</span>
             </dd>
           </div>
         ))}
-        <div className="flex flex-col justify-between gap-3 sm:pl-4">
+        <div className="flex flex-col justify-between gap-3 sm:px-4">
           <dt>
-            <Badge className="gap-1.5 bg-yellow-100 text-yellow-900 dark:bg-yellow-400/15 dark:text-yellow-300">
-              <Wallet className="size-3.5" aria-hidden />
-              ค่าใช้จ่ายประมาณการ
+            <Badge className="gap-1.5 bg-violet-100 text-violet-800 dark:bg-violet-500/20 dark:text-violet-300">
+              <DoorOpen className="size-3.5" aria-hidden />
+              ห้องประชุมวันนี้
             </Badge>
           </dt>
           <dd>
-            <span className="text-3xl font-semibold leading-none text-primary">
+            <span className="text-5xl font-semibold leading-none">
+              <NumberTicker value={roomsInUseToday} />
+            </span>
+            <span className="ml-1.5 text-sm text-muted-foreground">ห้อง</span>
+            <span className="mt-1 block text-xs text-muted-foreground">ห้องประชุมที่ใช้งานวันนี้</span>
+          </dd>
+        </div>
+        <div className="col-span-2 flex flex-col justify-between gap-3 sm:col-span-1 sm:pl-4">
+          <dt>
+            <Badge className="gap-1.5 bg-yellow-100 text-yellow-900 dark:bg-yellow-400/15 dark:text-yellow-300">
+              <Wallet className="size-3.5" aria-hidden />
+              ค่าซ่อมโดยประมาณ
+            </Badge>
+          </dt>
+          <dd>
+            <span className="text-2xl font-semibold leading-none text-primary">
               ฿<NumberTicker value={stats.estimatedCost} />
             </span>
             <span className="mt-1 block text-xs text-muted-foreground">ไม่รวมงานที่ยกเลิก</span>

@@ -34,6 +34,22 @@ export interface Room {
   name: string;
   capacity: number | null;
   is_bookable: boolean;
+  requires_approval: boolean | null;
+  equipment: string[] | null;
+  created_at: string;
+}
+
+export interface FacilityReservation {
+  id: string;
+  reservation_number: string;
+  applicant_id: string;
+  room_id: string;
+  start_time: string;
+  end_time: string;
+  purpose: string;
+  attendee_count: number | null;
+  equipment_needed: string | null;
+  status: ApprovalStatus;
   created_at: string;
 }
 

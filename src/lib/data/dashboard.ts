@@ -1,3 +1,4 @@
+import { getRoomSnapshot, mockRoomSnapshot, type LiveRoom, type RoomSnapshot, type TodayMeeting } from "@/lib/data/rooms";
 import { MOCK_BUILDINGS, MOCK_MEMOS, MOCK_TICKETS } from "@/lib/mock-data";
 import type { Building, Memorandum, RepairTicketWithLocation, TicketStatus, UserRole } from "@/types/database";
 
@@ -22,6 +23,9 @@ export interface DashboardData {
   /** One entry per non-cancelled ticket; drives the hero ray artwork. */
   rays: Pick<RepairTicketWithLocation, "id" | "urgency" | "status">[];
   emergencyOpen: number;
+  liveRooms: LiveRoom[];
+  todayMeetings: TodayMeeting[];
+  roomsInUseToday: number;
 }
 
 export function summarize(
@@ -30,6 +34,7 @@ export function summarize(
   buildings: BuildingOption[],
   source: DashboardData["source"],
   viewer: Viewer | null = null,
+  rooms: RoomSnapshot = { liveRooms: [], todayMeetings: [], roomsInUseToday: 0 },
 ): DashboardData {
   const count = (s: TicketStatus) => tickets.filter((t) => t.status === s).length;
   const open = tickets.filter((t) => t.status !== "cancelled");
@@ -59,6 +64,7 @@ export function summarize(
     byBuilding,
     rays: open.map(({ id, urgency, status }) => ({ id, urgency, status })),
     emergencyOpen: open.filter((t) => t.urgency === "emergency" && t.status !== "completed").length,
+    ...rooms,
   };
 }
 
@@ -73,7 +79,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       const supabase = await createClient();
       const { data: auth } = await supabase.auth.getUser();
       if (auth.user) {
-        const [tickets, memos, buildings, profile] = await Promise.all([
+        const [tickets, memos, buildings, profile, rooms] = await Promise.all([
           supabase
             .from("repair_tickets")
             .select("*, building:buildings(name), room:rooms(room_number, name)")
@@ -87,6 +93,7 @@ export async function getDashboardData(): Promise<DashboardData> {
             .limit(10),
           supabase.from("buildings").select("id, name").eq("is_active", true).order("name"),
           supabase.from("profiles").select("full_name, role").eq("id", auth.user.id).maybeSingle(),
+          getRoomSnapshot(supabase),
         ]);
         if (!tickets.error && !buildings.error) {
           return summarize(
@@ -98,6 +105,7 @@ export async function getDashboardData(): Promise<DashboardData> {
               name: profile.data?.full_name ?? auth.user.email ?? "ผู้ใช้",
               role: (profile.data?.role as UserRole | undefined) ?? "user",
             },
+            rooms,
           );
         }
       }
@@ -105,5 +113,5 @@ export async function getDashboardData(): Promise<DashboardData> {
       // fall through to mock data
     }
   }
-  return summarize(MOCK_TICKETS, MOCK_MEMOS, MOCK_BUILDINGS, "mock");
+  return summarize(MOCK_TICKETS, MOCK_MEMOS, MOCK_BUILDINGS, "mock", null, mockRoomSnapshot());
 }

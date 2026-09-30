@@ -8,7 +8,7 @@ export function BuildingMatrix({ byBuilding }: { byBuilding: DashboardData["byBu
   const total = byBuilding.reduce((s, b) => s + b.count, 0);
 
   return (
-    <BentoCard className="md:col-span-6 lg:col-span-6">
+    <BentoCard className="md:col-span-3 lg:col-span-4">
       <div className="flex items-center gap-2">
         <Building2 className="size-5 text-muted-foreground" aria-hidden />
         <h2 className="text-lg font-semibold">งานซ่อมแยกตามอาคาร</h2>

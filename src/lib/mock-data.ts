@@ -1,3 +1,4 @@
+import { addDays, bangkokYmd } from "@/lib/time";
 import type { Building, Memorandum, RepairTicketWithLocation } from "@/types/database";
 
 const ago = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString();
@@ -52,3 +53,57 @@ export const MOCK_MEMOS: Memorandum[] = [
   { ...memoBase, id: "m3", doc_ref_no: "ศธ 04321/พิเศษ 17", reference_id: "t6", subject: "ขออนุมัติซ่อมระบบไฟห้องคอมพิวเตอร์", final_status: "approved", created_at: ago(60 * 48) },
   { ...memoBase, id: "m4", doc_ref_no: "ศธ 04321/พิเศษ 14", reference_id: "t8", subject: "ขออนุมัติซ่อมหลังคาโรงอาหาร", final_status: "revision_requested", created_at: ago(60 * 90) },
 ];
+
+// ---- Meeting rooms (demo mode) ----
+export interface MockRoom {
+  id: string;
+  room_number: string;
+  name: string;
+  building_name: string;
+  capacity: number | null;
+  requires_approval: boolean;
+  equipment: string[];
+}
+
+export const MOCK_ROOMS: MockRoom[] = [
+  { id: "r1", room_number: "MTG-01", name: "ห้องประชุมใหญ่", building_name: "อาคาร 2", capacity: 60, requires_approval: true, equipment: ["โปรเจกเตอร์", "ไมค์ลอย", "เครื่องเสียง"] },
+  { id: "r2", room_number: "MTG-02", name: "ห้องประชุมย่อย", building_name: "อาคาร 2", capacity: 15, requires_approval: false, equipment: ["จอ TV", "ไวท์บอร์ด"] },
+  { id: "r3", room_number: "301", name: "ห้องคอมพิวเตอร์", building_name: "อาคาร 3", capacity: 40, requires_approval: false, equipment: ["คอมพิวเตอร์ 40 เครื่อง", "โปรเจกเตอร์"] },
+];
+
+export interface MockBooking {
+  id: string;
+  room_id: string;
+  applicant_id: string;
+  applicant_name: string | null;
+  purpose: string;
+  attendee_count: number | null;
+  equipment_needed: string | null;
+  start_time: string;
+  end_time: string;
+  status: "pending" | "approved";
+}
+
+const inMinutes = (m: number) => new Date(Date.now() + m * 60_000).toISOString();
+
+/** ISO time for today + `dayOffset` at hh:mm Bangkok time. */
+function at(dayOffset: number, hhmm: string) {
+  const day = addDays(bangkokYmd(new Date()), dayOffset);
+  return new Date(`${day}T${hhmm}:00+07:00`).toISOString();
+}
+
+/**
+ * Sample bookings: fixed daytime slots today and tomorrow so the calendar always has blocks,
+ * plus one meeting running "now" so the live status and ticker have something to show.
+ */
+export function mockBookings(): MockBooking[] {
+  const base = { applicant_id: "mock-user", attendee_count: 8, equipment_needed: null };
+  return [
+    { ...base, id: "b0", room_id: "r3", applicant_name: "ครูนภา ศรีสุข", purpose: "อบรมการใช้โปรแกรมสำนักงาน", attendee_count: 30, start_time: inMinutes(-30), end_time: inMinutes(45), status: "approved" },
+    { ...base, id: "b1", room_id: "r2", applicant_name: "ครูสมหญิง ใจดี", purpose: "ประชุมกลุ่มสาระวิทยาศาสตร์", start_time: at(0, "09:00"), end_time: at(0, "10:30"), status: "approved" },
+    { ...base, id: "b2", room_id: "r1", applicant_name: "ครูวิชัย มั่นคง", purpose: "ประชุมผู้ปกครองชั้น ม.1", attendee_count: 45, start_time: at(0, "13:00"), end_time: at(0, "15:00"), status: "approved" },
+    { ...base, id: "b3", room_id: "r1", applicant_name: "ครูสมชาย รักงาน", purpose: "อบรมการใช้ระบบแจ้งซ่อม", attendee_count: 30, start_time: at(1, "10:00"), end_time: at(1, "12:00"), status: "pending" },
+    { ...base, id: "b4", room_id: "r2", applicant_name: "ครูนภา ศรีสุข", purpose: "ประชุมฝ่ายวิชาการ", attendee_count: 10, start_time: at(1, "09:00"), end_time: at(1, "10:00"), status: "approved" },
+    { ...base, id: "b5", room_id: "r1", applicant_name: "ครูวิชัย มั่นคง", purpose: "ซ้อมพิธีเปิดกีฬาสี", attendee_count: 50, start_time: at(1, "13:00"), end_time: at(1, "15:00"), status: "approved" },
+  ];
+}

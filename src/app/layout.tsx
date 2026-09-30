@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Sans_Thai, Pridi } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 // Body/UI: IBM Plex Sans Thai (clear numerals). Display: Pridi, a Thai serif
@@ -27,15 +28,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
       className={`${plex.variable} ${pridi.variable} dark h-full antialiased`}
     >
-      <head>
+      <body className="min-h-full flex flex-col">
         {/* Dark is the default; apply a saved "light" choice before first paint. */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `try{if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")}catch(e){}`,
-          }}
-        />
-      </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+        <Script id="theme-init" strategy="beforeInteractive">
+          {`try{if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")}catch(e){}`}
+        </Script>
+        {children}
+      </body>
     </html>
   );
 }

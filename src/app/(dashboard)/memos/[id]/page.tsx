@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
 import { MemoEditor } from "@/components/memos/memo-editor";
-import { getMemo, isStaff } from "@/lib/data/memos";
+import { getMemo } from "@/lib/data/memos";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +16,8 @@ const sarabun = Sarabun({ subsets: ["thai", "latin"], weight: ["400", "700"] });
 export default async function MemoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { memo, viewer } = await getMemo(id);
-  if (!memo || (viewer && !isStaff(viewer))) notFound();
+  // Row Level Security only returns memos the viewer wrote, or any memo for staff.
+  if (!memo) notFound();
 
   return (
     <PageShell viewer={viewer}>
