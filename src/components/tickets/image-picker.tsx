@@ -46,7 +46,7 @@ export function ImagePicker({ onBusyChange }: { onBusyChange?: (busy: boolean) =
         previews.current.push(preview);
         setPhotos((p) => [...p, { path, preview }]);
       } catch {
-        setError("แนบรูปบางรูปไม่สำเร็จ ลองใช้รูปแบบ JPG หรือ PNG แล้วลองใหม่");
+        setError("แนบรูปบางรูปไม่สำเร็จ ไฟล์อาจเสียหรือไม่ใช่รูปภาพ ลองเลือกรูปใหม่อีกครั้ง");
       } finally {
         setUploading((n) => n - 1);
       }
@@ -101,7 +101,7 @@ export function ImagePicker({ onBusyChange }: { onBusyChange?: (busy: boolean) =
           </button>
         )}
       </div>
-      <input ref={input} type="file" accept="image/*" multiple className="sr-only" tabIndex={-1} onChange={onPick} aria-label="เลือกรูปประกอบ" />
+      <input ref={input} type="file" accept="image/*,.heic,.heif" multiple className="sr-only" tabIndex={-1} onChange={onPick} aria-label="เลือกรูปประกอบ" />
       {error && (
         <p role="alert" className="text-xs text-destructive">
           {error}

@@ -16,6 +16,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "docx": "^9.8.1",
+    "heic-to": "^1.5.2",
     "lucide-react": "^1.49.0",
     "motion": "^13.4.6",
     "next": "16.3.7",

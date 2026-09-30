@@ -3,7 +3,8 @@ import path from "node:path";
 
 import type { MemoDoc } from "@/lib/memo/model";
 
-const SCRIPT_DIR = path.join(process.cwd(), "scripts");
+// The scripts folder is read at request time only by the child process, not imported.
+const SCRIPT_DIR = path.join(/* turbopackIgnore: true */ process.cwd(), "scripts");
 
 /**
  * Builds the Word file with the thai-docx approach (python-docx + pythainlp word breaks).
@@ -12,8 +13,8 @@ const SCRIPT_DIR = path.join(process.cwd(), "scripts");
  */
 export function memoToDocxPython(doc: MemoDoc, timeoutMs = 30_000): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.env.PYTHON_BIN || "python3", [path.join(SCRIPT_DIR, "memo_docx.py")], {
-      cwd: SCRIPT_DIR,
+    const child = spawn(/* turbopackIgnore: true */ process.env.PYTHON_BIN || "python3", [/* turbopackIgnore: true */ path.join(SCRIPT_DIR, "memo_docx.py")], {
+      cwd: /* turbopackIgnore: true */ SCRIPT_DIR,
       stdio: ["pipe", "pipe", "pipe"],
     });
     const out: Buffer[] = [];

@@ -4,13 +4,31 @@ export const MAX_IMAGES = 4;
 export const BUCKET = "repair-images";
 const MAX_SIDE = 1600;
 
+const isHeic = (file: File) => /^image\/hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name);
+
+/**
+ * Safari (every iPhone browser) decodes HEIC natively, and iOS usually hands over a JPEG
+ * anyway. Chrome, Edge and Firefox cannot, so a HEIC file copied from an iPhone to a PC
+ * is converted with a WebAssembly decoder, loaded only when it is needed.
+ */
+async function decode(file: File): Promise<ImageBitmap> {
+  try {
+    return await createImageBitmap(file);
+  } catch (error) {
+    if (!isHeic(file)) throw error;
+    const { heicTo } = await import("heic-to/next");
+    const jpeg = await heicTo({ blob: file, type: "image/jpeg", quality: 0.9 });
+    return createImageBitmap(jpeg);
+  }
+}
+
 /**
  * Downscales to at most 1600 px on the long side and re-encodes as JPEG. Phone photos
  * drop from several MB to a few hundred KB, and formats the server does not accept
- * (HEIC on Safari) become JPEG. Throws if the browser cannot decode the file.
+ * (such as HEIC) become JPEG. Throws if the file cannot be decoded.
  */
 export async function compressImage(file: File): Promise<Blob> {
-  const bitmap = await createImageBitmap(file);
+  const bitmap = await decode(file);
   const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(bitmap.width * scale);
