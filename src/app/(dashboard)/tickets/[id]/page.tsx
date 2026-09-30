@@ -2,10 +2,12 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { createMemoFromTicket } from "@/app/(dashboard)/memos/actions";
 import { PageShell } from "@/components/layout/page-shell";
 import { placeOf } from "@/components/tickets/ticket-table";
 import { TicketManageForm } from "@/components/tickets/ticket-manage-form";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { getTicketDetail } from "@/lib/data/tickets";
 import { formatBaht, formatDateTh, STATUS_CLASS, STATUS_LABEL, URGENCY_CLASS, URGENCY_LABEL } from "@/lib/ticket-meta";
 
@@ -65,6 +67,10 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
           <aside className="h-fit rounded-xl border border-border bg-card/85 p-5 backdrop-blur-sm">
             <h2 className="mb-4 text-lg font-semibold">จัดการงานซ่อม</h2>
             <TicketManageForm ticket={ticket} />
+            <form action={createMemoFromTicket} className="mt-4 border-t border-border pt-4">
+              <input type="hidden" name="ticket_id" value={ticket.id} />
+              <Button type="submit" variant="outline" className="w-full">ร่างบันทึกข้อความเสนอ ผอ.</Button>
+            </form>
           </aside>
         )}
       </div>

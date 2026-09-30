@@ -312,3 +312,20 @@ CREATE POLICY "approvals: staff manage" ON approval_records FOR ALL TO authentic
 REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.set_ticket_number() FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.set_reservation_number() FROM PUBLIC, anon, authenticated;
+
+-- 9.8 Draft memo numbers: MEMO-YYYYMM-XXXX until the records office assigns the official number.
+CREATE SEQUENCE IF NOT EXISTS public.memo_number_seq;
+
+CREATE OR REPLACE FUNCTION public.set_memo_number()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
+BEGIN
+  IF NEW.doc_ref_no IS NULL OR NEW.doc_ref_no = '' THEN
+    NEW.doc_ref_no := 'MEMO-' || to_char(now(), 'YYYYMM') || '-' ||
+      lpad((nextval('public.memo_number_seq') % 10000)::text, 4, '0');
+  END IF;
+  RETURN NEW;
+END $$;
+REVOKE EXECUTE ON FUNCTION public.set_memo_number() FROM PUBLIC, anon, authenticated;
+
+CREATE TRIGGER memorandums_set_number BEFORE INSERT ON memorandums
+  FOR EACH ROW EXECUTE FUNCTION public.set_memo_number();
