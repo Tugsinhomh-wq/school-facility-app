@@ -1,0 +1,58 @@
+import Link from "next/link";
+
+import { PageShell } from "@/components/layout/page-shell";
+import { TicketFiltersBar } from "@/components/tickets/ticket-filters";
+import { TicketTable } from "@/components/tickets/ticket-table";
+import { Button } from "@/components/ui/button";
+import { getTicketList, PAGE_SIZE, parseFilters } from "@/lib/data/tickets";
+
+export const dynamic = "force-dynamic";
+export const metadata = { title: "รายการแจ้งซ่อม | ระบบแจ้งซ่อม โรงเรียนละหานทรายรัชดาภิเษก" };
+
+export default async function TicketsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const filters = parseFilters(await searchParams);
+  const list = await getTicketList(filters);
+  const isStaff = list.viewer?.role === "staff" || list.viewer?.role === "super_admin";
+  const pages = Math.max(1, Math.ceil(list.total / PAGE_SIZE));
+
+  const href = (page: number) => {
+    const params = new URLSearchParams();
+    if (filters.status) params.set("status", filters.status);
+    if (filters.urgency) params.set("urgency", filters.urgency);
+    if (filters.building) params.set("building", filters.building);
+    if (filters.q) params.set("q", filters.q);
+    if (page > 1) params.set("page", String(page));
+    const qs = params.toString();
+    return qs ? `/tickets?${qs}` : "/tickets";
+  };
+
+  return (
+    <PageShell viewer={list.viewer}>
+      <h1 className="font-display text-3xl font-bold tracking-tight">{isStaff || !list.viewer ? "รายการแจ้งซ่อม" : "งานที่ฉันแจ้ง"}</h1>
+      <p className="mt-1 text-muted-foreground">
+        {list.total} รายการ{list.source === "mock" && " (ข้อมูลตัวอย่าง)"}
+      </p>
+
+      <div className="mt-6 space-y-4">
+        <TicketFiltersBar filters={filters} buildings={list.buildings} />
+        <TicketTable tickets={list.tickets} showReporter={isStaff} hasFilters={Boolean(filters.status || filters.urgency || filters.building || filters.q)} />
+
+        {pages > 1 && (
+          <nav aria-label="หน้ารายการ" className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">
+              หน้า {filters.page} จาก {pages}
+            </span>
+            <div className="flex gap-2">
+              <Button variant="outline" nativeButton={false} disabled={filters.page <= 1} render={<Link href={href(filters.page - 1)} aria-disabled={filters.page <= 1} />}>
+                ก่อนหน้า
+              </Button>
+              <Button variant="outline" nativeButton={false} disabled={filters.page >= pages} render={<Link href={href(filters.page + 1)} aria-disabled={filters.page >= pages} />}>
+                ถัดไป
+              </Button>
+            </div>
+          </nav>
+        )}
+      </div>
+    </PageShell>
+  );
+}
