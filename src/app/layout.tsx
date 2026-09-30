@@ -1,14 +1,22 @@
 import type { Metadata } from "next";
-import { Noto_Sans_Thai } from "next/font/google";
+import { IBM_Plex_Sans_Thai, Pridi } from "next/font/google";
 import "./globals.css";
 
-const notoThai = Noto_Sans_Thai({
-  variable: "--font-noto-thai",
+// Body/UI: IBM Plex Sans Thai (clear numerals). Display: Pridi, a Thai serif
+// that echoes printed official documents.
+const plex = IBM_Plex_Sans_Thai({
+  variable: "--font-plex",
   subsets: ["thai", "latin"],
+  weight: ["400", "500", "600"],
+});
+const pridi = Pridi({
+  variable: "--font-pridi",
+  subsets: ["thai", "latin"],
+  weight: ["500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "ระบบแจ้งซ่อมอาคารสถานที่",
+  title: "ระบบแจ้งซ่อม โรงเรียนละหานทรายรัชดาภิเษก",
   description: "ระบบแจ้งซ่อมอาคารสถานที่และสิ่งแวดล้อมโรงเรียน",
 };
 
@@ -17,7 +25,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="th"
       suppressHydrationWarning
-      className={`${notoThai.variable} dark h-full antialiased`}
+      className={`${plex.variable} ${pridi.variable} dark h-full antialiased`}
     >
       <head>
         {/* Dark is the default; apply a saved "light" choice before first paint. */}

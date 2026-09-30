@@ -16,7 +16,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Meteors } from "@/components/ui/meteors";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
@@ -101,13 +100,13 @@ export function QuickReportCard() {
   const [formKey, setFormKey] = useState(0);
 
   return (
-    <BentoCard className="md:col-span-3 lg:col-span-7 items-start justify-center gap-3 bg-gradient-to-br from-card to-muted/60">
-      <div className="flex size-11 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+    <BentoCard tone="royal" className="md:col-span-3 lg:col-span-7 items-start justify-center gap-3">
+      <div className="flex size-11 items-center justify-center rounded-lg bg-[#f2b04a] text-[#131f78]">
         <Wrench className="size-5" aria-hidden />
       </div>
-      <h2 className="text-lg font-semibold">แจ้งซ่อมด่วน</h2>
-      <p className="max-w-sm text-sm text-muted-foreground">
-        พบอาคาร ห้องเรียน หรือสิ่งแวดล้อมชำรุด แจ้งเรื่องได้ทันที ทีมอาคารสถานที่จะได้รับเรื่องเข้าคิวให้
+      <h2 className="font-display text-2xl font-semibold">พบสิ่งชำรุด แจ้งได้เลย</h2>
+      <p className="max-w-md text-sm leading-relaxed text-white/75">
+        กรอกอาคาร อาการ และความเร่งด่วน ฝ่ายอาคารสถานที่จะรับเรื่องเข้าคิวให้
       </p>
       <Dialog
         open={open}
@@ -116,8 +115,8 @@ export function QuickReportCard() {
           if (next) setFormKey((k) => k + 1);
         }}
       >
-        <DialogTrigger render={<ShimmerButton shimmerColor="#facc15" background="#0b2a6b" className="mt-1 text-sm font-medium" />}>
-          แจ้งซ่อมอาคารสถานที่ใหม่
+        <DialogTrigger render={<ShimmerButton shimmerColor="#ffffff" background="#f2b04a" className="mt-1 text-sm font-semibold text-[#131f78]" />}>
+          แจ้งซ่อม
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
@@ -127,8 +126,7 @@ export function QuickReportCard() {
           <ReportForm key={formKey} />
         </DialogContent>
       </Dialog>
-      <Meteors number={8} />
-      <BorderBeam size={140} duration={7} colorFrom="#facc15" colorTo="#2563eb" />
+      <BorderBeam size={140} duration={8} colorFrom="#f2b04a" colorTo="#ffffff" />
     </BentoCard>
   );
 }

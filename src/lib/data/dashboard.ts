@@ -9,6 +9,9 @@ export interface DashboardData {
   recent: RepairTicket[];
   documents: RepairTicket[];
   byBuilding: { building: string; count: number }[];
+  /** One entry per non-cancelled ticket; drives the hero ray artwork. */
+  rays: Pick<RepairTicket, "id" | "urgency" | "status">[];
+  emergencyOpen: number;
 }
 
 export function summarize(tickets: RepairTicket[], source: DashboardData["source"]): DashboardData {
@@ -37,6 +40,8 @@ export function summarize(tickets: RepairTicket[], source: DashboardData["source
     recent: byNewest.slice(0, 5),
     documents: byNewest.filter((t) => t.document_ref_no).slice(0, 4),
     byBuilding,
+    rays: open.map(({ id, urgency, status }) => ({ id, urgency, status })),
+    emergencyOpen: open.filter((t) => t.urgency === "emergency" && t.status !== "completed").length,
   };
 }
 
