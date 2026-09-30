@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import { createMemoFromReservation, decideReservation } from "@/app/(dashboard)/meeting-rooms/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,8 +11,9 @@ import { bangkokYmd, formatDayLong, formatInstantHm } from "@/lib/time";
 
 export function BookingDetailDialog({ booking, room, mine, isStaff, onClose }: { booking: Booking | null; room: RoomInfo | undefined; mine: boolean; isStaff: boolean; onClose: () => void }) {
   const pending = booking?.status === "pending";
+  const [confirming, setConfirming] = useState(false);
   return (
-    <Dialog open={Boolean(booking)} onOpenChange={(next) => !next && onClose()}>
+    <Dialog open={Boolean(booking)} onOpenChange={(next) => { if (!next) { setConfirming(false); onClose(); } }}>
       <DialogContent>
         {booking && (
           <>
@@ -52,6 +55,27 @@ export function BookingDetailDialog({ booking, room, mine, isStaff, onClose }: {
                     </Button>
                   </form>
                 ))}
+              </div>
+            )}
+            {!pending && isStaff && (
+              <div className="space-y-2">
+                {confirming ? (
+                  <>
+                    <p className="text-sm text-destructive">ยืนยันเปลี่ยนการจองนี้เป็น “ไม่อนุมัติ” ช่วงเวลานี้จะว่างให้คนอื่นจองได้</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button type="button" variant="outline" className="h-11" onClick={() => setConfirming(false)}>ยกเลิก</Button>
+                      <form action={decideReservation} onSubmit={() => { setConfirming(false); onClose(); }}>
+                        <input type="hidden" name="id" value={booking.id} />
+                        <input type="hidden" name="decision" value="rejected" />
+                        <Button type="submit" variant="destructive" className="h-11 w-full">ยืนยัน</Button>
+                      </form>
+                    </div>
+                  </>
+                ) : (
+                  <Button type="button" variant="destructive" className="h-11 w-full" onClick={() => setConfirming(true)}>
+                    ลบการจอง (ไม่อนุมัติ)
+                  </Button>
+                )}
               </div>
             )}
           </>
