@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 import { createRepairTicket, type ReportResult } from "@/app/(dashboard)/actions";
 import { ImagePicker } from "@/components/tickets/image-picker";
@@ -18,6 +18,9 @@ const URGENCY_CHOICES = [
   { value: "emergency", label: "ฉุกเฉิน" },
 ] as const;
 
+/** Common faults: one tap fills the title, so most reports need no typing. */
+const SYMPTOMS = ["หลอดไฟขาด", "น้ำรั่ว", "แอร์ไม่เย็น", "ประตู/กุญแจเสีย", "ส้วม/ก๊อกน้ำเสีย", "ปลั๊กไฟ/ไฟฟ้า", "โต๊ะเก้าอี้ชำรุด"];
+
 interface Building {
   id: string;
   name: string;
@@ -26,6 +29,8 @@ interface Building {
 function QuickForm({ buildings }: { buildings: Building[] }) {
   const [busy, setBusy] = useState(false);
   const [urgency, setUrgency] = useState<string>("medium");
+  const [title, setTitle] = useState("");
+  const titleInput = useRef<HTMLInputElement>(null);
   const [state, action, pending] = useActionState<ReportResult | null, FormData>(createRepairTicket, null);
 
   if (state?.ok) {
@@ -54,9 +59,28 @@ function QuickForm({ buildings }: { buildings: Building[] }) {
           ))}
         </select>
       </div>
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <Label htmlFor="q-title">เสียตรงไหน เป็นอะไร</Label>
-        <Input id="q-title" name="title" required maxLength={120} placeholder="เช่น หลอดไฟห้อง 112 ขาด" className="h-12 text-base" />
+        <div className="flex flex-wrap gap-2" role="group" aria-label="อาการที่พบบ่อย">
+          {SYMPTOMS.map((sym) => (
+            <button
+              key={sym}
+              type="button"
+              aria-pressed={title === sym}
+              onClick={() => setTitle(sym)}
+              className={cn(
+                "min-h-10 rounded-full border px-3.5 text-sm transition-colors",
+                title === sym ? "border-primary bg-primary text-primary-foreground" : "border-input text-foreground",
+              )}
+            >
+              {sym}
+            </button>
+          ))}
+          <button type="button" onClick={() => titleInput.current?.focus()} className="min-h-10 rounded-full border border-dashed border-input px-3.5 text-sm text-muted-foreground">
+            อื่นๆ พิมพ์เอง
+          </button>
+        </div>
+        <Input ref={titleInput} id="q-title" name="title" required maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="เช่น หลอดไฟห้อง 112 ขาด" className="h-12 text-base" />
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="q-loc">ห้องหรือจุดที่พบ (ถ้ามี)</Label>
