@@ -7,6 +7,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { BookingDetailDialog } from "@/components/meeting/booking-detail-dialog";
 import { BookingDialog, type BookingDefaults } from "@/components/meeting/booking-dialog";
+import { buildDay, DayQueue } from "@/components/meeting/day-queue";
+import { RoomOverview } from "@/components/meeting/room-overview";
 import { Button } from "@/components/ui/button";
 import type { Booking, RoomInfo } from "@/lib/data/rooms";
 import { DAY_END, DAY_START, segmentOn, STEP } from "@/lib/meeting";
@@ -35,6 +37,7 @@ export function RoomCalendar({ rooms, bookings, weekStart, roomId, userId, isSta
   const [defaults, setDefaults] = useState<BookingDefaults | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [now, setNow] = useState<Date | null>(null);
+  const [picked, setPicked] = useState<string | null>(null);
 
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
   const room = rooms.find((r) => r.id === roomId) ?? rooms[0];
@@ -50,20 +53,40 @@ export function RoomCalendar({ rooms, bookings, weekStart, roomId, userId, isSta
   }, []);
 
   // Real-time: any booking change anywhere re-fetches the week, so conflicts show up immediately.
+  // The connection is dropped while the tab is hidden, so idle phones do not hold a slot open.
   const refreshTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => {
     if (!live) return;
     const supabase = createClient();
-    const channel = supabase
-      .channel("facility-reservations")
-      .on("postgres_changes", { event: "*", schema: "public", table: "facility_reservations" }, () => {
-        clearTimeout(refreshTimer.current);
-        refreshTimer.current = setTimeout(() => router.refresh(), 300);
-      })
-      .subscribe();
-    return () => {
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    const connect = () => {
+      if (channel) return;
+      channel = supabase
+        .channel("facility-reservations")
+        .on("postgres_changes", { event: "*", schema: "public", table: "facility_reservations" }, () => {
+          clearTimeout(refreshTimer.current);
+          refreshTimer.current = setTimeout(() => router.refresh(), 300);
+        })
+        .subscribe();
+    };
+    const disconnect = () => {
       clearTimeout(refreshTimer.current);
-      void supabase.removeChannel(channel);
+      if (channel) void supabase.removeChannel(channel);
+      channel = null;
+    };
+    const onVisibility = () => {
+      if (document.hidden) {
+        disconnect();
+      } else {
+        connect();
+        router.refresh(); // catch up on whatever changed while hidden
+      }
+    };
+    if (!document.hidden) connect();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      disconnect();
     };
   }, [live, router]);
 
@@ -75,6 +98,11 @@ export function RoomCalendar({ rooms, bookings, weekStart, roomId, userId, isSta
       const seg = segmentOn(b, ymd);
       return seg !== null && seg.start < minute + STEP && seg.end > minute;
     });
+
+  const day = picked && days.includes(picked) ? picked : today && days.includes(today) ? today : days[0];
+  // On the chosen day, hide time that has already passed (rounded up to the next slot).
+  const earliest = today === day && nowMin !== null ? Math.ceil(nowMin / STEP) * STEP : DAY_START;
+  const dayItems = useMemo(() => buildDay(roomBookings, day, earliest), [roomBookings, day, earliest]);
 
   function openBooking(ymd: string, start: number) {
     if (room) setDefaults({ roomId: room.id, ymd, start });
@@ -100,21 +128,21 @@ export function RoomCalendar({ rooms, bookings, weekStart, roomId, userId, isSta
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <div role="tablist" aria-label="เลือกห้อง" className="flex flex-wrap gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <div role="tablist" aria-label="เลือกห้อง" className="-mx-4 flex w-[calc(100%+2rem)] snap-x gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:w-auto sm:flex-wrap sm:px-0">
           {rooms.map((r) => (
             <Link
               key={r.id}
               href={href(weekStart, r.id)}
               role="tab"
               aria-selected={r.id === room.id}
-              className={cn("rounded-full border px-3.5 py-1 text-sm transition-colors", r.id === room.id ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card/80 hover:bg-muted")}
+              className={cn("shrink-0 snap-start rounded-full border px-4 py-2 text-sm transition-colors sm:py-1", r.id === room.id ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card/80 hover:bg-muted")}
             >
               {r.name}
             </Link>
           ))}
         </div>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="flex items-center gap-2 sm:ml-auto">
           <Button variant="outline" size="icon" nativeButton={false} render={<Link href={href(addDays(weekStart, -7))} aria-label="สัปดาห์ก่อนหน้า" />}>
             <ChevronLeft aria-hidden />
           </Button>
@@ -128,10 +156,37 @@ export function RoomCalendar({ rooms, bookings, weekStart, roomId, userId, isSta
 
       <p className="text-sm text-muted-foreground">
         {room.name} · {room.building_name}{room.capacity ? ` · ${room.capacity} ที่นั่ง` : ""} ·{" "}
-        {room.requires_approval ? "ต้องให้ ผอ. อนุมัติ" : "จองแล้วได้ทันที"}. คลิกช่องว่างเพื่อจอง
+        {room.requires_approval ? "ต้องให้ ผอ. อนุมัติ" : "จองแล้วได้ทันที"}. แตะช่วงว่างเพื่อจอง
       </p>
 
-      <div className="overflow-x-auto rounded-xl border border-border bg-card/85 backdrop-blur-sm">
+      <div className="hidden md:block">
+        <RoomOverview rooms={rooms} bookings={bookings} days={days} today={today} activeRoomId={room.id} href={(rid) => href(weekStart, rid)} />
+      </div>
+
+      <div className="space-y-3 md:hidden">
+        <div role="tablist" aria-label="เลือกวัน" className="grid grid-cols-7 gap-1">
+          {days.map((ymd) => {
+            const has = roomBookings.some((b) => segmentOn(b, ymd) !== null);
+            return (
+              <button
+                key={ymd}
+                type="button"
+                role="tab"
+                aria-selected={ymd === day}
+                onClick={() => setPicked(ymd)}
+                className={cn("flex min-h-14 flex-col items-center justify-center rounded-xl border text-xs", ymd === day ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card/80", ymd === today && ymd !== day && "border-[#f2b04a]")}
+              >
+                <span>{formatDayShort(ymd).split(" ")[0]}</span>
+                <span className="text-base font-semibold tabular-nums">{Number(ymd.slice(8))}</span>
+                <span aria-hidden className={cn("mt-0.5 size-1.5 rounded-full", has ? (ymd === day ? "bg-primary-foreground" : "bg-primary") : "bg-transparent")} />
+              </button>
+            );
+          })}
+        </div>
+        <DayQueue items={dayItems} userId={userId} onBook={(start) => setDefaults({ roomId: room.id, ymd: day, start })} onOpen={setDetailId} />
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-xl border border-border bg-card/85 backdrop-blur-sm md:block">
         <div className="min-w-[46rem]">
           <div className="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] border-b border-border text-center text-sm">
             <div />
@@ -207,7 +262,7 @@ export function RoomCalendar({ rooms, bookings, weekStart, roomId, userId, isSta
         </div>
       </div>
 
-      <p className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground">
+      <p className="hidden flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground md:flex">
         <span className="flex items-center gap-1.5"><span className="size-3 rounded-sm bg-primary" aria-hidden /> จองแล้ว</span>
         <span className="flex items-center gap-1.5"><span className="size-3 rounded-sm border border-dashed border-amber-500 bg-amber-100" aria-hidden /> รออนุมัติ (ล็อกคิวไว้ระหว่างรอ)</span>
         <span className="flex items-center gap-1.5"><span className="size-3 rounded-sm ring-2 ring-[#f2b04a]" aria-hidden /> ของฉัน</span>

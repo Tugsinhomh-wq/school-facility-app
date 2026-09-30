@@ -1,10 +1,12 @@
-import { CalendarClock, CalendarDays } from "lucide-react";
+import { CalendarCheck, CalendarClock, CalendarDays } from "lucide-react";
 import Link from "next/link";
 
+import { decideReservation } from "@/app/(dashboard)/meeting-rooms/actions";
 import { BentoCard } from "@/components/ui/bento-grid";
 import { Button } from "@/components/ui/button";
-import { meetingLine, type PendingReservation, type TodayMeeting } from "@/lib/data/rooms";
-import { formatInstantHm } from "@/lib/time";
+import { Badge } from "@/components/ui/badge";
+import { meetingLine, type MyReservation, type PendingReservation, type TodayMeeting } from "@/lib/data/rooms";
+import { bangkokYmd, formatDayShort, formatInstantHm } from "@/lib/time";
 
 /** Room requests waiting for a decision (staff). */
 export function PendingReservations({ items, className }: { items: PendingReservation[]; className?: string }) {
@@ -24,11 +26,22 @@ export function PendingReservations({ items, className }: { items: PendingReserv
               {r.room_name} · {formatInstantHm(r.start_time)}-{formatInstantHm(r.end_time)} น.
               {r.applicant_name && ` · ${r.applicant_name}`}
             </p>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              {(["approved", "rejected"] as const).map((decision) => (
+                <form key={decision} action={decideReservation}>
+                  <input type="hidden" name="id" value={r.id} />
+                  <input type="hidden" name="decision" value={decision} />
+                  <Button type="submit" size="sm" variant={decision === "approved" ? "default" : "outline"} className="h-10 w-full">
+                    {decision === "approved" ? "อนุมัติ" : "ไม่อนุมัติ"}
+                  </Button>
+                </form>
+              ))}
+            </div>
           </li>
         ))}
       </ul>
       <Button variant="outline" className="mt-4 self-start" nativeButton={false} render={<Link href="/meeting-rooms" />}>
-        ไปที่ปฏิทินเพื่ออนุมัติ
+        เปิดปฏิทิน
       </Button>
     </BentoCard>
   );
@@ -50,6 +63,45 @@ export function TodayMeetings({ meetings, className }: { meetings: TodayMeeting[
           </li>
         ))}
       </ul>
+    </BentoCard>
+  );
+}
+
+const STATUS = {
+  pending: { label: "รออนุมัติ", cls: "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300" },
+  approved: { label: "อนุมัติแล้ว", cls: "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300" },
+  rejected: { label: "ไม่อนุมัติ", cls: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300" },
+  revision_requested: { label: "ขอแก้ไข", cls: "bg-sky-100 text-sky-800 dark:bg-sky-500/20 dark:text-sky-300" },
+} as const;
+
+/** The teacher's own room requests, with the decision shown plainly. */
+export function MyReservations({ items, className }: { items: MyReservation[]; className?: string }) {
+  return (
+    <BentoCard className={className}>
+      <div className="flex items-center gap-2">
+        <CalendarCheck className="size-5 text-muted-foreground" aria-hidden />
+        <h2 className="text-lg font-semibold">การจองห้องของฉัน</h2>
+      </div>
+      <ul className="mt-4 flex-1 space-y-2">
+        {items.length === 0 && <li className="text-sm text-muted-foreground">ยังไม่มีการจอง กดแท็บห้องประชุมเพื่อจอง</li>}
+        {items.map((r) => {
+          const st = STATUS[r.status];
+          return (
+            <li key={r.id} className="flex items-start justify-between gap-2 rounded-lg border border-border bg-background/60 p-3">
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-medium">{r.purpose}</span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  {r.room_name} · {formatDayShort(bangkokYmd(new Date(r.start_time)))} {formatInstantHm(r.start_time)}-{formatInstantHm(r.end_time)} น.
+                </span>
+              </span>
+              <Badge className={`${st.cls} shrink-0`}>{st.label}</Badge>
+            </li>
+          );
+        })}
+      </ul>
+      <Button variant="outline" className="mt-4 self-start" nativeButton={false} render={<Link href="/meeting-rooms" />}>
+        จองห้องเพิ่ม
+      </Button>
     </BentoCard>
   );
 }
