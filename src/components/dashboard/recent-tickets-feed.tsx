@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { AnimatedList } from "@/components/ui/animated-list";
 import { Badge } from "@/components/ui/badge";
 import { BentoCard } from "@/components/ui/bento-grid";
@@ -32,7 +34,12 @@ function TicketRow({ ticket }: { ticket: RepairTicketWithLocation }) {
 export function RecentTicketsFeed({ tickets }: { tickets: RepairTicketWithLocation[] }) {
   return (
     <BentoCard className="md:col-span-3 lg:col-span-5 lg:row-span-2">
-      <h2 className="text-lg font-semibold">แจ้งซ่อมล่าสุด</h2>
+      <div className="flex items-baseline justify-between gap-2">
+        <h2 className="text-lg font-semibold">แจ้งซ่อมล่าสุด</h2>
+        <Link href="/tickets" className="text-sm text-primary underline-offset-4 hover:underline">
+          ดูทั้งหมด
+        </Link>
+      </div>
       <p className="text-sm text-muted-foreground">เรียงจากใหม่ไปเก่า แสดง 5 รายการ</p>
       <div className="relative mt-4 min-h-0 flex-1 overflow-hidden">
         <AnimatedList delay={1000}>

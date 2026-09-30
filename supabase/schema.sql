@@ -244,6 +244,8 @@ CREATE POLICY "profiles: read own" ON profiles FOR SELECT TO authenticated
   USING (id = (SELECT auth.uid()));
 CREATE POLICY "profiles: super_admin read all" ON profiles FOR SELECT TO authenticated
   USING (public.current_role_is('super_admin'));
+CREATE POLICY "profiles: staff read all" ON profiles FOR SELECT TO authenticated
+  USING (public.current_role_is('staff', 'super_admin'));
 CREATE POLICY "profiles: super_admin update all" ON profiles FOR UPDATE TO authenticated
   USING (public.current_role_is('super_admin')) WITH CHECK (public.current_role_is('super_admin'));
 CREATE POLICY "profiles: update own" ON profiles FOR UPDATE TO authenticated
