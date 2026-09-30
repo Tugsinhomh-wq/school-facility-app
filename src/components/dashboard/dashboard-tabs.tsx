@@ -7,9 +7,8 @@ import { cn } from "@/lib/utils";
 import type { DashTab } from "@/lib/data/dashboard";
 
 const TABS: { id: DashTab; label: string; href: string }[] = [
-  { id: "overview", label: "ภาพรวม", href: "/" },
-  { id: "repairs", label: "งานซ่อม", href: "/?tab=repairs" },
-  { id: "rooms", label: "ห้องประชุม", href: "/?tab=rooms" },
+  { id: "repairs", label: "งานแจ้งซ่อม", href: "/" },
+  { id: "rooms", label: "ขอใช้ห้องประชุม", href: "/?tab=rooms" },
 ];
 
 function TabLink({ tab, active }: { tab: (typeof TABS)[number]; active: boolean }) {
@@ -26,7 +25,7 @@ function TabLink({ tab, active }: { tab: (typeof TABS)[number]; active: boolean 
       role="tab"
       aria-selected={active}
       className={cn(
-        "rounded-lg px-4 py-1.5 text-sm font-medium outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50",
+        "flex-1 rounded-lg px-4 py-2 text-center text-sm font-medium sm:flex-none sm:py-1.5 outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50",
         active ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
       )}
     >
@@ -37,7 +36,7 @@ function TabLink({ tab, active }: { tab: (typeof TABS)[number]; active: boolean 
 
 export function DashboardTabs({ active }: { active: DashTab }) {
   return (
-    <div role="tablist" aria-label="มุมมองแดชบอร์ด" className="mb-4 inline-flex gap-1 rounded-xl bg-muted p-1">
+    <div role="tablist" aria-label="มุมมองแดชบอร์ด" className="mb-4 flex gap-1 rounded-xl bg-muted p-1 sm:inline-flex">
       {TABS.map((t) => (
         <TabLink key={t.id} tab={t} active={t.id === active} />
       ))}
