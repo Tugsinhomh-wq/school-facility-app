@@ -199,12 +199,16 @@ CREATE INDEX repair_tickets_building_idx ON repair_tickets (building_id);
 CREATE INDEX repair_tickets_status_idx ON repair_tickets (status);
 CREATE INDEX repair_tickets_created_idx ON repair_tickets (created_at DESC);
 CREATE INDEX rooms_building_idx ON rooms (building_id);
+CREATE INDEX repair_tickets_room_idx ON repair_tickets (room_id);
 CREATE INDEX reservations_room_time_idx ON facility_reservations (room_id, start_time);
 CREATE INDEX reservations_applicant_idx ON facility_reservations (applicant_id);
 CREATE INDEX inspections_building_idx ON environment_inspections (building_id);
+CREATE INDEX inspections_room_idx ON environment_inspections (room_id);
+CREATE INDEX inspections_inspector_idx ON environment_inspections (inspector_id);
 CREATE INDEX memorandums_author_idx ON memorandums (author_id);
 CREATE INDEX memorandums_ref_idx ON memorandums (origin_module, reference_id);
 CREATE INDEX approval_records_memo_idx ON approval_records (memorandum_id, step_order);
+CREATE INDEX approval_records_approver_idx ON approval_records (approver_id);
 
 -- 9.5 Role helper (SECURITY DEFINER avoids recursive RLS on profiles)
 CREATE OR REPLACE FUNCTION public.current_role_is(VARIADIC roles public.user_role[])
@@ -301,3 +305,8 @@ CREATE POLICY "approvals: staff read" ON approval_records FOR SELECT TO authenti
 CREATE POLICY "approvals: staff manage" ON approval_records FOR ALL TO authenticated
   USING (public.current_role_is('staff', 'super_admin'))
   WITH CHECK (public.current_role_is('staff', 'super_admin'));
+
+-- 9.7 Trigger-only functions must not be callable through the REST /rpc endpoint.
+REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.set_ticket_number() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.set_reservation_number() FROM PUBLIC, anon, authenticated;
