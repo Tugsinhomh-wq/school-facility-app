@@ -13,7 +13,8 @@ export type ReportResult = { ok: boolean; message: string };
 export async function createRepairTicket(_prev: ReportResult | null, formData: FormData): Promise<ReportResult> {
   const str = (k: string) => String(formData.get(k) ?? "").trim();
   const title = str("title");
-  const description = str("description");
+  // The phone form has one short field; it serves as both the title and the description.
+  const description = str("description") || title;
   const buildingId = str("building_id");
   const locationDetail = str("location_detail");
   const urgency = str("urgency") as UrgencyLevel;
