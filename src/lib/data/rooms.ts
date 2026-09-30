@@ -209,3 +209,40 @@ export function mockPendingReservations(): PendingReservation[] {
 export function meetingLine(m: TodayMeeting) {
   return `${formatInstantHm(m.start_time)}-${formatInstantHm(m.end_time)} น. ${m.room_name}: ${m.title}`;
 }
+
+export interface MyReservation {
+  id: string;
+  purpose: string;
+  room_name: string;
+  start_time: string;
+  end_time: string;
+  status: ApprovalStatus;
+}
+
+/** The viewer's own requests from the last week onward, newest first, whatever their status. */
+export async function getMyReservations(supabase: SupabaseClient, userId: string): Promise<MyReservation[]> {
+  try {
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60_000).toISOString();
+    const { data, error } = await supabase
+      .from("facility_reservations")
+      .select("id, purpose, start_time, end_time, status, room:rooms(name)")
+      .eq("applicant_id", userId)
+      .gt("end_time", since)
+      .order("start_time", { ascending: false })
+      .limit(6);
+    if (error) return [];
+    return (data as unknown as (Omit<MyReservation, "room_name"> & { room: { name: string } | { name: string }[] | null })[]).map(({ room, ...r }) => ({
+      ...r,
+      room_name: (Array.isArray(room) ? room[0] : room)?.name ?? "",
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export function mockMyReservations(): MyReservation[] {
+  const names = new Map(MOCK_ROOMS.map((r) => [r.id, r.name]));
+  return mockBookings()
+    .slice(0, 3)
+    .map((b) => ({ id: b.id, purpose: b.purpose, room_name: names.get(b.room_id) ?? "", start_time: b.start_time, end_time: b.end_time, status: b.status }));
+}

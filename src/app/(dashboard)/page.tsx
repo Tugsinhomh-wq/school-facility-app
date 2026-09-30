@@ -8,7 +8,7 @@ import { MeetingTicker } from "@/components/dashboard/meeting-ticker";
 import { QuickReportCard } from "@/components/dashboard/quick-report-card";
 import { QuickStats } from "@/components/dashboard/quick-stats";
 import { RecentTicketsFeed } from "@/components/dashboard/recent-tickets-feed";
-import { PendingReservations, TodayMeetings } from "@/components/dashboard/reservation-cards";
+import { MyReservations, PendingReservations, TodayMeetings } from "@/components/dashboard/reservation-cards";
 import { getDashboardBase, getOverviewData, getRepairsData, getRoomsData, type DashboardBase, type DashTab } from "@/lib/data/dashboard";
 import { isStaffRole } from "@/lib/data/session";
 
@@ -37,7 +37,7 @@ async function Overview({ base }: { base: DashboardBase }) {
       ) : (
         <>
           <QuickReportCard buildings={data.buildings} canAttach={canAttach} />
-          <TodayMeetings meetings={base.todayMeetings} className="md:col-span-3 lg:col-span-5" />
+          <MyReservations items={data.myReservations} className="md:col-span-3 lg:col-span-5" />
           <RecentTicketsFeed
             tickets={data.queue}
             title="งานที่ฉันแจ้งล่าสุด"

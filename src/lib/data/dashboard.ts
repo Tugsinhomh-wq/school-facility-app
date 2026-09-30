@@ -1,5 +1,8 @@
 import {
   getLiveRooms,
+  getMyReservations,
+  mockMyReservations,
+  type MyReservation,
   getPendingReservations,
   getTodayMeetings,
   mockLiveRooms,
@@ -41,6 +44,8 @@ export interface OverviewData {
   queue: TicketBrief[];
   documents: Memorandum[];
   pendingReservations: PendingReservation[];
+  /** Non-staff: their own room requests with status. */
+  myReservations: MyReservation[];
   buildings: BuildingOption[];
 }
 
@@ -118,19 +123,21 @@ export async function getOverviewData(): Promise<OverviewData> {
     queue: [...MOCK_TICKETS].filter((t) => t.status === "pending").sort((a, b) => URGENCY_RANK[a.urgency] - URGENCY_RANK[b.urgency] || b.created_at.localeCompare(a.created_at)).slice(0, 5),
     documents: newest(MOCK_MEMOS, 4),
     pendingReservations: mockPendingReservations(),
+    myReservations: mockMyReservations(),
     buildings: MOCK_BUILDINGS,
   });
   try {
     const s = await getSession();
     if (!s) return mock();
     const staff = isStaffRole(s.viewer.role);
-    const [queue, memos, buildings, reservations] = await Promise.all([
+    const [queue, memos, buildings, reservations, mine] = await Promise.all([
       staff
         ? s.supabase.from("repair_tickets").select(BRIEF_SELECT).eq("status", "pending").order("created_at", { ascending: false }).limit(30)
         : s.supabase.from("repair_tickets").select(BRIEF_SELECT).order("created_at", { ascending: false }).limit(5),
       staff ? s.supabase.from("memorandums").select("*").eq("origin_module", "repair").order("created_at", { ascending: false }).limit(4) : Promise.resolve({ data: [], error: null }),
       s.supabase.from("buildings").select("id, name").eq("is_active", true).order("name"),
       staff ? getPendingReservations(s.supabase) : Promise.resolve([] as PendingReservation[]),
+      staff ? Promise.resolve([] as MyReservation[]) : getMyReservations(s.supabase, s.userId),
     ]);
     if (queue.error || buildings.error) return mock();
     const rows = queue.data as unknown as TicketBrief[];
@@ -139,6 +146,7 @@ export async function getOverviewData(): Promise<OverviewData> {
       queue: staff ? [...rows].sort((a, b) => URGENCY_RANK[a.urgency] - URGENCY_RANK[b.urgency] || b.created_at.localeCompare(a.created_at)).slice(0, 5) : rows,
       documents: (memos.data ?? []) as Memorandum[],
       pendingReservations: reservations,
+      myReservations: mine,
       buildings: buildings.data as BuildingOption[],
     };
   } catch {

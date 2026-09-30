@@ -79,7 +79,10 @@ export async function createReservation(_prev: BookingResult, formData: FormData
   };
 }
 
-/** Staff only (RLS enforces it): approve or reject a pending request. Rejecting frees the slot. */
+/**
+ * Staff only (RLS enforces it): approve or reject a pending request, or withdraw an approved booking
+ * by marking it rejected. A rejected booking keeps its record but frees the slot.
+ */
 export async function decideReservation(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const decision = String(formData.get("decision") ?? "");
@@ -88,7 +91,11 @@ export async function decideReservation(formData: FormData) {
   const supabase = await createClient();
   const { data: auth } = await getAuth(supabase);
   if (!auth.user) redirect("/login");
-  await supabase.from("facility_reservations").update({ status: decision }).eq("id", id).eq("status", "pending");
+  await supabase
+    .from("facility_reservations")
+    .update({ status: decision })
+    .eq("id", id)
+    .in("status", decision === "rejected" ? ["pending", "approved"] : ["pending"]);
   revalidatePath("/meeting-rooms");
   revalidatePath("/");
 }
