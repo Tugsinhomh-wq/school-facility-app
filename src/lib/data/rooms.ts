@@ -43,6 +43,7 @@ export interface LiveRoom {
 
 export interface TodayMeeting {
   id: string;
+  room_id: string;
   room_name: string;
   title: string;
   start_time: string;
@@ -107,55 +108,101 @@ export async function getMeetingWeek(weekStart: string): Promise<MeetingWeek> {
   }
 }
 
-export interface RoomSnapshot {
-  liveRooms: LiveRoom[];
-  todayMeetings: TodayMeeting[];
-  roomsInUseToday: number;
+const todayRange = () => {
+  const today = bangkokYmd(new Date());
+  return { today, dayStart: atBangkok(today, 0).toISOString(), dayEnd: atBangkok(addDays(today, 1), 0).toISOString() };
+};
+
+export function mockTodayMeetings(): TodayMeeting[] {
+  const { today } = todayRange();
+  const names = new Map(MOCK_ROOMS.map((r) => [r.id, r.name]));
+  return mockBookings()
+    .filter((b) => b.status === "approved" && bangkokYmd(new Date(b.start_time)) === today)
+    .map((b) => ({ id: b.id, room_id: b.room_id, room_name: names.get(b.room_id) ?? "", title: b.purpose, start_time: b.start_time, end_time: b.end_time }));
 }
 
-export function mockRoomSnapshot(): RoomSnapshot {
+export function mockLiveRooms(): LiveRoom[] {
   const now = new Date().toISOString();
   const bookings = mockBookings();
-  const today = bangkokYmd(new Date());
-  const names = new Map(MOCK_ROOMS.map((r) => [r.id, r]));
-  const approvedToday = bookings.filter((b) => b.status === "approved" && bangkokYmd(new Date(b.start_time)) === today);
-  return {
-    liveRooms: MOCK_ROOMS.map((r) => {
-      const active = bookings.find((b) => b.room_id === r.id && b.status === "approved" && b.start_time <= now && now < b.end_time);
-      return { room_id: r.id, room_name: r.name, building_name: r.building_name, capacity: r.capacity, current_status: active ? "busy" : "available", active_meeting_title: active?.purpose ?? null, active_meeting_until: active?.end_time ?? null, booked_by: active?.applicant_name ?? null };
-    }),
-    todayMeetings: approvedToday.map((b) => ({ id: b.id, room_name: names.get(b.room_id)?.name ?? "", title: b.purpose, start_time: b.start_time, end_time: b.end_time })),
-    roomsInUseToday: new Set(approvedToday.map((b) => b.room_id)).size,
-  };
+  return MOCK_ROOMS.map((r) => {
+    const active = bookings.find((b) => b.room_id === r.id && b.status === "approved" && b.start_time <= now && now < b.end_time);
+    return { room_id: r.id, room_name: r.name, building_name: r.building_name, capacity: r.capacity, current_status: active ? "busy" : "available", active_meeting_title: active?.purpose ?? null, active_meeting_until: active?.end_time ?? null, booked_by: active?.applicant_name ?? null };
+  });
 }
 
-/** Live status and today's meetings for the dashboard. Empty (not an error) if the SQL is not installed yet. */
-export async function getRoomSnapshot(supabase: SupabaseClient): Promise<RoomSnapshot> {
-  const empty: RoomSnapshot = { liveRooms: [], todayMeetings: [], roomsInUseToday: 0 };
+/** Approved meetings for today (the ticker and the rooms tab). Empty, not an error, if the SQL is not installed. */
+export async function getTodayMeetings(supabase: SupabaseClient): Promise<TodayMeeting[]> {
   try {
-    const today = bangkokYmd(new Date());
-    const dayStart = atBangkok(today, 0).toISOString();
-    const dayEnd = atBangkok(addDays(today, 1), 0).toISOString();
-    const [live, meetings] = await Promise.all([
-      supabase.from("v_live_room_status").select("*").order("room_name"),
-      supabase
-        .from("facility_reservations")
-        .select("id, room_id, purpose, start_time, end_time, room:rooms(name)")
-        .eq("status", "approved")
-        .gt("end_time", dayStart)
-        .lt("start_time", dayEnd)
-        .order("start_time"),
-    ]);
-    if (live.error || meetings.error) return empty;
-    const rows = meetings.data as unknown as { id: string; room_id: string; purpose: string; start_time: string; end_time: string; room: { name: string } | { name: string }[] | null }[];
-    return {
-      liveRooms: live.data as LiveRoom[],
-      todayMeetings: rows.map((m) => ({ id: m.id, room_name: (Array.isArray(m.room) ? m.room[0] : m.room)?.name ?? "", title: m.purpose, start_time: m.start_time, end_time: m.end_time })),
-      roomsInUseToday: new Set(rows.map((m) => m.room_id)).size,
-    };
+    const { dayStart, dayEnd } = todayRange();
+    const { data, error } = await supabase
+      .from("facility_reservations")
+      .select("id, room_id, purpose, start_time, end_time, room:rooms(name)")
+      .eq("status", "approved")
+      .gt("end_time", dayStart)
+      .lt("start_time", dayEnd)
+      .order("start_time");
+    if (error) return [];
+    return (data as unknown as { id: string; room_id: string; purpose: string; start_time: string; end_time: string; room: { name: string } | { name: string }[] | null }[]).map((m) => ({
+      id: m.id,
+      room_id: m.room_id,
+      room_name: (Array.isArray(m.room) ? m.room[0] : m.room)?.name ?? "",
+      title: m.purpose,
+      start_time: m.start_time,
+      end_time: m.end_time,
+    }));
   } catch {
-    return empty;
+    return [];
   }
+}
+
+export async function getLiveRooms(supabase: SupabaseClient): Promise<LiveRoom[]> {
+  try {
+    const { data, error } = await supabase.from("v_live_room_status").select("*").order("room_name");
+    return error ? [] : (data as LiveRoom[]);
+  } catch {
+    return [];
+  }
+}
+
+export interface PendingReservation {
+  id: string;
+  purpose: string;
+  room_name: string;
+  start_time: string;
+  end_time: string;
+  applicant_name: string | null;
+}
+
+/** Room requests waiting for approval (staff). */
+export async function getPendingReservations(supabase: SupabaseClient): Promise<PendingReservation[]> {
+  try {
+    const { data, error } = await supabase
+      .from("facility_reservations")
+      .select("id, purpose, start_time, end_time, room:rooms(name), applicant:profiles(full_name)")
+      .eq("status", "pending")
+      .gt("end_time", new Date().toISOString())
+      .order("start_time")
+      .limit(8);
+    if (error) return [];
+    const one = <T,>(v: T | T[] | null) => (Array.isArray(v) ? (v[0] ?? null) : v);
+    return (data as unknown as { id: string; purpose: string; start_time: string; end_time: string; room: { name: string } | { name: string }[] | null; applicant: { full_name: string } | { full_name: string }[] | null }[]).map((r) => ({
+      id: r.id,
+      purpose: r.purpose,
+      room_name: one(r.room)?.name ?? "",
+      start_time: r.start_time,
+      end_time: r.end_time,
+      applicant_name: one(r.applicant)?.full_name ?? null,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export function mockPendingReservations(): PendingReservation[] {
+  const names = new Map(MOCK_ROOMS.map((r) => [r.id, r.name]));
+  return mockBookings()
+    .filter((b) => b.status === "pending")
+    .map((b) => ({ id: b.id, purpose: b.purpose, room_name: names.get(b.room_id) ?? "", start_time: b.start_time, end_time: b.end_time, applicant_name: b.applicant_name }));
 }
 
 /** "09:00-10:30 น. ห้องประชุมใหญ่: ประชุมครู" */

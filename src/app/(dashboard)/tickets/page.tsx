@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { PageShell } from "@/components/layout/page-shell";
 import { TicketFiltersBar } from "@/components/tickets/ticket-filters";
 import { TicketTable } from "@/components/tickets/ticket-table";
 import { Button } from "@/components/ui/button";
@@ -27,7 +26,7 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
   };
 
   return (
-    <PageShell viewer={list.viewer}>
+    <>
       <h1 className="font-display text-3xl font-bold tracking-tight">{isStaff || !list.viewer ? "รายการแจ้งซ่อม" : "งานที่ฉันแจ้ง"}</h1>
       <p className="mt-1 text-muted-foreground">
         {list.total} รายการ{list.source === "mock" && " (ข้อมูลตัวอย่าง)"}
@@ -53,6 +52,6 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
           </nav>
         )}
       </div>
-    </PageShell>
+    </>
   );
 }

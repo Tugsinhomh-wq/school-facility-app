@@ -1,4 +1,3 @@
-import { PageShell } from "@/components/layout/page-shell";
 import { RoomCalendar } from "@/components/meeting/room-calendar";
 import { getMeetingWeek } from "@/lib/data/rooms";
 import { isStaffRole } from "@/lib/data/session";
@@ -14,7 +13,7 @@ export default async function MeetingRoomsPage({ searchParams }: { searchParams:
   const roomId = data.rooms.find((r) => r.id === sp.room)?.id ?? data.rooms[0]?.id ?? "";
 
   return (
-    <PageShell viewer={data.viewer}>
+    <>
       <h1 className="font-display text-3xl font-bold tracking-tight">ขอใช้ห้องประชุม</h1>
       <p className="mt-1 mb-6 text-muted-foreground">
         ดูตารางว่างและจองห้อง ระบบกันเวลาชนกันให้{data.source === "mock" && " (ข้อมูลตัวอย่าง)"}
@@ -29,6 +28,6 @@ export default async function MeetingRoomsPage({ searchParams }: { searchParams:
         isStaff={isStaffRole(data.viewer?.role)}
         live={data.source === "supabase"}
       />
-    </PageShell>
+    </>
   );
 }

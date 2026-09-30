@@ -4,7 +4,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
-import { PageShell } from "@/components/layout/page-shell";
 import { MemoEditor } from "@/components/memos/memo-editor";
 import { getMemo } from "@/lib/data/memos";
 
@@ -15,12 +14,12 @@ const sarabun = Sarabun({ subsets: ["thai", "latin"], weight: ["400", "700"] });
 
 export default async function MemoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { memo, viewer } = await getMemo(id);
+  const { memo } = await getMemo(id);
   // Row Level Security only returns memos the viewer wrote, or any memo for staff.
   if (!memo) notFound();
 
   return (
-    <PageShell viewer={viewer}>
+    <>
       <Link href="/memos" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-4" aria-hidden />
         บันทึกข้อความ
@@ -40,6 +39,6 @@ export default async function MemoPage({ params }: { params: Promise<{ id: strin
         </div>
       </div>
       <MemoEditor memo={memo} fontClass={sarabun.className} />
-    </PageShell>
+    </>
   );
 }
