@@ -26,7 +26,7 @@ export function BuildingMatrix({ byBuilding }: { byBuilding: DashboardData["byBu
               </span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-muted">
-              <div className="h-full rounded-full bg-gradient-to-r from-sky-500 to-violet-500" style={{ width: `${(count / max) * 100}%` }} />
+              <div className="h-full rounded-full bg-gradient-to-r from-navy to-gold" style={{ width: `${(count / max) * 100}%` }} />
             </div>
           </li>
         ))}

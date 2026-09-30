@@ -1,13 +1,14 @@
 import { CheckCircle2, Clock, Hourglass, Wallet } from "lucide-react";
 
+import { NumberTicker } from "@/components/ui/number-ticker";
 import { BentoCard } from "@/components/ui/bento-grid";
 import { Badge } from "@/components/ui/badge";
 import type { DashboardData } from "@/lib/data/dashboard";
-import { formatBaht, STATUS_LABEL } from "@/lib/ticket-meta";
+import { STATUS_LABEL } from "@/lib/ticket-meta";
 
 export function QuickStats({ stats }: { stats: DashboardData["stats"] }) {
   const items = [
-    { label: STATUS_LABEL.pending, value: stats.pending, icon: Clock, tone: "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300" },
+    { label: STATUS_LABEL.pending, value: stats.pending, icon: Clock, tone: "bg-orange-100 text-orange-800 dark:bg-orange-500/20 dark:text-orange-300" },
     { label: STATUS_LABEL.in_progress, value: stats.in_progress, icon: Hourglass, tone: "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300" },
     { label: STATUS_LABEL.completed, value: stats.completed, icon: CheckCircle2, tone: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300" },
   ];
@@ -23,16 +24,20 @@ export function QuickStats({ stats }: { stats: DashboardData["stats"] }) {
               <Icon className="size-3.5" aria-hidden />
               {label}
             </Badge>
-            <p className="mt-3 text-4xl font-bold tabular-nums">{value}</p>
+            <p className="mt-3 text-4xl font-bold tabular-nums">
+              <NumberTicker value={value} />
+            </p>
             <p className="text-xs text-muted-foreground">รายการ</p>
           </div>
         ))}
         <div className="flex flex-col justify-between rounded-xl border border-border/60 bg-muted/40 p-4">
-          <Badge className="gap-1.5 self-start bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300">
+          <Badge className="gap-1.5 self-start bg-yellow-100 text-yellow-800 dark:bg-yellow-400/15 dark:text-yellow-300">
             <Wallet className="size-3.5" aria-hidden />
             ค่าใช้จ่ายประมาณการรวม
           </Badge>
-          <p className="mt-3 text-3xl font-bold tabular-nums">{formatBaht(stats.estimatedCost)}</p>
+          <p className="mt-3 text-3xl font-bold tabular-nums text-amber-700 dark:text-gold">
+            ฿<NumberTicker value={stats.estimatedCost} className="text-amber-700 dark:text-gold" />
+          </p>
           <p className="text-xs text-muted-foreground">ไม่รวมรายการที่ยกเลิก</p>
         </div>
       </div>

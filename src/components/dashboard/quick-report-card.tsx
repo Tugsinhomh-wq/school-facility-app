@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
+import confetti from "canvas-confetti";
 import { Wrench } from "lucide-react";
 
 import { createRepairTicket, type ReportResult } from "@/app/(dashboard)/actions";
@@ -15,6 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Meteors } from "@/components/ui/meteors";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
@@ -27,10 +29,24 @@ const selectClass =
 function ReportForm() {
   const [state, action, pending] = useActionState<ReportResult | null, FormData>(createRepairTicket, null);
 
+  const succeeded = state?.ok === true;
+  useEffect(() => {
+    if (succeeded) {
+      void confetti({
+        particleCount: 90,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ["#facc15", "#1d4ed8", "#ffffff"],
+        zIndex: 9999,
+        disableForReducedMotion: true,
+      });
+    }
+  }, [succeeded]);
+
   if (state?.ok) {
     return (
       <div className="space-y-4 py-2 text-center">
-        <p className="text-sm">{state.message}</p>
+        <p className="text-base font-medium">🎉 {state.message}</p>
       </div>
     );
   }
@@ -100,7 +116,7 @@ export function QuickReportCard() {
           if (next) setFormKey((k) => k + 1);
         }}
       >
-        <DialogTrigger render={<ShimmerButton className="mt-1 text-sm font-medium" />}>
+        <DialogTrigger render={<ShimmerButton shimmerColor="#facc15" background="#0b2a6b" className="mt-1 text-sm font-medium" />}>
           แจ้งซ่อมอาคารสถานที่ใหม่
         </DialogTrigger>
         <DialogContent>
@@ -111,7 +127,8 @@ export function QuickReportCard() {
           <ReportForm key={formKey} />
         </DialogContent>
       </Dialog>
-      <BorderBeam size={120} duration={8} colorFrom="#38bdf8" colorTo="#a78bfa" />
+      <Meteors number={8} />
+      <BorderBeam size={140} duration={7} colorFrom="#facc15" colorTo="#2563eb" />
     </BentoCard>
   );
 }

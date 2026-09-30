@@ -16,8 +16,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="th"
-      className={`${notoThai.variable} h-full antialiased`}
+      suppressHydrationWarning
+      className={`${notoThai.variable} dark h-full antialiased`}
     >
+      <head>
+        {/* Dark is the default; apply a saved "light" choice before first paint. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")}catch(e){}`,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
