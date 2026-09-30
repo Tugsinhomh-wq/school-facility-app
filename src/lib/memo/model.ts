@@ -21,7 +21,7 @@ export interface MemoDoc {
 }
 
 export function formatThaiDate(input: string | Date) {
-  return new Intl.DateTimeFormat("th-TH-u-ca-buddhist", { day: "numeric", month: "long", year: "numeric" }).format(new Date(input));
+  return new Intl.DateTimeFormat("th-TH-u-ca-buddhist", { timeZone: "Asia/Bangkok", day: "numeric", month: "long", year: "numeric" }).format(new Date(input));
 }
 
 const splitParagraphs = (text: string) =>
