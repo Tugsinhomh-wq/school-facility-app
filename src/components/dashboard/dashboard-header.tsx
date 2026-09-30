@@ -16,8 +16,8 @@ export function DashboardHeader({ base }: { base: DashboardBase }) {
   ];
 
   return (
-    <section className="relative mb-6 flex flex-wrap items-center gap-x-8 gap-y-4 overflow-hidden rounded-2xl border border-border bg-card/70 px-5 py-4 backdrop-blur-sm">
-      <div className="relative size-28 shrink-0 sm:size-32">
+    <section className="relative mb-6 flex flex-wrap items-center gap-x-4 gap-y-3 overflow-hidden rounded-2xl border border-border bg-card/70 px-4 py-3 sm:gap-x-8 sm:gap-y-4 sm:px-5 sm:py-4 backdrop-blur-sm">
+      <div className="relative size-20 shrink-0 sm:size-32">
         <RaysCanvas tickets={base.rays} className="absolute inset-0 size-full" />
         <Image
           src="/logo.png"
@@ -27,18 +27,18 @@ export function DashboardHeader({ base }: { base: DashboardBase }) {
           className="absolute left-1/2 top-1/2 h-[46%] w-auto -translate-x-1/2 -translate-y-1/2 drop-shadow-[0_4px_12px_rgba(0,0,0,.35)]"
         />
       </div>
-      <div className="min-w-0 flex-1 basis-56">
-        <h1 className="font-display text-2xl font-bold leading-tight tracking-tight sm:text-3xl">{SCHOOL_NAME}</h1>
+      <div className="min-w-0 flex-1 basis-40 sm:basis-56">
+        <h1 className="font-display text-xl font-bold leading-tight tracking-tight sm:text-3xl">{SCHOOL_NAME}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           ระบบแจ้งซ่อมอาคารสถานที่และสิ่งแวดล้อม
           {base.source === "mock" && " · ข้อมูลตัวอย่างจนกว่าจะเข้าสู่ระบบ"}
         </p>
       </div>
-      <dl className="grid w-full grid-cols-2 gap-4 sm:w-auto sm:grid-cols-4">
+      <dl className="grid w-full grid-cols-4 gap-2 sm:w-auto sm:gap-4">
         {numbers.map(({ label, value, hot }) => (
           <div key={label}>
-            <dt className="text-xs text-muted-foreground">{label}</dt>
-            <dd className={`text-3xl font-semibold leading-tight ${hot ? "text-red-500" : "text-foreground"}`}>
+            <dt className="text-[11px] leading-tight text-muted-foreground sm:text-xs">{label}</dt>
+            <dd className={`text-2xl font-semibold leading-tight sm:text-3xl ${hot ? "text-red-500" : "text-foreground"}`}>
               <NumberTicker value={value} />
             </dd>
           </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { ImagePlus, Loader2, X } from "lucide-react";
+import { Camera, ImagePlus, Loader2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { BUCKET, compressImage, MAX_IMAGES } from "@/lib/images";
@@ -15,11 +15,12 @@ interface Photo {
  * Uploads each chosen photo straight to the private bucket (compressed to JPEG) and
  * posts only the storage paths with the form, as repeated `image_paths` fields.
  */
-export function ImagePicker({ onBusyChange }: { onBusyChange?: (busy: boolean) => void }) {
+export function ImagePicker({ onBusyChange, camera = false }: { onBusyChange?: (busy: boolean) => void; camera?: boolean }) {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [uploading, setUploading] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const input = useRef<HTMLInputElement>(null);
+  const shot = useRef<HTMLInputElement>(null);
   const previews = useRef<string[]>([]);
 
   useEffect(() => onBusyChange?.(uploading > 0), [uploading, onBusyChange]);
@@ -90,6 +91,16 @@ export function ImagePicker({ onBusyChange }: { onBusyChange?: (busy: boolean) =
             <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden />
           </div>
         ))}
+        {!full && camera && (
+          <button
+            type="button"
+            onClick={() => shot.current?.click()}
+            className="flex h-16 min-w-32 flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-base font-semibold text-primary-foreground"
+          >
+            <Camera className="size-5" aria-hidden />
+            ถ่ายรูป
+          </button>
+        )}
         {!full && (
           <button
             type="button"
@@ -101,6 +112,7 @@ export function ImagePicker({ onBusyChange }: { onBusyChange?: (busy: boolean) =
           </button>
         )}
       </div>
+      <input ref={shot} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} onChange={onPick} aria-label="ถ่ายรูปประกอบ" />
       <input ref={input} type="file" accept="image/*,.heic,.heif" multiple className="sr-only" tabIndex={-1} onChange={onPick} aria-label="เลือกรูปประกอบ" />
       {error && (
         <p role="alert" className="text-xs text-destructive">
