@@ -24,7 +24,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 export default async function TicketDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { ticket, viewer } = await getTicketDetail(id);
+  const { ticket, viewer, imageUrls } = await getTicketDetail(id);
   if (!ticket) notFound();
   const isStaff = viewer?.role === "staff" || viewer?.role === "super_admin";
 
@@ -59,6 +59,22 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
                 <p className="max-w-[65ch] whitespace-pre-line leading-relaxed">{ticket.technician_notes || "ยังไม่มีบันทึก"}</p>
               </Field>
             </div>
+            {imageUrls.length > 0 && (
+              <div className="sm:col-span-2">
+                <Field label={`รูปประกอบ (${imageUrls.length})`}>
+                  <ul className="mt-1 flex flex-wrap gap-3">
+                    {imageUrls.map((url, i) => (
+                      <li key={url}>
+                        <a href={url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border border-border outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={url} alt={`รูปประกอบงานซ่อม ${i + 1}`} loading="lazy" className="h-32 w-auto max-w-56 object-cover" />
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </Field>
+              </div>
+            )}
             <Field label="อัปเดตล่าสุด">{formatDateTh(ticket.updated_at)}</Field>
           </dl>
         </article>

@@ -1,3 +1,4 @@
+import { Camera } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -37,7 +38,15 @@ export function TicketTable({ tickets, showReporter, hasFilters }: { tickets: Ti
                 <Link href={`/tickets/${t.id}`} className="font-medium underline-offset-4 hover:underline focus-visible:underline">
                   {t.title}
                 </Link>
-                <span className="block text-xs text-muted-foreground">{t.ticket_number}</span>
+                <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                  {t.ticket_number}
+                  {t.image_urls?.length > 0 && (
+                    <span className="inline-flex items-center gap-1" title={`มีรูปประกอบ ${t.image_urls.length} รูป`}>
+                      <Camera className="size-3" aria-hidden />
+                      {t.image_urls.length}
+                    </span>
+                  )}
+                </span>
               </td>
               <td className="px-4 py-3">{placeOf(t)}</td>
               {showReporter && <td className="px-4 py-3">{t.reporter?.full_name ?? "-"}</td>}

@@ -26,7 +26,7 @@ export default async function DashboardPage() {
         <BentoGrid>
           <QuickStats stats={data.stats} />
           <RecentTicketsFeed tickets={data.recent} />
-          <QuickReportCard buildings={data.buildings} />
+          <QuickReportCard buildings={data.buildings} canAttach={data.source === "supabase"} />
           <DocumentHub documents={data.documents} canDraft={!data.viewer || data.viewer.role !== "user"} />
           <BuildingMatrix byBuilding={data.byBuilding} />
         </BentoGrid>

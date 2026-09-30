@@ -96,12 +96,14 @@ export interface TicketDetail {
   source: "supabase" | "mock";
   viewer: Viewer | null;
   ticket: TicketRow | null;
+  /** Short-lived signed URLs for ticket.image_urls (the bucket is private). */
+  imageUrls: string[];
 }
 
 export async function getTicketDetail(id: string): Promise<TicketDetail> {
   const mock = (): TicketDetail => {
     const t = MOCK_TICKETS.find((x) => x.id === id);
-    return { source: "mock", viewer: null, ticket: t ? withReporter(t) : null };
+    return { source: "mock", viewer: null, ticket: t ? withReporter(t) : null, imageUrls: [] };
   };
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return mock();
   try {
@@ -113,6 +115,12 @@ export async function getTicketDetail(id: string): Promise<TicketDetail> {
       supabase.from("repair_tickets").select(SELECT).eq("id", id).maybeSingle(),
       supabase.from("profiles").select("full_name, role").eq("id", auth.user.id).maybeSingle(),
     ]);
+    const row = ticket.error ? null : ((ticket.data as unknown as TicketRow | null) ?? null);
+    let imageUrls: string[] = [];
+    if (row?.image_urls?.length) {
+      const { data: signed } = await supabase.storage.from("repair-images").createSignedUrls(row.image_urls, 3600);
+      imageUrls = (signed ?? []).flatMap((s) => (s.signedUrl ? [s.signedUrl] : []));
+    }
     return {
       source: "supabase",
       viewer: {
@@ -120,7 +128,8 @@ export async function getTicketDetail(id: string): Promise<TicketDetail> {
         role: (profile.data?.role as UserRole | undefined) ?? "user",
       },
       // A malformed id or an RLS-hidden row both come back as no ticket.
-      ticket: ticket.error ? null : ((ticket.data as unknown as TicketRow | null) ?? null),
+      ticket: row,
+      imageUrls,
     };
   } catch {
     return mock();

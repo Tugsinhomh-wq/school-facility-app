@@ -19,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
+import { ImagePicker } from "@/components/tickets/image-picker";
 import { Textarea } from "@/components/ui/textarea";
 import type { BuildingOption } from "@/lib/data/dashboard";
 import { URGENCY_LABEL } from "@/lib/ticket-meta";
@@ -26,7 +27,8 @@ import { URGENCY_LABEL } from "@/lib/ticket-meta";
 const selectClass =
   "h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
 
-function ReportForm({ buildings }: { buildings: BuildingOption[] }) {
+function ReportForm({ buildings, canAttach }: { buildings: BuildingOption[]; canAttach: boolean }) {
+  const [busy, setBusy] = useState(false);
   const [state, action, pending] = useActionState<ReportResult | null, FormData>(createRepairTicket, null);
 
   const succeeded = state?.ok === true;
@@ -84,15 +86,20 @@ function ReportForm({ buildings }: { buildings: BuildingOption[] }) {
         <Label htmlFor="description">รายละเอียด</Label>
         <Textarea id="description" name="description" required rows={3} placeholder="อธิบายอาการหรือความเสียหาย" />
       </div>
+      {canAttach ? (
+        <ImagePicker onBusyChange={setBusy} />
+      ) : (
+        <p className="text-xs text-muted-foreground">เข้าสู่ระบบเพื่อแนบรูปประกอบได้</p>
+      )}
       {state && !state.ok && <p role="alert" className="text-sm text-destructive">{state.message}</p>}
-      <Button type="submit" disabled={pending} className="w-full">
-        {pending ? "กำลังส่ง..." : "ส่งเรื่องแจ้งซ่อม"}
+      <Button type="submit" disabled={pending || busy} className="w-full">
+        {pending ? "กำลังส่ง..." : busy ? "กำลังอัปโหลดรูป..." : "ส่งเรื่องแจ้งซ่อม"}
       </Button>
     </form>
   );
 }
 
-export function QuickReportCard({ buildings }: { buildings: BuildingOption[] }) {
+export function QuickReportCard({ buildings, canAttach }: { buildings: BuildingOption[]; canAttach: boolean }) {
   const [open, setOpen] = useState(false);
   // Remount the form on each open so a previous success message is cleared.
   const [formKey, setFormKey] = useState(0);
@@ -116,12 +123,12 @@ export function QuickReportCard({ buildings }: { buildings: BuildingOption[] }) 
         <DialogTrigger render={<ShimmerButton shimmerColor="#ffffff" background="#f2b04a" className="mt-1 text-sm font-semibold text-[#131f78]" />}>
           แจ้งซ่อม
         </DialogTrigger>
-        <DialogContent>
+        <DialogContent className="max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>แจ้งซ่อมอาคารสถานที่</DialogTitle>
             <DialogDescription>เลือกอาคารและกรอกรายละเอียดให้ชัดเจน</DialogDescription>
           </DialogHeader>
-          <ReportForm key={formKey} buildings={buildings} />
+          <ReportForm key={formKey} buildings={buildings} canAttach={canAttach} />
         </DialogContent>
       </Dialog>
       <BorderBeam size={140} duration={8} colorFrom="#f2b04a" colorTo="#ffffff" />

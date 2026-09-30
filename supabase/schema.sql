@@ -329,3 +329,24 @@ REVOKE EXECUTE ON FUNCTION public.set_memo_number() FROM PUBLIC, anon, authentic
 
 CREATE TRIGGER memorandums_set_number BEFORE INSERT ON memorandums
   FOR EACH ROW EXECUTE FUNCTION public.set_memo_number();
+
+-- 9.9 Repair photos: private bucket, files under <user id>/<uuid>.jpg, shown through signed URLs.
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('repair-images', 'repair-images', false, 5242880, ARRAY['image/jpeg', 'image/png', 'image/webp'])
+ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "repair images: upload to own folder" ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'repair-images' AND (storage.foldername(name))[1] = (SELECT auth.uid())::text);
+
+CREATE POLICY "repair images: read own or staff" ON storage.objects FOR SELECT TO authenticated
+  USING (bucket_id = 'repair-images' AND (
+    (storage.foldername(name))[1] = (SELECT auth.uid())::text
+    OR public.current_role_is('staff', 'super_admin')));
+
+CREATE POLICY "repair images: delete own or staff" ON storage.objects FOR DELETE TO authenticated
+  USING (bucket_id = 'repair-images' AND (
+    (storage.foldername(name))[1] = (SELECT auth.uid())::text
+    OR public.current_role_is('staff', 'super_admin')));
+
+ALTER TABLE repair_tickets
+  ADD CONSTRAINT repair_tickets_images_max CHECK (cardinality(image_urls) <= 4);
