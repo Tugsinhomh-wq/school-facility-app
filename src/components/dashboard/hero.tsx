@@ -1,6 +1,7 @@
 import Image from "next/image";
 
 import { RaysCanvas } from "@/components/dashboard/rays-canvas";
+import { UserMenu } from "@/components/dashboard/user-menu";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import type { DashboardData } from "@/lib/data/dashboard";
 
@@ -12,7 +13,8 @@ export function Hero({ data }: { data: DashboardData }) {
 
   return (
     <header className="relative mb-6 grid items-center gap-6 lg:grid-cols-[minmax(0,1fr)_32rem]">
-      <div className="absolute right-0 top-0 z-10">
+      <div className="absolute right-0 top-0 z-10 flex items-center gap-2">
+        <UserMenu viewer={data.viewer} />
         <ThemeToggle />
       </div>
 

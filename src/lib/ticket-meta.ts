@@ -1,4 +1,4 @@
-import type { ApprovalStatus, TicketStatus, UrgencyLevel } from "@/types/database";
+import type { ApprovalStatus, TicketStatus, UrgencyLevel, UserRole } from "@/types/database";
 
 export const STATUS_LABEL: Record<TicketStatus, string> = {
   pending: "รอรับเรื่อง",
@@ -26,6 +26,12 @@ export const APPROVAL_LABEL: Record<ApprovalStatus, string> = {
   approved: "อนุมัติแล้ว",
   rejected: "ไม่อนุมัติ",
   revision_requested: "ขอแก้ไข",
+};
+
+export const ROLE_LABEL: Record<UserRole, string> = {
+  super_admin: "ผู้ดูแลระบบ",
+  staff: "เจ้าหน้าที่",
+  user: "ผู้ใช้งาน",
 };
 
 export function formatBaht(value: number) {

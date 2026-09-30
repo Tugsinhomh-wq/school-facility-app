@@ -1,10 +1,17 @@
 import { MOCK_BUILDINGS, MOCK_MEMOS, MOCK_TICKETS } from "@/lib/mock-data";
-import type { Building, Memorandum, RepairTicketWithLocation, TicketStatus } from "@/types/database";
+import type { Building, Memorandum, RepairTicketWithLocation, TicketStatus, UserRole } from "@/types/database";
 
 export type BuildingOption = Pick<Building, "id" | "name">;
 
+export interface Viewer {
+  name: string;
+  role: UserRole;
+}
+
 export interface DashboardData {
   source: "supabase" | "mock";
+  /** The signed-in user, or null in demo mode. */
+  viewer: Viewer | null;
   stats: Record<Extract<TicketStatus, "pending" | "in_progress" | "completed">, number> & {
     estimatedCost: number;
   };
@@ -22,6 +29,7 @@ export function summarize(
   documents: Memorandum[],
   buildings: BuildingOption[],
   source: DashboardData["source"],
+  viewer: Viewer | null = null,
 ): DashboardData {
   const count = (s: TicketStatus) => tickets.filter((t) => t.status === s).length;
   const open = tickets.filter((t) => t.status !== "cancelled");
@@ -38,6 +46,7 @@ export function summarize(
 
   return {
     source,
+    viewer,
     stats: {
       pending: count("pending"),
       in_progress: count("in_progress"),
@@ -64,7 +73,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       const supabase = await createClient();
       const { data: auth } = await supabase.auth.getUser();
       if (auth.user) {
-        const [tickets, memos, buildings] = await Promise.all([
+        const [tickets, memos, buildings, profile] = await Promise.all([
           supabase
             .from("repair_tickets")
             .select("*, building:buildings(name), room:rooms(room_number, name)")
@@ -77,6 +86,7 @@ export async function getDashboardData(): Promise<DashboardData> {
             .order("created_at", { ascending: false })
             .limit(10),
           supabase.from("buildings").select("id, name").eq("is_active", true).order("name"),
+          supabase.from("profiles").select("full_name, role").eq("id", auth.user.id).maybeSingle(),
         ]);
         if (!tickets.error && !buildings.error) {
           return summarize(
@@ -84,6 +94,10 @@ export async function getDashboardData(): Promise<DashboardData> {
             (memos.data ?? []) as Memorandum[],
             buildings.data as BuildingOption[],
             "supabase",
+            {
+              name: profile.data?.full_name ?? auth.user.email ?? "ผู้ใช้",
+              role: (profile.data?.role as UserRole | undefined) ?? "user",
+            },
           );
         }
       }
