@@ -1,6 +1,7 @@
 import { getRoomSnapshot, mockRoomSnapshot, type LiveRoom, type RoomSnapshot, type TodayMeeting } from "@/lib/data/rooms";
 import { MOCK_BUILDINGS, MOCK_MEMOS, MOCK_TICKETS } from "@/lib/mock-data";
 import type { Building, Memorandum, RepairTicketWithLocation, TicketStatus, UserRole } from "@/types/database";
+import { getAuth } from "@/lib/supabase/auth";
 
 export type BuildingOption = Pick<Building, "id" | "name">;
 
@@ -77,7 +78,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     try {
       const { createClient } = await import("@/lib/supabase/server");
       const supabase = await createClient();
-      const { data: auth } = await supabase.auth.getUser();
+      const { data: auth } = await getAuth(supabase);
       if (auth.user) {
         const [tickets, memos, buildings, profile, rooms] = await Promise.all([
           supabase

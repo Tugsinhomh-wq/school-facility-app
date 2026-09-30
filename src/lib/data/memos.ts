@@ -1,6 +1,7 @@
 import type { Viewer } from "@/lib/data/dashboard";
+import { getSession } from "@/lib/data/session";
 import { MOCK_MEMOS, MOCK_TICKETS } from "@/lib/mock-data";
-import type { Memorandum, UserRole } from "@/types/database";
+import type { Memorandum } from "@/types/database";
 import type { TicketRow } from "@/types/tickets";
 
 export type MemoRecord = Memorandum & { author: { full_name: string; position: string | null } | null };
@@ -10,16 +11,6 @@ export const isStaff = (viewer: Viewer | null) => viewer?.role === "staff" || vi
 
 const MOCK_AUTHOR = { full_name: "นายสมชาย รักงาน", position: "หัวหน้าฝ่ายอาคารสถานที่" };
 const mockMemos = (): MemoRecord[] => MOCK_MEMOS.map((m) => ({ ...m, author: MOCK_AUTHOR }));
-
-async function session() {
-  const { createClient } = await import("@/lib/supabase/server");
-  const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return null;
-  const { data: profile } = await supabase.from("profiles").select("full_name, role").eq("id", auth.user.id).maybeSingle();
-  const viewer: Viewer = { name: profile?.full_name ?? auth.user.email ?? "ผู้ใช้", role: (profile?.role as UserRole | undefined) ?? "user" };
-  return { supabase, viewer, userId: auth.user.id };
-}
 
 export interface MemoList {
   source: "supabase" | "mock";
@@ -41,7 +32,7 @@ export async function getMemoList(): Promise<MemoList> {
   };
   if (!hasSupabase()) return mock();
   try {
-    const s = await session();
+    const s = await getSession();
     if (!s) return mock();
     if (!isStaff(s.viewer)) return { source: "supabase", viewer: s.viewer, memos: [], candidates: [] };
 
@@ -77,7 +68,7 @@ export async function getMemo(id: string): Promise<MemoDetail> {
   const mock = (): MemoDetail => ({ source: "mock", viewer: null, memo: mockMemos().find((m) => m.id === id) ?? null });
   if (!hasSupabase()) return mock();
   try {
-    const s = await session();
+    const s = await getSession();
     if (!s) return mock();
     const { data, error } = await s.supabase.from("memorandums").select("*, author:profiles(full_name, position)").eq("id", id).maybeSingle();
     return { source: "supabase", viewer: s.viewer, memo: error ? null : ((data as unknown as MemoRecord | null) ?? null) };

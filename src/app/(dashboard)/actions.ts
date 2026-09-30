@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
 import type { UrgencyLevel } from "@/types/database";
+import { getAuth } from "@/lib/supabase/auth";
 
 const URGENCIES: UrgencyLevel[] = ["low", "medium", "high", "emergency"];
 
@@ -30,7 +31,7 @@ export async function createRepairTicket(_prev: ReportResult | null, formData: F
   }
 
   const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
+  const { data: auth } = await getAuth(supabase);
   if (!auth.user) {
     return { ok: true, message: "โหมดสาธิต: ยังไม่ได้เข้าสู่ระบบ จึงไม่ได้บันทึกข้อมูลจริง" };
   }
