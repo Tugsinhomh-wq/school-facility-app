@@ -19,7 +19,33 @@ export function TicketTable({ tickets, showReporter, hasFilters }: { tickets: Ti
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-border bg-card/85 backdrop-blur-sm">
+    <>
+      <ul className="space-y-2 md:hidden">
+        {tickets.map((t) => (
+          <li key={t.id}>
+            <Link href={`/tickets/${t.id}`} className="block rounded-xl border border-border bg-card/85 p-4 active:bg-muted/40">
+              <span className="flex items-start justify-between gap-2">
+                <span className="text-base font-medium leading-snug">{t.title}</span>
+                <Badge className={`${STATUS_CLASS[t.status]} shrink-0`}>{STATUS_LABEL[t.status]}</Badge>
+              </span>
+              <span className="mt-1 block text-sm text-muted-foreground">{placeOf(t)}</span>
+              <span className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                <Badge className={URGENCY_CLASS[t.urgency]}>{URGENCY_LABEL[t.urgency]}</Badge>
+                <span>{t.ticket_number}</span>
+                <time dateTime={t.created_at}>{formatDateTh(t.created_at)}</time>
+                {showReporter && t.reporter?.full_name && <span>{t.reporter.full_name}</span>}
+                {t.image_urls?.length > 0 && (
+                  <span className="inline-flex items-center gap-1">
+                    <Camera className="size-3" aria-hidden />
+                    {t.image_urls.length}
+                  </span>
+                )}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    <div className="hidden overflow-x-auto rounded-xl border border-border bg-card/85 backdrop-blur-sm md:block">
       <table className="w-full min-w-[46rem] text-left text-sm">
         <thead className="border-b border-border text-muted-foreground">
           <tr>
@@ -65,5 +91,6 @@ export function TicketTable({ tickets, showReporter, hasFilters }: { tickets: Ti
         </tbody>
       </table>
     </div>
+    </>
   );
 }

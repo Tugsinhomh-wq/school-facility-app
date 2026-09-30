@@ -80,7 +80,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   return (
     <>
-      <div className="mb-4 overflow-hidden rounded-xl">
+      <div className="mb-4 hidden overflow-hidden rounded-xl md:block">
         <MeetingTicker meetings={base.todayMeetings} />
       </div>
       <DashboardHeader base={base} />
