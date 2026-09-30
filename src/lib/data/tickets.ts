@@ -2,6 +2,7 @@ import type { BuildingOption, Viewer } from "@/lib/data/dashboard";
 import { MOCK_BUILDINGS, MOCK_TICKETS } from "@/lib/mock-data";
 import type { TicketStatus, UrgencyLevel, UserRole } from "@/types/database";
 import type { TicketFilters, TicketRow } from "@/types/tickets";
+import { getAuth } from "@/lib/supabase/auth";
 
 export const PAGE_SIZE = 15;
 
@@ -58,7 +59,7 @@ export async function getTicketList(f: TicketFilters): Promise<TicketList> {
   try {
     const { createClient } = await import("@/lib/supabase/server");
     const supabase = await createClient();
-    const { data: auth } = await supabase.auth.getUser();
+    const { data: auth } = await getAuth(supabase);
     if (!auth.user) return mockList(f);
 
     let query = supabase.from("repair_tickets").select(SELECT, { count: "exact" });
@@ -109,7 +110,7 @@ export async function getTicketDetail(id: string): Promise<TicketDetail> {
   try {
     const { createClient } = await import("@/lib/supabase/server");
     const supabase = await createClient();
-    const { data: auth } = await supabase.auth.getUser();
+    const { data: auth } = await getAuth(supabase);
     if (!auth.user) return mock();
     const [ticket, profile] = await Promise.all([
       supabase.from("repair_tickets").select(SELECT).eq("id", id).maybeSingle(),

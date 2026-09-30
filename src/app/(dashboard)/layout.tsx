@@ -2,10 +2,14 @@ import type { ReactNode } from "react";
 
 import { AppHeader } from "@/components/layout/app-header";
 import { GridPattern } from "@/components/ui/grid-pattern";
-import type { Viewer } from "@/lib/data/dashboard";
+import { getSession } from "@/lib/data/session";
 
-/** Frame for inner pages: navigation bar, faint grid, content. */
-export function PageShell({ viewer, children }: { viewer: Viewer | null; children: ReactNode }) {
+/**
+ * Shared frame for every signed-in page. Living in a layout, the header and grid stay mounted while
+ * pages change, so a click only has to load the page body.
+ */
+export default async function DashboardLayout({ children }: { children: ReactNode }) {
+  const session = await getSession();
   return (
     <div className="relative min-h-screen overflow-hidden">
       <GridPattern
@@ -14,7 +18,7 @@ export function PageShell({ viewer, children }: { viewer: Viewer | null; childre
         className="h-[360px] stroke-primary/10 fill-primary/5 [mask-image:linear-gradient(to_bottom,white,transparent)]"
       />
       <div className="relative mx-auto max-w-7xl px-4 py-6 sm:px-6">
-        <AppHeader viewer={viewer} />
+        <AppHeader viewer={session?.viewer ?? null} />
         {children}
       </div>
     </div>

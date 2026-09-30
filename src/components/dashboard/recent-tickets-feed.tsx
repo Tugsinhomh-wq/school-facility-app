@@ -6,7 +6,8 @@ import { AnimatedList } from "@/components/ui/animated-list";
 import { Badge } from "@/components/ui/badge";
 import { BentoCard } from "@/components/ui/bento-grid";
 import { timeAgoTh, URGENCY_CLASS, URGENCY_LABEL } from "@/lib/ticket-meta";
-import type { RepairTicketWithLocation, UrgencyLevel } from "@/types/database";
+import type { TicketBrief } from "@/lib/data/dashboard";
+import type { UrgencyLevel } from "@/types/database";
 
 const BAR: Record<UrgencyLevel, string> = {
   low: "border-l-slate-400",
@@ -15,7 +16,7 @@ const BAR: Record<UrgencyLevel, string> = {
   emergency: "border-l-red-500",
 };
 
-function TicketRow({ ticket }: { ticket: RepairTicketWithLocation }) {
+function TicketRow({ ticket }: { ticket: TicketBrief }) {
   const place = [ticket.building?.name, ticket.room?.name ?? ticket.location_detail].filter(Boolean).join(", ");
   return (
     <div className={`w-full rounded-lg border border-l-4 border-border bg-background/70 py-2.5 pl-3 pr-3 ${BAR[ticket.urgency]}`}>
@@ -31,19 +32,33 @@ function TicketRow({ ticket }: { ticket: RepairTicketWithLocation }) {
   );
 }
 
-export function RecentTicketsFeed({ tickets }: { tickets: RepairTicketWithLocation[] }) {
+export function RecentTicketsFeed({
+  tickets,
+  title = "แจ้งซ่อมล่าสุด",
+  hint = "เรียงจากใหม่ไปเก่า แสดง 5 รายการ",
+  className = "md:col-span-3 lg:col-span-5 lg:row-span-2",
+  reverse = true,
+}: {
+  tickets: TicketBrief[];
+  title?: string;
+  hint?: string;
+  className?: string;
+  /** The animated list stacks new items on top, so oldest-first input reads newest-first. */
+  reverse?: boolean;
+}) {
   return (
-    <BentoCard className="md:col-span-3 lg:col-span-5 lg:row-span-2">
+    <BentoCard className={className}>
       <div className="flex items-baseline justify-between gap-2">
-        <h2 className="text-lg font-semibold">แจ้งซ่อมล่าสุด</h2>
+        <h2 className="text-lg font-semibold">{title}</h2>
         <Link href="/tickets" className="text-sm text-primary underline-offset-4 hover:underline">
           ดูทั้งหมด
         </Link>
       </div>
-      <p className="text-sm text-muted-foreground">เรียงจากใหม่ไปเก่า แสดง 5 รายการ</p>
+      <p className="text-sm text-muted-foreground">{hint}</p>
+      {tickets.length === 0 && <p className="mt-4 text-sm text-muted-foreground">ยังไม่มีรายการ</p>}
       <div className="relative mt-4 min-h-0 flex-1 overflow-hidden">
-        <AnimatedList delay={1000}>
-          {[...tickets].reverse().map((t) => (
+        <AnimatedList delay={300}>
+          {(reverse ? [...tickets].reverse() : tickets).map((t) => (
             <TicketRow key={t.id} ticket={t} />
           ))}
         </AnimatedList>

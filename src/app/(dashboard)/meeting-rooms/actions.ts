@@ -8,6 +8,7 @@ import { hasSupabase, isStaffRole } from "@/lib/data/session";
 import { MOCK_MEMOS } from "@/lib/mock-data";
 import { createClient } from "@/lib/supabase/server";
 import { atBangkok, isYmd } from "@/lib/time";
+import { getAuth } from "@/lib/supabase/auth";
 
 export type BookingResult = {
   ok: boolean;
@@ -38,7 +39,7 @@ export async function createReservation(_prev: BookingResult, formData: FormData
 
   if (!hasSupabase()) return { ok: true, message: "โหมดสาธิต: ยังไม่ได้ตั้งค่า Supabase จึงไม่ได้บันทึกการจองจริง" };
   const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
+  const { data: auth } = await getAuth(supabase);
   if (!auth.user) return { ok: false, message: "เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่" };
 
   const { data: room } = await supabase.from("rooms").select("capacity, is_bookable").eq("id", roomId).maybeSingle();
@@ -85,7 +86,7 @@ export async function decideReservation(formData: FormData) {
   if (!id || !["approved", "rejected"].includes(decision) || !hasSupabase()) return;
 
   const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
+  const { data: auth } = await getAuth(supabase);
   if (!auth.user) redirect("/login");
   await supabase.from("facility_reservations").update({ status: decision }).eq("id", id).eq("status", "pending");
   revalidatePath("/meeting-rooms");
@@ -99,7 +100,7 @@ export async function createMemoFromReservation(formData: FormData) {
   if (!hasSupabase()) redirect(`/memos/${MOCK_MEMOS[0].id}`);
 
   const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
+  const { data: auth } = await getAuth(supabase);
   if (!auth.user) redirect("/login");
 
   const { data: existing } = await supabase

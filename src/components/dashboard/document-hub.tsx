@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { APPROVAL_LABEL } from "@/lib/ticket-meta";
 import type { Memorandum } from "@/types/database";
 
-export function DocumentHub({ documents, canDraft }: { documents: Memorandum[]; canDraft: boolean }) {
+export function DocumentHub({ documents, canDraft, className = "md:col-span-3 lg:col-span-4" }: { documents: Memorandum[]; canDraft: boolean; className?: string }) {
   return (
-    <BentoCard className="md:col-span-3 lg:col-span-4">
+    <BentoCard className={className}>
       <div className="flex items-center gap-2">
         <ScrollText className="size-5 text-muted-foreground" aria-hidden />
         <h2 className="text-lg font-semibold">บันทึกข้อความ</h2>

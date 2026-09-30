@@ -7,6 +7,7 @@ import { draftFromTicket } from "@/lib/memo/draft";
 import { MOCK_MEMOS } from "@/lib/mock-data";
 import { createClient } from "@/lib/supabase/server";
 import type { TicketRow } from "@/types/tickets";
+import { getAuth } from "@/lib/supabase/auth";
 
 export type SaveResult = { ok: boolean; message: string } | null;
 
@@ -20,7 +21,7 @@ export async function createMemoFromTicket(formData: FormData) {
   if (demo()) redirect(`/memos/${MOCK_MEMOS.find((m) => m.reference_id === ticketId)?.id ?? MOCK_MEMOS[0].id}`);
 
   const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
+  const { data: auth } = await getAuth(supabase);
   if (!auth.user) redirect("/login");
 
   const { data: existing } = await supabase
@@ -76,7 +77,7 @@ export async function saveMemo(_prev: SaveResult, formData: FormData): Promise<S
   if (demo()) return { ok: true, message: "โหมดสาธิต: ยังไม่ได้ตั้งค่า Supabase จึงไม่ได้บันทึกข้อมูลจริง" };
 
   const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
+  const { data: auth } = await getAuth(supabase);
   if (!auth.user) return { ok: false, message: "เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่" };
 
   const update: Record<string, string | null> = { subject, recipient, body_content: body, proposal: proposal || null };

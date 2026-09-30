@@ -1,9 +1,9 @@
 import { Building2 } from "lucide-react";
 
 import { BentoCard } from "@/components/ui/bento-grid";
-import type { DashboardData } from "@/lib/data/dashboard";
+import type { DashboardBase } from "@/lib/data/dashboard";
 
-export function BuildingMatrix({ byBuilding }: { byBuilding: DashboardData["byBuilding"] }) {
+export function BuildingMatrix({ byBuilding }: { byBuilding: DashboardBase["byBuilding"] }) {
   const max = Math.max(1, ...byBuilding.map((b) => b.count));
   const total = byBuilding.reduce((s, b) => s + b.count, 0);
 

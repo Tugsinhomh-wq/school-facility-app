@@ -17,6 +17,9 @@ import type { RepairTicket } from "@/types/database";
 type Ray = Pick<RepairTicket, "id" | "urgency" | "status">;
 
 const LENGTH: Record<Ray["urgency"], number> = { low: 0.56, medium: 0.68, high: 0.82, emergency: 0.97 };
+const AMBIENT = 40;
+/** The rays breathe slowly, so ~20 frames a second looks the same as 60 and costs a third. */
+const FRAME_MS = 50;
 const GOLDEN_ANGLE = 2.399963229728653;
 
 function hash(str: string) {
@@ -48,8 +51,8 @@ function buildSpokes(rays: Ray[]): Spoke[] {
   const rng = mulberry32(hash(rays.map((r) => r.id).join("|")) || 1);
   const spokes: Spoke[] = [];
 
-  for (let i = 0; i < 84; i++) {
-    const angle = (i / 84) * Math.PI * 2 + (rng() - 0.5) * 0.05;
+  for (let i = 0; i < AMBIENT; i++) {
+    const angle = (i / AMBIENT) * Math.PI * 2 + (rng() - 0.5) * 0.05;
     // Rays reach further upward, like the lantern's beams.
     const upward = (1 - Math.sin(angle)) / 2; // 1 at top (angle = -90°), 0 at bottom
     spokes.push({
@@ -148,8 +151,12 @@ export function RaysCanvas({ tickets, className }: { tickets: Ray[]; className?:
       }
     }
 
+    let last = 0;
     function loop(t: number) {
-      draw(t);
+      if (t - last >= FRAME_MS) {
+        last = t;
+        draw(t);
+      }
       frame = visible && !reduced.matches ? requestAnimationFrame(loop) : 0;
     }
     const start = () => {
@@ -170,11 +177,17 @@ export function RaysCanvas({ tickets, className }: { tickets: Ray[]; className?:
 
     const ro = new ResizeObserver(resize);
     ro.observe(canvas);
-    const io = new IntersectionObserver(([e]) => {
-      visible = e?.isIntersecting ?? true;
+    let onScreen = true;
+    const sync = () => {
+      visible = onScreen && !document.hidden;
       if (visible) start();
+    };
+    const io = new IntersectionObserver(([e]) => {
+      onScreen = e?.isIntersecting ?? true;
+      sync();
     });
     io.observe(canvas);
+    document.addEventListener("visibilitychange", sync);
     const theme = new MutationObserver(() => draw(performance.now()));
     theme.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     const onMotion = () => {
@@ -187,6 +200,7 @@ export function RaysCanvas({ tickets, className }: { tickets: Ray[]; className?:
       cancelAnimationFrame(frame);
       ro.disconnect();
       io.disconnect();
+      document.removeEventListener("visibilitychange", sync);
       theme.disconnect();
       reduced.removeEventListener("change", onMotion);
     };

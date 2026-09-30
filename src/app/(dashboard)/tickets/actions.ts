@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
 import type { TicketStatus } from "@/types/database";
+import { getAuth } from "@/lib/supabase/auth";
 
 const STATUSES: TicketStatus[] = ["pending", "in_progress", "completed", "cancelled"];
 const MAX_COST = 99_999_999.99; // NUMERIC(10,2)
@@ -24,7 +25,7 @@ export async function updateTicket(_prev: UpdateResult, formData: FormData): Pro
     return { ok: true, message: "โหมดสาธิต: ยังไม่ได้ตั้งค่า Supabase จึงไม่ได้บันทึกข้อมูลจริง" };
   }
   const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
+  const { data: auth } = await getAuth(supabase);
   if (!auth.user) return { ok: false, message: "เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่" };
 
   // RLS only lets staff and super_admin update; an empty result means the write was refused.

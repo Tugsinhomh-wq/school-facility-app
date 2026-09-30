@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { createMemoFromTicket } from "@/app/(dashboard)/memos/actions";
-import { PageShell } from "@/components/layout/page-shell";
 import { placeOf } from "@/components/tickets/ticket-table";
 import { TicketManageForm } from "@/components/tickets/ticket-manage-form";
 import { Badge } from "@/components/ui/badge";
@@ -29,7 +28,7 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
   const isStaff = viewer?.role === "staff" || viewer?.role === "super_admin";
 
   return (
-    <PageShell viewer={viewer}>
+    <>
       <Link href="/tickets" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-4" aria-hidden />
         รายการแจ้งซ่อม
@@ -90,6 +89,6 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
           </aside>
         )}
       </div>
-    </PageShell>
+    </>
   );
 }

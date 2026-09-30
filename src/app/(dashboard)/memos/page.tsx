@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { PageShell } from "@/components/layout/page-shell";
 import { placeOf } from "@/components/tickets/ticket-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,7 +16,7 @@ export default async function MemosPage({ searchParams }: { searchParams: Promis
   const allowed = !list.viewer || isStaff(list.viewer);
 
   return (
-    <PageShell viewer={list.viewer}>
+    <>
       <h1 className="font-display text-3xl font-bold tracking-tight">บันทึกข้อความ</h1>
       <p className="mt-1 text-muted-foreground">
         ร่างบันทึกข้อความเสนอผู้อำนวยการจากงานแจ้งซ่อม แล้วดาวน์โหลดเป็น PDF หรือ Word{list.source === "mock" && " (ข้อมูลตัวอย่าง)"}
@@ -79,6 +78,6 @@ export default async function MemosPage({ searchParams }: { searchParams: Promis
           </section>
         </div>
       )}
-    </PageShell>
+    </>
   );
 }
