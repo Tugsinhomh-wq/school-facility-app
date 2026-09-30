@@ -1,4 +1,4 @@
-import type { RepairCategory, TicketStatus, UrgencyLevel } from "@/types/database";
+import type { ApprovalStatus, TicketStatus, UrgencyLevel } from "@/types/database";
 
 export const STATUS_LABEL: Record<TicketStatus, string> = {
   pending: "รอรับเรื่อง",
@@ -21,13 +21,11 @@ export const URGENCY_CLASS: Record<UrgencyLevel, string> = {
   emergency: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300",
 };
 
-export const CATEGORY_LABEL: Record<RepairCategory, string> = {
-  electrical: "ระบบไฟฟ้า",
-  plumbing: "ระบบประปา/สุขาภิบาล",
-  building_structure: "โครงสร้างอาคาร",
-  furniture_equipment: "ครุภัณฑ์/เฟอร์นิเจอร์",
-  environment_grounds: "สิ่งแวดล้อม/สนาม",
-  other: "อื่น ๆ",
+export const APPROVAL_LABEL: Record<ApprovalStatus, string> = {
+  pending: "รอพิจารณา",
+  approved: "อนุมัติแล้ว",
+  rejected: "ไม่อนุมัติ",
+  revision_requested: "ขอแก้ไข",
 };
 
 export function formatBaht(value: number) {

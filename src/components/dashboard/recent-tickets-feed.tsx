@@ -4,7 +4,7 @@ import { AnimatedList } from "@/components/ui/animated-list";
 import { Badge } from "@/components/ui/badge";
 import { BentoCard } from "@/components/ui/bento-grid";
 import { timeAgoTh, URGENCY_CLASS, URGENCY_LABEL } from "@/lib/ticket-meta";
-import type { RepairTicket, UrgencyLevel } from "@/types/database";
+import type { RepairTicketWithLocation, UrgencyLevel } from "@/types/database";
 
 const BAR: Record<UrgencyLevel, string> = {
   low: "border-l-slate-400",
@@ -13,8 +13,8 @@ const BAR: Record<UrgencyLevel, string> = {
   emergency: "border-l-red-500",
 };
 
-function TicketRow({ ticket }: { ticket: RepairTicket }) {
-  const place = [ticket.location_building, ticket.location_room].filter(Boolean).join(", ");
+function TicketRow({ ticket }: { ticket: RepairTicketWithLocation }) {
+  const place = [ticket.building?.name, ticket.room?.name ?? ticket.location_detail].filter(Boolean).join(", ");
   return (
     <div className={`w-full rounded-lg border border-l-4 border-border bg-background/70 py-2.5 pl-3 pr-3 ${BAR[ticket.urgency]}`}>
       <div className="flex items-start justify-between gap-2">
@@ -29,7 +29,7 @@ function TicketRow({ ticket }: { ticket: RepairTicket }) {
   );
 }
 
-export function RecentTicketsFeed({ tickets }: { tickets: RepairTicket[] }) {
+export function RecentTicketsFeed({ tickets }: { tickets: RepairTicketWithLocation[] }) {
   return (
     <BentoCard className="md:col-span-3 lg:col-span-5 lg:row-span-2">
       <h2 className="text-lg font-semibold">แจ้งซ่อมล่าสุด</h2>

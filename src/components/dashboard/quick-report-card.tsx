@@ -20,12 +20,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
 import { Textarea } from "@/components/ui/textarea";
-import { CATEGORY_LABEL, URGENCY_LABEL } from "@/lib/ticket-meta";
+import type { BuildingOption } from "@/lib/data/dashboard";
+import { URGENCY_LABEL } from "@/lib/ticket-meta";
 
 const selectClass =
   "h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
 
-function ReportForm() {
+function ReportForm({ buildings }: { buildings: BuildingOption[] }) {
   const [state, action, pending] = useActionState<ReportResult | null, FormData>(createRepairTicket, null);
 
   const succeeded = state?.ok === true;
@@ -58,10 +59,11 @@ function ReportForm() {
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <Label htmlFor="category">หมวดหมู่</Label>
-          <select id="category" name="category" defaultValue="other" className={selectClass}>
-            {Object.entries(CATEGORY_LABEL).map(([v, l]) => (
-              <option key={v} value={v}>{l}</option>
+          <Label htmlFor="building_id">อาคาร</Label>
+          <select id="building_id" name="building_id" required defaultValue="" className={selectClass}>
+            <option value="" disabled>เลือกอาคาร</option>
+            {buildings.map((b) => (
+              <option key={b.id} value={b.id}>{b.name}</option>
             ))}
           </select>
         </div>
@@ -73,14 +75,10 @@ function ReportForm() {
             ))}
           </select>
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="location_building">อาคาร/สถานที่</Label>
-          <Input id="location_building" name="location_building" required placeholder="เช่น อาคาร 1" />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="location_room">ห้อง (ถ้ามี)</Label>
-          <Input id="location_room" name="location_room" placeholder="เช่น ห้อง 112" />
-        </div>
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="location_detail">ห้องหรือจุดที่พบ (ถ้ามี)</Label>
+        <Input id="location_detail" name="location_detail" placeholder="เช่น ห้อง 112 หรือหน้าโรงอาหาร" />
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="description">รายละเอียด</Label>
@@ -94,7 +92,7 @@ function ReportForm() {
   );
 }
 
-export function QuickReportCard() {
+export function QuickReportCard({ buildings }: { buildings: BuildingOption[] }) {
   const [open, setOpen] = useState(false);
   // Remount the form on each open so a previous success message is cleared.
   const [formKey, setFormKey] = useState(0);
@@ -121,9 +119,9 @@ export function QuickReportCard() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>แจ้งซ่อมอาคารสถานที่</DialogTitle>
-            <DialogDescription>เลือกหมวดหมู่และกรอกรายละเอียดให้ชัดเจน</DialogDescription>
+            <DialogDescription>เลือกอาคารและกรอกรายละเอียดให้ชัดเจน</DialogDescription>
           </DialogHeader>
-          <ReportForm key={formKey} />
+          <ReportForm key={formKey} buildings={buildings} />
         </DialogContent>
       </Dialog>
       <BorderBeam size={140} duration={8} colorFrom="#f2b04a" colorTo="#ffffff" />

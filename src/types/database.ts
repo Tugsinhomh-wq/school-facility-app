@@ -1,44 +1,84 @@
+// Mirrors supabase/schema.sql. Keep the two in sync.
+
 export type UserRole = "super_admin" | "staff" | "user";
 export type TicketStatus = "pending" | "in_progress" | "completed" | "cancelled";
 export type UrgencyLevel = "low" | "medium" | "high" | "emergency";
-export type RepairCategory =
-  | "electrical"
-  | "plumbing"
-  | "building_structure"
-  | "furniture_equipment"
-  | "environment_grounds"
-  | "other";
+export type ApprovalMode = "paper_hybrid" | "digital_multistage";
+export type ApprovalStatus = "pending" | "approved" | "rejected" | "revision_requested";
+export type ModuleType = "repair" | "reservation" | "environment" | "general_memo";
 
 export interface Profile {
   id: string;
   full_name: string;
   email: string;
   department: string | null;
+  position: string | null;
   role: UserRole;
   created_at: string;
   updated_at: string;
+}
+
+export interface Building {
+  id: string;
+  code: string;
+  name: string;
+  floor_count: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface Room {
+  id: string;
+  building_id: string;
+  room_number: string;
+  name: string;
+  capacity: number | null;
+  is_bookable: boolean;
+  created_at: string;
 }
 
 export interface RepairTicket {
   id: string;
   ticket_number: string;
   reporter_id: string;
+  building_id: string;
+  room_id: string | null;
+  location_detail: string | null;
   title: string;
   description: string;
-  category: RepairCategory;
-  location_building: string;
-  location_room: string | null;
   urgency: UrgencyLevel;
   status: TicketStatus;
   image_urls: string[];
-  technician_notes: string | null;
   estimated_cost: number;
-  document_ref_no: string | null;
+  technician_notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** A ticket with its building and room resolved, as the dashboard queries it. */
+export type RepairTicketWithLocation = RepairTicket & {
+  building: Pick<Building, "name"> | null;
+  room: Pick<Room, "room_number" | "name"> | null;
+};
+
+export interface Memorandum {
+  id: string;
+  doc_ref_no: string;
+  origin_module: ModuleType;
+  reference_id: string | null;
+  author_id: string;
+  subject: string;
+  recipient: string;
+  body_content: string;
+  proposal: string | null;
+  approval_mode: ApprovalMode;
+  current_step: number;
+  final_status: ApprovalStatus;
   created_at: string;
   updated_at: string;
 }
 
 export type NewRepairTicket = Pick<
   RepairTicket,
-  "title" | "description" | "category" | "location_building" | "urgency"
-> & { location_room?: string | null };
+  "building_id" | "title" | "description" | "urgency"
+> & { location_detail?: string | null };

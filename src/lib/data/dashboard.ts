@@ -1,33 +1,40 @@
-import { MOCK_TICKETS } from "@/lib/mock-data";
-import type { RepairTicket, TicketStatus } from "@/types/database";
+import { MOCK_BUILDINGS, MOCK_MEMOS, MOCK_TICKETS } from "@/lib/mock-data";
+import type { Building, Memorandum, RepairTicketWithLocation, TicketStatus } from "@/types/database";
+
+export type BuildingOption = Pick<Building, "id" | "name">;
 
 export interface DashboardData {
   source: "supabase" | "mock";
   stats: Record<Extract<TicketStatus, "pending" | "in_progress" | "completed">, number> & {
     estimatedCost: number;
   };
-  recent: RepairTicket[];
-  documents: RepairTicket[];
+  recent: RepairTicketWithLocation[];
+  documents: Memorandum[];
+  buildings: BuildingOption[];
   byBuilding: { building: string; count: number }[];
   /** One entry per non-cancelled ticket; drives the hero ray artwork. */
-  rays: Pick<RepairTicket, "id" | "urgency" | "status">[];
+  rays: Pick<RepairTicketWithLocation, "id" | "urgency" | "status">[];
   emergencyOpen: number;
 }
 
-export function summarize(tickets: RepairTicket[], source: DashboardData["source"]): DashboardData {
+export function summarize(
+  tickets: RepairTicketWithLocation[],
+  documents: Memorandum[],
+  buildings: BuildingOption[],
+  source: DashboardData["source"],
+): DashboardData {
   const count = (s: TicketStatus) => tickets.filter((t) => t.status === s).length;
   const open = tickets.filter((t) => t.status !== "cancelled");
 
   const byBuilding = Object.entries(
     open.reduce<Record<string, number>>((acc, t) => {
-      acc[t.location_building] = (acc[t.location_building] ?? 0) + 1;
+      const name = t.building?.name ?? "ไม่ระบุอาคาร";
+      acc[name] = (acc[name] ?? 0) + 1;
       return acc;
     }, {}),
   )
     .map(([building, n]) => ({ building, count: n }))
     .sort((a, b) => b.count - a.count);
-
-  const byNewest = [...tickets].sort((a, b) => b.created_at.localeCompare(a.created_at));
 
   return {
     source,
@@ -37,8 +44,9 @@ export function summarize(tickets: RepairTicket[], source: DashboardData["source
       completed: count("completed"),
       estimatedCost: open.reduce((sum, t) => sum + Number(t.estimated_cost ?? 0), 0),
     },
-    recent: byNewest.slice(0, 5),
-    documents: byNewest.filter((t) => t.document_ref_no).slice(0, 4),
+    recent: [...tickets].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 5),
+    documents: [...documents].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 4),
+    buildings,
     byBuilding,
     rays: open.map(({ id, urgency, status }) => ({ id, urgency, status })),
     emergencyOpen: open.filter((t) => t.urgency === "emergency" && t.status !== "completed").length,
@@ -46,8 +54,8 @@ export function summarize(tickets: RepairTicket[], source: DashboardData["source
 }
 
 /**
- * Loads tickets from Supabase when configured and signed in (RLS needs a user);
- * otherwise — or on any error — falls back to mock data so the UI always renders.
+ * Loads from Supabase when configured and signed in (RLS needs a user);
+ * otherwise, or on any error, falls back to mock data so the UI always renders.
  */
 export async function getDashboardData(): Promise<DashboardData> {
   if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
@@ -56,16 +64,32 @@ export async function getDashboardData(): Promise<DashboardData> {
       const supabase = await createClient();
       const { data: auth } = await supabase.auth.getUser();
       if (auth.user) {
-        const { data, error } = await supabase
-          .from("repair_tickets")
-          .select("*")
-          .order("created_at", { ascending: false })
-          .limit(500);
-        if (!error && data) return summarize(data as RepairTicket[], "supabase");
+        const [tickets, memos, buildings] = await Promise.all([
+          supabase
+            .from("repair_tickets")
+            .select("*, building:buildings(name), room:rooms(room_number, name)")
+            .order("created_at", { ascending: false })
+            .limit(500),
+          supabase
+            .from("memorandums")
+            .select("*")
+            .eq("origin_module", "repair")
+            .order("created_at", { ascending: false })
+            .limit(10),
+          supabase.from("buildings").select("id, name").eq("is_active", true).order("name"),
+        ]);
+        if (!tickets.error && !buildings.error) {
+          return summarize(
+            tickets.data as unknown as RepairTicketWithLocation[],
+            (memos.data ?? []) as Memorandum[],
+            buildings.data as BuildingOption[],
+            "supabase",
+          );
+        }
       }
     } catch {
       // fall through to mock data
     }
   }
-  return summarize(MOCK_TICKETS, "mock");
+  return summarize(MOCK_TICKETS, MOCK_MEMOS, MOCK_BUILDINGS, "mock");
 }

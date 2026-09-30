@@ -3,9 +3,8 @@
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
-import type { RepairCategory, UrgencyLevel } from "@/types/database";
+import type { UrgencyLevel } from "@/types/database";
 
-const CATEGORIES: RepairCategory[] = ["electrical", "plumbing", "building_structure", "furniture_equipment", "environment_grounds", "other"];
 const URGENCIES: UrgencyLevel[] = ["low", "medium", "high", "emergency"];
 
 export type ReportResult = { ok: boolean; message: string };
@@ -14,16 +13,15 @@ export async function createRepairTicket(_prev: ReportResult | null, formData: F
   const str = (k: string) => String(formData.get(k) ?? "").trim();
   const title = str("title");
   const description = str("description");
-  const building = str("location_building");
-  const room = str("location_room");
-  const category = str("category") as RepairCategory;
+  const buildingId = str("building_id");
+  const locationDetail = str("location_detail");
   const urgency = str("urgency") as UrgencyLevel;
 
-  if (!title || !description || !building) {
-    return { ok: false, message: "กรุณากรอกหัวข้อ รายละเอียด และอาคาร/สถานที่ให้ครบ" };
+  if (!title || !description || !buildingId) {
+    return { ok: false, message: "กรุณากรอกหัวข้อ รายละเอียด และเลือกอาคารให้ครบ" };
   }
-  if (!CATEGORIES.includes(category) || !URGENCIES.includes(urgency)) {
-    return { ok: false, message: "ข้อมูลหมวดหมู่หรือความเร่งด่วนไม่ถูกต้อง" };
+  if (!URGENCIES.includes(urgency)) {
+    return { ok: false, message: "ระดับความเร่งด่วนไม่ถูกต้อง" };
   }
 
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
@@ -41,10 +39,9 @@ export async function createRepairTicket(_prev: ReportResult | null, formData: F
     reporter_id: auth.user.id,
     title,
     description,
-    category,
     urgency,
-    location_building: building,
-    location_room: room || null,
+    building_id: buildingId,
+    location_detail: locationDetail || null,
     ticket_number: "",
   });
   if (error) return { ok: false, message: `บันทึกไม่สำเร็จ: ${error.message}` };
