@@ -83,7 +83,7 @@ export async function getMeetingWeek(weekStart: string): Promise<MeetingWeek> {
     const s = await getSession();
     if (!s) return mock();
     const [rooms, bookings] = await Promise.all([
-      s.supabase.from("rooms").select(ROOM_SELECT).eq("is_bookable", true).order("name"),
+      s.supabase.from("rooms").select(ROOM_SELECT).eq("is_bookable", true).order("room_number"),
       s.supabase
         .from("facility_reservations")
         .select("id, room_id, applicant_id, purpose, attendee_count, equipment_needed, start_time, end_time, status, applicant:profiles(full_name)")
@@ -157,7 +157,7 @@ export async function getTodayMeetings(supabase: SupabaseClient): Promise<TodayM
 
 export async function getLiveRooms(supabase: SupabaseClient): Promise<LiveRoom[]> {
   try {
-    const { data, error } = await supabase.from("v_live_room_status").select("*").order("room_name");
+    const { data, error } = await supabase.from("v_live_room_status").select("*").order("room_number");
     return error ? [] : (data as LiveRoom[]);
   } catch {
     return [];
@@ -205,7 +205,7 @@ export function mockPendingReservations(): PendingReservation[] {
     .map((b) => ({ id: b.id, purpose: b.purpose, room_name: names.get(b.room_id) ?? "", start_time: b.start_time, end_time: b.end_time, applicant_name: b.applicant_name }));
 }
 
-/** "09:00-10:30 น. ห้องประชุมใหญ่: ประชุมครู" */
+/** "09:00-10:30 น. ห้องประชุมภูมินทร์: ประชุมครู" */
 export function meetingLine(m: TodayMeeting) {
   return `${formatInstantHm(m.start_time)}-${formatInstantHm(m.end_time)} น. ${m.room_name}: ${m.title}`;
 }

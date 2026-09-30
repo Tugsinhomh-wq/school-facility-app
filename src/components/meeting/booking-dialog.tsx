@@ -77,7 +77,7 @@ function BookingForm({ rooms, bookings, defaults, onDone }: { rooms: RoomInfo[];
         <select id="room_id" name="room_id" value={roomId} onChange={(e) => changeRoom(e.target.value)} className={selectClass}>
           {rooms.map((r) => (
             <option key={r.id} value={r.id}>
-              {r.name} ({r.building_name}{r.capacity ? `, ${r.capacity} ที่นั่ง` : ""})
+              {r.name}{r.building_name !== r.name || r.capacity ? ` (${[r.building_name !== r.name ? r.building_name : null, r.capacity ? `${r.capacity} ที่นั่ง` : null].filter(Boolean).join(", ")})` : ""}
             </option>
           ))}
         </select>

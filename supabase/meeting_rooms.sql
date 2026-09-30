@@ -103,11 +103,16 @@ ALTER PUBLICATION supabase_realtime ADD TABLE facility_reservations;
 -- =====================================================================
 -- Part C: optional starter data (edit to match the real rooms)
 -- =====================================================================
-UPDATE rooms SET name = 'ห้องประชุมใหญ่', capacity = 60, requires_approval = true,
-  equipment = '{"โปรเจกเตอร์","ไมค์ลอย","เครื่องเสียง"}' WHERE room_number = 'MTG-01';
-UPDATE rooms SET requires_approval = true, equipment = '{"เครื่องเสียง","ไมค์ลอย"}' WHERE room_number = 'CAN-01';
-UPDATE rooms SET equipment = '{"คอมพิวเตอร์ 40 เครื่อง","โปรเจกเตอร์"}' WHERE room_number = '301';
+-- The five meeting rooms. Each gets its own building row so it also works as a repair location.
+-- The first three need the director's approval; change requires_approval to match your rules.
+INSERT INTO buildings (code, name, floor_count) VALUES
+  ('HALL-01', 'ห้องประชุมภูมินทร์', 1),
+  ('HALL-02', 'ห้องประชุมมหาชนก', 1),
+  ('HALL-03', 'ห้องประชุมเฉลิมพระเกียรติ', 1),
+  ('HALL-04', 'ห้องประชุมบุคลากรครู', 1),
+  ('HALL-05', 'ห้องประชุมเล็ก', 1)
+ON CONFLICT (code) DO NOTHING;
 INSERT INTO rooms (building_id, room_number, name, capacity, is_bookable, requires_approval, equipment)
-SELECT id, 'MTG-02', 'ห้องประชุมย่อย', 15, true, false, '{"จอ TV","ไวท์บอร์ด"}'
-FROM buildings WHERE code = 'BLD-02'
+SELECT b.id, b.code, b.name, NULL, true, b.code IN ('HALL-01', 'HALL-02', 'HALL-03'), '{}'
+FROM buildings b WHERE b.code LIKE 'HALL-%'
 ON CONFLICT (building_id, room_number) DO NOTHING;

@@ -24,7 +24,7 @@ export function LiveRoomStatus({ rooms }: { rooms: LiveRoom[] }) {
               <div className="flex items-center justify-between gap-2">
                 <span className="min-w-0">
                   <span className="block truncate font-medium">{r.room_name}</span>
-                  <span className="block truncate text-xs text-muted-foreground">{r.building_name}</span>
+                  {r.building_name !== r.room_name && <span className="block truncate text-xs text-muted-foreground">{r.building_name}</span>}
                 </span>
                 <span className={`flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${busy ? "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300" : "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300"}`}>
                   <span aria-hidden>{busy ? "🔴" : "🟢"}</span>

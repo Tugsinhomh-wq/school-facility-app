@@ -31,7 +31,7 @@ export function RoomOverview({ rooms, bookings, days, today, activeRoomId, href 
         <caption className="sr-only">ความว่างของทุกห้องในสัปดาห์นี้</caption>
         <thead>
           <tr className="border-b border-border text-center">
-            <th scope="col" className="w-44 px-3 py-2 text-left font-medium text-muted-foreground">ห้อง</th>
+            <th scope="col" className="w-56 px-3 py-2 text-left font-medium text-muted-foreground">ห้อง</th>
             {days.map((ymd) => (
               <th key={ymd} scope="col" className={cn("px-2 py-2 font-medium", ymd === today && "text-primary")}>
                 {formatDayShort(ymd)}
@@ -46,7 +46,7 @@ export function RoomOverview({ rooms, bookings, days, today, activeRoomId, href 
               <tr key={room.id} className={cn("border-b border-border last:border-0", room.id === activeRoomId && "bg-primary/5")}>
                 <th scope="row" className="px-3 py-2 text-left font-medium">
                   <Link href={href(room.id)} className="hover:underline">{room.name}</Link>
-                  <span className="block text-xs font-normal text-muted-foreground">{room.capacity ? `${room.capacity} ที่นั่ง` : room.building_name}</span>
+                  <span className="block text-xs font-normal text-muted-foreground">{room.capacity ? `${room.capacity} ที่นั่ง` : room.building_name !== room.name ? room.building_name : room.requires_approval ? "ต้องขออนุมัติ" : "จองได้ทันที"}</span>
                 </th>
                 {days.map((ymd) => {
                   const free = freeHours(own, ymd);
