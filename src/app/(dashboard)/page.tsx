@@ -9,55 +9,32 @@ import { QuickReportCard } from "@/components/dashboard/quick-report-card";
 import { QuickStats } from "@/components/dashboard/quick-stats";
 import { RecentTicketsFeed } from "@/components/dashboard/recent-tickets-feed";
 import { MyReservations, PendingReservations, TodayMeetings } from "@/components/dashboard/reservation-cards";
-import { getDashboardBase, getOverviewData, getRepairsData, getRoomsData, type DashboardBase, type DashTab } from "@/lib/data/dashboard";
+import { getDashboardBase, getRepairsData, getRoomsData, type DashboardBase, type DashTab } from "@/lib/data/dashboard";
 import { isStaffRole } from "@/lib/data/session";
 
 export const dynamic = "force-dynamic";
 
-const parseTab = (v: string | string[] | undefined): DashTab => (v === "repairs" || v === "rooms" ? v : "overview");
+const parseTab = (v: string | string[] | undefined): DashTab => (v === "rooms" ? "rooms" : "repairs");
 
-async function Overview({ base }: { base: DashboardBase }) {
-  const data = await getOverviewData();
+async function Repairs({ base }: { base: DashboardBase }) {
+  const data = await getRepairsData();
   const staff = isStaffRole(base.viewer?.role);
   const canAttach = base.source === "supabase";
   return (
     <BentoGrid>
       {staff ? (
         <>
-          <RecentTicketsFeed
-            tickets={data.queue}
-            title="งานที่รอรับเรื่อง"
-            hint="เรื่องเร่งด่วนอยู่บนสุด"
-            className="md:col-span-6 lg:col-span-6"
-          />
-          <PendingReservations items={data.pendingReservations} className="md:col-span-3 lg:col-span-6" />
-          <DocumentHub documents={data.documents} canDraft className="md:col-span-3 lg:col-span-6" />
-          <TodayMeetings meetings={base.todayMeetings} className="md:col-span-6 lg:col-span-6" />
+          <QuickStats stats={base.stats} />
+          <RecentTicketsFeed tickets={data.queue} title="งานที่รอรับเรื่อง" hint="เรื่องเร่งด่วนอยู่บนสุด" className="md:col-span-3 lg:col-span-5 lg:row-span-2" />
+          <BuildingMatrix byBuilding={base.byBuilding} />
+          <DocumentHub documents={data.documents} canDraft />
         </>
       ) : (
         <>
           <QuickReportCard buildings={data.buildings} canAttach={canAttach} />
-          <MyReservations items={data.myReservations} className="md:col-span-3 lg:col-span-5" />
-          <RecentTicketsFeed
-            tickets={data.queue}
-            title="งานที่ฉันแจ้งล่าสุด"
-            hint="รายการของคุณ 5 รายการล่าสุด"
-            className="md:col-span-6 lg:col-span-12"
-          />
+          <RecentTicketsFeed tickets={data.recent} title="งานที่ฉันแจ้งล่าสุด" hint="รายการของคุณ 5 รายการล่าสุด" className="md:col-span-6 lg:col-span-5 lg:row-span-2" />
         </>
       )}
-    </BentoGrid>
-  );
-}
-
-async function Repairs({ base }: { base: DashboardBase }) {
-  const data = await getRepairsData();
-  return (
-    <BentoGrid>
-      <QuickStats stats={base.stats} />
-      <RecentTicketsFeed tickets={data.recent} />
-      <QuickReportCard buildings={data.buildings} canAttach={base.source === "supabase"} />
-      <BuildingMatrix byBuilding={base.byBuilding} />
     </BentoGrid>
   );
 }
@@ -67,9 +44,13 @@ async function Rooms({ base }: { base: DashboardBase }) {
   const staff = isStaffRole(base.viewer?.role);
   return (
     <BentoGrid>
+      {staff ? (
+        <PendingReservations items={data.pendingReservations} className="md:col-span-3 lg:col-span-4" />
+      ) : (
+        <MyReservations items={data.myReservations} className="md:col-span-3 lg:col-span-4" />
+      )}
       <LiveRoomStatus rooms={data.liveRooms} />
       <TodayMeetings meetings={base.todayMeetings} className="md:col-span-3 lg:col-span-4" />
-      {staff && <PendingReservations items={data.pendingReservations} className="md:col-span-3 lg:col-span-4" />}
     </BentoGrid>
   );
 }
@@ -85,9 +66,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       </div>
       <DashboardHeader base={base} />
       <DashboardTabs active={tab} />
-      {tab === "overview" && <Overview base={base} />}
-      {tab === "repairs" && <Repairs base={base} />}
-      {tab === "rooms" && <Rooms base={base} />}
+      {tab === "rooms" ? <Rooms base={base} /> : <Repairs base={base} />}
     </>
   );
 }
