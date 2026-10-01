@@ -67,6 +67,9 @@ export interface RepairTicket {
   image_urls: string[];
   estimated_cost: number;
   technician_notes: string | null;
+  /** Set when this report repeats another open ticket; status then follows that ticket. */
+  duplicate_of?: string | null;
+  duplicate_of_number?: string | null;
   created_at: string;
   updated_at: string;
 }

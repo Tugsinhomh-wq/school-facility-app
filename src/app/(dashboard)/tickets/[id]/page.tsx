@@ -7,7 +7,8 @@ import { placeOf } from "@/components/tickets/ticket-table";
 import { TicketManageForm } from "@/components/tickets/ticket-manage-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getTicketDetail } from "@/lib/data/tickets";
+import { MergePanel } from "@/components/tickets/merge-panel";
+import { getDuplicateContext, getTicketDetail } from "@/lib/data/tickets";
 import { formatBaht, formatDateTh, STATUS_CLASS, STATUS_LABEL, URGENCY_CLASS, URGENCY_LABEL } from "@/lib/ticket-meta";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +27,7 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
   const { ticket, viewer, imageUrls } = await getTicketDetail(id);
   if (!ticket) notFound();
   const isStaff = viewer?.role === "staff" || viewer?.role === "super_admin";
+  const dupCtx = isStaff ? await getDuplicateContext(ticket) : null;
 
   return (
     <>
@@ -42,6 +44,11 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
             <Badge className={STATUS_CLASS[ticket.status]}>{STATUS_LABEL[ticket.status]}</Badge>
             <Badge className={URGENCY_CLASS[ticket.urgency]}>{URGENCY_LABEL[ticket.urgency]}</Badge>
           </div>
+          {ticket.duplicate_of_number && (
+            <p className="mt-3 rounded-lg border border-amber-500/50 bg-amber-500/10 p-3 text-sm">
+              มีคนแจ้งเรื่องนี้ไว้แล้ว รายงานของคุณรวมกับงาน {ticket.duplicate_of_number} สถานะด้านบนตามงานนั้น
+            </p>
+          )}
 
           <dl className="mt-6 grid gap-5 sm:grid-cols-2">
             <Field label="สถานที่">{placeOf(ticket)}</Field>
@@ -86,6 +93,7 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
               <input type="hidden" name="ticket_id" value={ticket.id} />
               <Button type="submit" variant="outline" className="w-full">ร่างบันทึกข้อความเสนอ ผอ.</Button>
             </form>
+            {dupCtx && <MergePanel ticket={ticket} ctx={dupCtx} />}
           </aside>
         )}
       </div>

@@ -9,6 +9,14 @@ export function placeOf(t: TicketRow) {
   return [t.building?.name, t.room?.name ?? t.location_detail].filter(Boolean).join(", ") || "ไม่ระบุ";
 }
 
+/** "มีรายงานซ้ำ 2 คน" on a main ticket, "รวมกับ REQ-…" on a report that joined one. */
+export function DuplicateNote({ t }: { t: TicketRow }) {
+  const n = t.dups?.[0]?.count ?? 0;
+  if (t.duplicate_of_number) return <span className="text-amber-700 dark:text-amber-300">รวมกับ {t.duplicate_of_number}</span>;
+  if (n > 0) return <span className="text-amber-700 dark:text-amber-300">มีรายงานซ้ำ {n} คน</span>;
+  return null;
+}
+
 export function TicketTable({ tickets, showReporter, hasFilters }: { tickets: TicketRow[]; showReporter: boolean; hasFilters: boolean }) {
   if (tickets.length === 0) {
     return (
@@ -32,6 +40,7 @@ export function TicketTable({ tickets, showReporter, hasFilters }: { tickets: Ti
               <span className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                 <Badge className={URGENCY_CLASS[t.urgency]}>{URGENCY_LABEL[t.urgency]}</Badge>
                 <span>{t.ticket_number}</span>
+                <DuplicateNote t={t} />
                 <time dateTime={t.created_at}>{formatDateTh(t.created_at)}</time>
                 {showReporter && t.reporter?.full_name && <span>{t.reporter.full_name}</span>}
                 {t.image_urls?.length > 0 && (
@@ -66,6 +75,7 @@ export function TicketTable({ tickets, showReporter, hasFilters }: { tickets: Ti
                 </Link>
                 <span className="flex items-center gap-2 text-xs text-muted-foreground">
                   {t.ticket_number}
+                  <DuplicateNote t={t} />
                   {t.image_urls?.length > 0 && (
                     <span className="inline-flex items-center gap-1" title={`มีรูปประกอบ ${t.image_urls.length} รูป`}>
                       <Camera className="size-3" aria-hidden />

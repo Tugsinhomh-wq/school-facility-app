@@ -52,7 +52,7 @@ function mockList(f: TicketFilters): TicketList {
   };
 }
 
-const SELECT = "*, building:buildings(name), room:rooms(room_number, name), reporter:profiles(full_name)";
+const SELECT = "*, building:buildings(name), room:rooms(room_number, name), reporter:profiles(full_name), dups:repair_tickets!repair_tickets_duplicate_of_fkey(count)";
 
 export async function getTicketList(f: TicketFilters): Promise<TicketList> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return mockList(f);
@@ -62,7 +62,8 @@ export async function getTicketList(f: TicketFilters): Promise<TicketList> {
     const { data: auth } = await getAuth(supabase);
     if (!auth.user) return mockList(f);
 
-    let query = supabase.from("repair_tickets").select(SELECT, { count: "exact" });
+    // Merged duplicates stay out of the list (the main ticket carries their count), except your own.
+    let query = supabase.from("repair_tickets").select(SELECT, { count: "exact" }).or(`duplicate_of.is.null,reporter_id.eq.${auth.user.id}`);
     if (f.status) query = query.eq("status", f.status);
     if (f.urgency) query = query.eq("urgency", f.urgency);
     if (f.building) query = query.eq("building_id", f.building);
@@ -134,5 +135,47 @@ export async function getTicketDetail(id: string): Promise<TicketDetail> {
     };
   } catch {
     return mock();
+  }
+}
+
+export interface DuplicateContext {
+  /** Open main tickets in the same building this one could be merged into. */
+  candidates: { id: string; ticket_number: string; title: string }[];
+  /** Reports already merged into this ticket. */
+  reports: { id: string; ticket_number: string; reporter_name: string | null; created_at: string }[];
+}
+
+/** Staff only (RLS returns nothing for others): what the merge panel on a ticket needs. */
+export async function getDuplicateContext(ticket: TicketRow): Promise<DuplicateContext> {
+  const empty: DuplicateContext = { candidates: [], reports: [] };
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return empty;
+  try {
+    const { createClient } = await import("@/lib/supabase/server");
+    const supabase = await createClient();
+    const [candidates, reports] = await Promise.all([
+      ticket.duplicate_of
+        ? Promise.resolve({ data: [] })
+        : supabase
+            .from("repair_tickets")
+            .select("id, ticket_number, title")
+            .eq("building_id", ticket.building_id)
+            .in("status", ["pending", "in_progress"])
+            .is("duplicate_of", null)
+            .neq("id", ticket.id)
+            .order("created_at", { ascending: false })
+            .limit(20),
+      supabase.from("repair_tickets").select("id, ticket_number, created_at, reporter:profiles(full_name)").eq("duplicate_of", ticket.id).order("created_at"),
+    ]);
+    return {
+      candidates: (candidates.data ?? []) as DuplicateContext["candidates"],
+      reports: ((reports.data ?? []) as unknown as { id: string; ticket_number: string; created_at: string; reporter: { full_name: string } | { full_name: string }[] | null }[]).map((r) => ({
+        id: r.id,
+        ticket_number: r.ticket_number,
+        created_at: r.created_at,
+        reporter_name: (Array.isArray(r.reporter) ? r.reporter[0] : r.reporter)?.full_name ?? null,
+      })),
+    };
+  } catch {
+    return empty;
   }
 }
