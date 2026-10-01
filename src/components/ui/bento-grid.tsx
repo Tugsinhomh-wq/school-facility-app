@@ -6,7 +6,7 @@ function BentoGrid({ className, ...props }: ComponentPropsWithoutRef<"div">) {
   return (
     <div
       className={cn(
-        "grid w-full auto-rows-auto grid-cols-1 gap-3 md:auto-rows-[minmax(15rem,auto)] md:grid-cols-6 lg:grid-cols-12",
+        "grid w-full auto-rows-auto grid-cols-1 gap-3 md:auto-rows-[minmax(11rem,auto)] md:grid-cols-6 lg:grid-cols-12",
         className,
       )}
       {...props}

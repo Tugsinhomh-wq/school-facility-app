@@ -14,7 +14,7 @@ export function QuickStats({ stats }: { stats: DashboardBase["stats"] }) {
   ];
 
   return (
-    <BentoCard className="md:col-span-6 lg:col-span-7">
+    <BentoCard className="md:col-span-6 lg:col-span-12">
       <h2 className="text-lg font-semibold">สถานะงานซ่อมทั้งหมด</h2>
       <dl className="mt-4 grid flex-1 grid-cols-2 gap-y-6 sm:grid-cols-4 sm:divide-x sm:divide-border">
         {items.map(({ label, value, icon: Icon, tone }) => (
