@@ -38,6 +38,7 @@ export const APPROVAL_LABEL: Record<ApprovalStatus, string> = {
 export const ROLE_LABEL: Record<UserRole, string> = {
   super_admin: "ผู้ดูแลระบบ",
   staff: "เจ้าหน้าที่",
+  room_staff: "เจ้าหน้าที่ห้องประชุม",
   user: "ผู้ใช้งาน",
 };
 

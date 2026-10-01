@@ -5,6 +5,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 
 import { createRepairTicket, type ReportResult } from "@/app/(dashboard)/actions";
 import { ImagePicker } from "@/components/tickets/image-picker";
+import { SimilarTickets } from "@/components/tickets/similar-tickets";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,8 @@ function QuickForm({ buildings }: { buildings: Building[] }) {
   const [busy, setBusy] = useState(false);
   const [urgency, setUrgency] = useState<string>("medium");
   const [title, setTitle] = useState("");
+  const [buildingId, setBuildingId] = useState("");
+  const [spot, setSpot] = useState("");
   const titleInput = useRef<HTMLInputElement>(null);
   const [state, action, pending] = useActionState<ReportResult | null, FormData>(createRepairTicket, null);
 
@@ -46,7 +49,8 @@ function QuickForm({ buildings }: { buildings: Building[] }) {
           id="q-building"
           name="building_id"
           required
-          defaultValue=""
+          value={buildingId}
+          onChange={(e) => setBuildingId(e.target.value)}
           className="h-12 w-full rounded-lg border border-input bg-transparent px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
         >
           <option value="" disabled>
@@ -82,9 +86,10 @@ function QuickForm({ buildings }: { buildings: Building[] }) {
         </div>
         <Input ref={titleInput} id="q-title" name="title" required maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="เช่น หลอดไฟห้อง 112 ขาด" className="h-12 text-base" />
       </div>
+      <SimilarTickets buildingId={buildingId} text={`${title}${spot}`} />
       <div className="space-y-1.5">
         <Label htmlFor="q-loc">ห้องหรือจุดที่พบ (ถ้ามี)</Label>
-        <Input id="q-loc" name="location_detail" placeholder="เช่น หน้าโรงอาหาร" className="h-12 text-base" />
+        <Input id="q-loc" name="location_detail" value={spot} onChange={(e) => setSpot(e.target.value)} placeholder="เช่น หน้าโรงอาหาร" className="h-12 text-base" />
       </div>
       <fieldset className="space-y-1.5">
         <legend className="text-sm font-medium">ความเร่งด่วน</legend>

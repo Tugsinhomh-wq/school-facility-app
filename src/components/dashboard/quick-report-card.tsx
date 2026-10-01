@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
 import { ImagePicker } from "@/components/tickets/image-picker";
+import { SimilarTickets } from "@/components/tickets/similar-tickets";
 import { Textarea } from "@/components/ui/textarea";
 import type { BuildingOption } from "@/lib/data/dashboard";
 import { URGENCY_LABEL } from "@/lib/ticket-meta";
@@ -29,6 +30,9 @@ const selectClass =
 
 function ReportForm({ buildings, canAttach }: { buildings: BuildingOption[]; canAttach: boolean }) {
   const [busy, setBusy] = useState(false);
+  const [title, setTitle] = useState("");
+  const [buildingId, setBuildingId] = useState("");
+  const [spot, setSpot] = useState("");
   const [state, action, pending] = useActionState<ReportResult | null, FormData>(createRepairTicket, null);
 
   const succeeded = state?.ok === true;
@@ -57,12 +61,12 @@ function ReportForm({ buildings, canAttach }: { buildings: BuildingOption[]; can
     <form action={action} className="space-y-3">
       <div className="space-y-1.5">
         <Label htmlFor="title">หัวข้อปัญหา</Label>
-        <Input id="title" name="title" required placeholder="เช่น หลอดไฟห้องเรียนขาด" />
+        <Input id="title" name="title" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="เช่น หลอดไฟห้องเรียนขาด" />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label htmlFor="building_id">อาคาร</Label>
-          <select id="building_id" name="building_id" required defaultValue="" className={selectClass}>
+          <select id="building_id" name="building_id" required value={buildingId} onChange={(e) => setBuildingId(e.target.value)} className={selectClass}>
             <option value="" disabled>เลือกอาคาร</option>
             {buildings.map((b) => (
               <option key={b.id} value={b.id}>{b.name}</option>
@@ -80,8 +84,9 @@ function ReportForm({ buildings, canAttach }: { buildings: BuildingOption[]; can
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="location_detail">ห้องหรือจุดที่พบ (ถ้ามี)</Label>
-        <Input id="location_detail" name="location_detail" placeholder="เช่น ห้อง 112 หรือหน้าโรงอาหาร" />
+        <Input id="location_detail" name="location_detail" value={spot} onChange={(e) => setSpot(e.target.value)} placeholder="เช่น ห้อง 112 หรือหน้าโรงอาหาร" />
       </div>
+      <SimilarTickets buildingId={buildingId} text={`${title}${spot}`} />
       <div className="space-y-1.5">
         <Label htmlFor="description">รายละเอียด</Label>
         <Textarea id="description" name="description" required rows={3} placeholder="อธิบายอาการหรือความเสียหาย" />

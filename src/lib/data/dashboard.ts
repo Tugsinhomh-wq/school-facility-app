@@ -12,7 +12,7 @@ import {
   type PendingReservation,
   type TodayMeeting,
 } from "@/lib/data/rooms";
-import { getSession, isStaffRole } from "@/lib/data/session";
+import { getSession, isRoomManager, isStaffRole } from "@/lib/data/session";
 import { MOCK_BUILDINGS, MOCK_MEMOS, MOCK_TICKETS } from "@/lib/mock-data";
 import type { Building, Memorandum, RepairTicketWithLocation, TicketStatus, UrgencyLevel, UserRole } from "@/types/database";
 
@@ -100,7 +100,7 @@ export async function getDashboardBase(): Promise<DashboardBase> {
     const s = await getSession();
     if (!s) return mockBase();
     const [tickets, meetings] = await Promise.all([
-      s.supabase.from("repair_tickets").select("id, urgency, status, estimated_cost, building:buildings(name)").limit(1000),
+      s.supabase.from("repair_tickets").select("id, urgency, status, estimated_cost, building:buildings(name)").is("duplicate_of", null).limit(1000),
       getTodayMeetings(s.supabase),
     ]);
     if (tickets.error) return mockBase();
@@ -131,7 +131,7 @@ export async function getRepairsData(): Promise<RepairsData> {
     const staff = isStaffRole(s.viewer.role);
     const [recent, pending, memos, buildings] = await Promise.all([
       s.supabase.from("repair_tickets").select(BRIEF_SELECT).order("created_at", { ascending: false }).limit(5),
-      staff ? s.supabase.from("repair_tickets").select(BRIEF_SELECT).eq("status", "pending").order("created_at", { ascending: false }).limit(30) : Promise.resolve({ data: [], error: null }),
+      staff ? s.supabase.from("repair_tickets").select(BRIEF_SELECT).eq("status", "pending").is("duplicate_of", null).order("created_at", { ascending: false }).limit(30) : Promise.resolve({ data: [], error: null }),
       staff ? s.supabase.from("memorandums").select("*").eq("origin_module", "repair").order("created_at", { ascending: false }).limit(4) : Promise.resolve({ data: [], error: null }),
       s.supabase.from("buildings").select("id, name").eq("is_active", true).order("name"),
     ]);
@@ -153,7 +153,7 @@ export async function getRoomsData(): Promise<RoomsData> {
   try {
     const s = await getSession();
     if (!s) return mock();
-    const staff = isStaffRole(s.viewer.role);
+    const staff = isRoomManager(s.viewer.role);
     const [liveRooms, pending, mine] = await Promise.all([
       getLiveRooms(s.supabase),
       staff ? getPendingReservations(s.supabase) : Promise.resolve([] as PendingReservation[]),

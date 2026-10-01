@@ -7,7 +7,7 @@ import type { TicketRow } from "@/types/tickets";
 export type MemoRecord = Memorandum & { author: { full_name: string; position: string | null } | null };
 
 const hasSupabase = () => Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-export const isStaff = (viewer: Viewer | null) => viewer?.role === "staff" || viewer?.role === "super_admin";
+export const isStaff = (viewer: Viewer | null) => viewer?.role === "staff" || viewer?.role === "super_admin" || viewer?.role === "room_staff";
 
 const MOCK_AUTHOR = { full_name: "นายสมชาย รักงาน", position: "หัวหน้าฝ่ายอาคารสถานที่" };
 const mockMemos = (): MemoRecord[] => MOCK_MEMOS.map((m) => ({ ...m, author: MOCK_AUTHOR }));
@@ -36,14 +36,18 @@ export async function getMemoList(): Promise<MemoList> {
     if (!s) return mock();
     if (!isStaff(s.viewer)) return { source: "supabase", viewer: s.viewer, memos: [], candidates: [] };
 
+    // The meeting-room officer sees only room memos (row policies enforce it) and no repair tickets.
+    const repairsToo = s.viewer.role !== "room_staff";
     const [memos, tickets] = await Promise.all([
       s.supabase.from("memorandums").select("*, author:profiles(full_name, position)").order("created_at", { ascending: false }).limit(100),
-      s.supabase
-        .from("repair_tickets")
-        .select("*, building:buildings(name), room:rooms(room_number, name), reporter:profiles(full_name)")
-        .in("status", ["pending", "in_progress"])
-        .order("created_at", { ascending: false })
-        .limit(50),
+      repairsToo
+        ? s.supabase
+            .from("repair_tickets")
+            .select("*, building:buildings(name), room:rooms(room_number, name), reporter:profiles(full_name)")
+            .in("status", ["pending", "in_progress"])
+            .order("created_at", { ascending: false })
+            .limit(50)
+        : Promise.resolve({ data: [], error: null }),
     ]);
     if (memos.error || tickets.error) return mock();
     const used = new Set((memos.data ?? []).filter((m) => m.origin_module === "repair").map((m) => m.reference_id));

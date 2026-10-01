@@ -246,3 +246,43 @@ export function mockMyReservations(): MyReservation[] {
     .slice(0, 3)
     .map((b) => ({ id: b.id, purpose: b.purpose, room_name: names.get(b.room_id) ?? "", start_time: b.start_time, end_time: b.end_time, status: b.status }));
 }
+
+export interface ManagedRoom {
+  id: string;
+  building_id: string;
+  room_number: string;
+  name: string;
+  capacity: number | null;
+  is_bookable: boolean;
+  requires_approval: boolean;
+  equipment: string[];
+}
+
+/** Every room that is, or used to be, a hall (HALL-nn), open or closed, for the management page. */
+export async function getManagedRooms(): Promise<{ viewer: Viewer | null; rooms: ManagedRoom[] } | null> {
+  try {
+    const s = await getSession();
+    if (!s) return null;
+    const { data, error } = await s.supabase
+      .from("rooms")
+      .select("id, building_id, room_number, name, capacity, is_bookable, requires_approval, equipment, building:buildings!inner(code)")
+      .like("building.code", "HALL-%")
+      .order("room_number");
+    if (error) return { viewer: s.viewer, rooms: [] };
+    return {
+      viewer: s.viewer,
+      rooms: (data as unknown as ManagedRoom[]).map((r) => ({
+        id: r.id,
+        building_id: r.building_id,
+        room_number: r.room_number,
+        name: r.name,
+        capacity: r.capacity,
+        equipment: r.equipment ?? [],
+        requires_approval: Boolean(r.requires_approval),
+        is_bookable: Boolean(r.is_bookable),
+      })),
+    };
+  } catch {
+    return null;
+  }
+}

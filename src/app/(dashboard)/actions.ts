@@ -19,6 +19,9 @@ export async function createRepairTicket(_prev: ReportResult | null, formData: F
   const locationDetail = str("location_detail");
   const urgency = str("urgency") as UrgencyLevel;
   const imagePaths = formData.getAll("image_paths").map(String);
+  // Set when the reporter chose to join an open ticket that looked the same.
+  const duplicateOf = str("duplicate_of");
+  if (duplicateOf && !/^[0-9a-f-]{36}$/i.test(duplicateOf)) return { ok: false, message: "งานที่เลือกรวมไม่ถูกต้อง" };
 
   if (!title || !description || !buildingId) {
     return { ok: false, message: "กรุณากรอกหัวข้อ รายละเอียด และเลือกอาคารให้ครบ" };
@@ -53,9 +56,13 @@ export async function createRepairTicket(_prev: ReportResult | null, formData: F
     location_detail: locationDetail || null,
     image_urls: imagePaths,
     ticket_number: "",
+    duplicate_of: duplicateOf || null,
   });
-  if (error) return { ok: false, message: `บันทึกไม่สำเร็จ: ${error.message}` };
+  if (error) {
+    if (duplicateOf) return { ok: false, message: "รวมกับงานนั้นไม่ได้ อาจปิดงานไปแล้ว ลองส่งเป็นงานใหม่" };
+    return { ok: false, message: `บันทึกไม่สำเร็จ: ${error.message}` };
+  }
 
   revalidatePath("/");
-  return { ok: true, message: "ส่งเรื่องแจ้งซ่อมเรียบร้อยแล้ว" };
+  return { ok: true, message: duplicateOf ? "รับเรื่องแล้ว รวมกับงานที่มีคนแจ้งไว้ สถานะจะตามงานนั้น" : "ส่งเรื่องแจ้งซ่อมเรียบร้อยแล้ว" };
 }

@@ -42,3 +42,36 @@ export async function updateTicket(_prev: UpdateResult, formData: FormData): Pro
   revalidatePath("/");
   return { ok: true, message: "บันทึกแล้ว" };
 }
+
+const UUID = /^[0-9a-f-]{36}$/i;
+
+/** Staff only (RLS refuses everyone else): merge this report into another open ticket, or split it out again. */
+export async function mergeTicket(_prev: UpdateResult, formData: FormData): Promise<UpdateResult> {
+  const id = String(formData.get("id") ?? "");
+  const mainId = String(formData.get("main_id") ?? "");
+  const split = formData.get("split") === "1";
+  if (!UUID.test(id) || (!split && (!UUID.test(mainId) || mainId === id))) return { ok: false, message: "เลือกงานที่จะรวมด้วยก่อน" };
+
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return { ok: true, message: "โหมดสาธิต: ยังไม่ได้ตั้งค่า Supabase จึงไม่ได้บันทึกข้อมูลจริง" };
+  }
+  const supabase = await createClient();
+  const { data: auth } = await getAuth(supabase);
+  if (!auth.user) return { ok: false, message: "เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่" };
+
+  if (split) {
+    const { data, error } = await supabase.from("repair_tickets").update({ duplicate_of: null }).eq("id", id).select("id");
+    if (error || !data?.length) return { ok: false, message: "แยกงานไม่สำเร็จ" };
+  } else {
+    // Reports already merged into this ticket follow it to the new main ticket.
+    const moved = await supabase.from("repair_tickets").update({ duplicate_of: mainId }).eq("duplicate_of", id);
+    if (moved.error) return { ok: false, message: "รวมงานไม่สำเร็จ งานหลักอาจถูกรวมกับงานอื่นไปแล้ว" };
+    const { data, error } = await supabase.from("repair_tickets").update({ duplicate_of: mainId }).eq("id", id).select("id");
+    if (error || !data?.length) return { ok: false, message: "รวมงานไม่สำเร็จ งานหลักอาจถูกรวมกับงานอื่นไปแล้ว" };
+  }
+
+  revalidatePath("/tickets");
+  revalidatePath(`/tickets/${id}`);
+  revalidatePath("/");
+  return { ok: true, message: split ? "แยกออกจากงานหลักแล้ว" : "รวมกับงานหลักแล้ว" };
+}
