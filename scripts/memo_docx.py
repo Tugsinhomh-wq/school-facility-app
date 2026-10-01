@@ -10,7 +10,11 @@ zero-width-space word breaks so Thai text fills each line.
 
 import io
 import json
+import os
+import re
 import sys
+import uuid
+import zipfile
 
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -22,8 +26,11 @@ from docx.shared import Cm, Pt
 
 from thai_zwsp import insert_zwsp
 
-FONT = "TH Sarabun New"
-SIZE = 16
+# Sarabun (SIL OFL) is embedded in the file, so the text looks the same on a Mac or any
+# computer without Thai government fonts; 15 pt Sarabun reads like 16 pt TH Sarabun New.
+FONT = "Sarabun"
+SIZE = 15
+FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src", "lib", "memo", "fonts")
 SCHOOL = "โรงเรียนละหานทรายรัชดาภิเษก"
 
 
@@ -167,7 +174,57 @@ def build(memo: dict) -> bytes:
 
     buf = io.BytesIO()
     doc.save(buf)
-    return buf.getvalue()
+    return embed_fonts(buf.getvalue())
+
+
+def embed_fonts(docx_bytes: bytes) -> bytes:
+    """Embeds Sarabun Regular/Bold as obfuscated .odttf parts (ECMA-376 Part 2 font embedding)."""
+    faces = {"embedRegular": "Sarabun-Regular.ttf", "embedBold": "Sarabun-Bold.ttf"}
+    parts, rels, entries = {}, [], []
+    for i, (tag, filename) in enumerate(faces.items(), start=1):
+        with open(os.path.join(FONT_DIR, filename), "rb") as f:
+            data = bytearray(f.read())
+        guid = str(uuid.uuid4()).upper()
+        key = bytes.fromhex(guid.replace("-", ""))[::-1]
+        for n in range(32):
+            data[n] ^= key[n % 16]
+        parts[f"word/fonts/font{i}.odttf"] = bytes(data)
+        rels.append(f'<Relationship Id="rIdF{i}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/font" Target="fonts/font{i}.odttf"/>')
+        entries.append(f'<w:{tag} r:id="rIdF{i}" w:fontKey="{{{guid}}}"/>')
+
+    src = zipfile.ZipFile(io.BytesIO(docx_bytes))
+    out = io.BytesIO()
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as dst:
+        for item in src.infolist():
+            data = src.read(item.filename)
+            if item.filename == "[Content_Types].xml":
+                text = data.decode("utf-8")
+                if 'Extension="odttf"' not in text:
+                    text = text.replace("<Default ", '<Default Extension="odttf" ContentType="application/vnd.openxmlformats-officedocument.obfuscatedFont"/><Default ', 1)
+                data = text.encode("utf-8")
+            elif item.filename == "word/fontTable.xml":
+                text = data.decode("utf-8")
+                if "xmlns:r=" not in text.split(">", 2)[1]:
+                    text = text.replace("<w:fonts ", '<w:fonts xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ', 1)
+                text = re.sub(r'<w:font w:name="Sarabun">.*?</w:font>', "", text, flags=re.S)
+                font = f'<w:font w:name="{FONT}"><w:charset w:val="DE"/><w:family w:val="auto"/><w:pitch w:val="variable"/>{"".join(entries)}</w:font>'
+                text = text.replace("</w:fonts>", font + "</w:fonts>")
+                data = text.encode("utf-8")
+            elif item.filename == "word/settings.xml":
+                text = data.decode("utf-8")
+                if "embedTrueTypeFonts" not in text:
+                    text, n = re.subn(r"(<w:zoom[^>]*/>)", r"\1<w:embedTrueTypeFonts/><w:saveSubsetFonts/>", text, count=1)
+                    if not n:
+                        text = re.sub(r"(<w:settings[^>]*>)", r"\1<w:embedTrueTypeFonts/><w:saveSubsetFonts/>", text, count=1)
+                data = text.encode("utf-8")
+            dst.writestr(item, data)
+        dst.writestr(
+            "word/_rels/fontTable.xml.rels",
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + "".join(rels) + "</Relationships>",
+        )
+        for name, data in parts.items():
+            dst.writestr(name, data)
+    return out.getvalue()
 
 
 if __name__ == "__main__":

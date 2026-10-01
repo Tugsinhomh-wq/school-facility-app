@@ -157,13 +157,13 @@ export function memoToPdf(doc: MemoDoc): Promise<Buffer> {
         };
         const sign = (position?: string) => {
           ensure(LINE * 4);
-          y += LINE * 0.8;
+          y += LINE * 0.4;
           centred("ลงชื่อ ..............................");
           centred("(..............................)");
           if (position) centred(position);
         };
-        y += LINE;
-        ensure(LINE * 14); // keep both notes together on one page
+        y += LINE * 0.6;
+        ensure(LINE * 13); // keep both notes together on one page
         pdf.font(bold).fontSize(SIZE);
         for (const line of wrap("ความเห็นของหัวหน้างานอาคารสถานที่ / รองผู้อำนวยการกลุ่มบริหารทั่วไป", contentWidth)) {
           pdf.text(line, M.left, y, { lineBreak: false });
@@ -172,7 +172,7 @@ export function memoToPdf(doc: MemoDoc): Promise<Buffer> {
         dotted(contentWidth);
         sign();
 
-        y += LINE;
+        y += LINE * 0.6;
         pdf.font(bold).fontSize(SIZE);
         pdf.text("คำสั่งการ / การพิจารณาของผู้อำนวยการโรงเรียน", M.left, y, { lineBreak: false });
         y += LINE;
