@@ -9,16 +9,17 @@ import { SCHOOL_NAME } from "@/lib/memo/model";
  */
 
 /** "label value ........" with a dotted line running to the right margin. */
-function Field({ label, children, after }: { label: string; children: ReactNode; after?: string }) {
+function Field({ label, children, after, big, strong }: { label: string; children: ReactNode; after?: string; big?: boolean; strong?: boolean }) {
   return (
-    <p className="flex items-end" style={{ marginBottom: after }}>
+    <p className="flex items-end" style={{ marginBottom: after, fontSize: big ? "3cqw" : undefined }}>
       <b className="shrink-0">{label}&nbsp;</b>
-      <span className="min-w-0 flex-1 border-b border-dotted border-black">{children}</span>
+      <span className={`min-w-0 flex-1 border-b border-dotted border-black ${big || strong ? "font-bold" : ""}`}>{children}</span>
     </p>
   );
 }
 
 export function MemoPreview({ doc, fontClass }: { doc: MemoDoc; fontClass: string }) {
+  const repair = doc.variant === "repair";
   return (
     <div className="[container-type:inline-size]">
       <div
@@ -32,20 +33,45 @@ export function MemoPreview({ doc, fontClass }: { doc: MemoDoc; fontClass: strin
             บันทึกข้อความ
           </p>
         </div>
-        <Field label="ส่วนราชการ">{doc.agency}</Field>
+        <Field label="ส่วนราชการ" big={repair}>{doc.agency}</Field>
         <div className="flex items-end">
           <b className="shrink-0">ที่&nbsp;</b>
           <span className="min-w-0 flex-[0_0_32%] border-b border-dotted border-black">{doc.refNo}</span>
           <b className="shrink-0" style={{ marginLeft: "2cqw" }}>วันที่&nbsp;</b>
           <span className="min-w-0 flex-1 border-b border-dotted border-black">{doc.date}</span>
         </div>
-        <Field label="เรื่อง">{doc.subject}</Field>
-        <Field label="เรียน" after="1.4cqw">{doc.recipient}</Field>
+        <Field label="เรื่อง" strong={repair}>{doc.subject}</Field>
+        <Field label="เรียน" after="1.4cqw" strong={repair}>{doc.recipient}</Field>
 
         {[...doc.paragraphs, ...(doc.proposal ? [doc.proposal] : []), doc.closing].map((p, i, all) => (
           <p key={i} style={{ textIndent: "11.9cqw", marginBottom: i === all.length - 1 ? "4cqw" : "0.8cqw" }}>{p}</p>
         ))}
 
+        {repair ? (
+          <>
+            <div className="text-center" style={{ marginLeft: "38%" }}>
+              <p>(ลงชื่อ)...................... ผู้รายงาน</p>
+              <p>({doc.signerName || "..........................................."})</p>
+              <p>ตำแหน่ง {doc.signerPosition || ".........................................."}</p>
+            </div>
+            {doc.decisionBlock && (
+              <div className="grid grid-cols-2 border border-black" style={{ marginTop: "3cqw" }}>
+                <div className="border-r border-black text-center" style={{ padding: "1.4cqw" }}>
+                  <p className="font-bold">ความเห็นของหัวหน้างานอาคารสถานที่ / รองผู้อำนวยการกลุ่มบริหารทั่วไป</p>
+                  <p style={{ marginTop: "5cqw" }}>ลงชื่อ ..............................</p>
+                  <p>(..............................)</p>
+                </div>
+                <div className="text-center" style={{ padding: "1.4cqw" }}>
+                  <p className="font-bold">คำสั่งการ / การพิจารณาของผู้อำนวยการโรงเรียน</p>
+                  <p>☐ อนุมัติ &nbsp; ☐ ไม่อนุมัติ</p>
+                  <p style={{ marginTop: "2cqw" }}>ลงชื่อ ..............................</p>
+                  <p>(..............................)</p>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
         <div className="text-center" style={{ marginLeft: "38%" }}>
           <p>ลงชื่อ ................................</p>
           {doc.signerName && <p>({doc.signerName})</p>}
@@ -69,6 +95,8 @@ export function MemoPreview({ doc, fontClass }: { doc: MemoDoc; fontClass: strin
               <p>ผู้อำนวยการ{SCHOOL_NAME}</p>
             </div>
           </div>
+        )}
+          </>
         )}
       </div>
     </div>

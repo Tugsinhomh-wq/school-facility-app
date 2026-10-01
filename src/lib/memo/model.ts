@@ -2,10 +2,16 @@ import type { Memorandum } from "@/types/database";
 
 export const SCHOOL_NAME = "โรงเรียนละหานทรายรัชดาภิเษก";
 export const AGENCY = `${SCHOOL_NAME} กลุ่มงานบริหารทั่วไป`;
+/** Phone of the building unit, for the repair memo header. Leave empty to print a dotted blank. */
+export const BUILDING_UNIT_PHONE = "";
+export const REPAIR_AGENCY = `${SCHOOL_NAME} กลุ่มบริหารทั่วไป งานอาคารสถานที่ โทร. ${BUILDING_UNIT_PHONE || "........"}`;
+export const REPAIR_CLOSING = "จึงเรียนมาเพื่อโปรดทราบ และพิจารณาอนุมัติให้ดำเนินการซ่อมแซม พร้อมจัดสรรงบประมาณสนับสนุนต่อไป";
 export const CLOSING = "จึงเรียนมาเพื่อโปรดพิจารณา";
 
 /** Everything the three renderers (preview, PDF, Word) need, already formatted. */
 export interface MemoDoc {
+  /** "repair" memos follow the building-unit form (reporter signature, two-column opinion table). */
+  variant: "repair" | "general";
   agency: string;
   refNo: string;
   date: string;
@@ -46,18 +52,20 @@ const splitParagraphs = (text: string) =>
     .filter(Boolean);
 
 export function buildMemoDoc(
-  memo: Pick<Memorandum, "doc_ref_no" | "subject" | "recipient" | "body_content" | "proposal" | "approval_mode" | "created_at">,
+  memo: Pick<Memorandum, "doc_ref_no" | "subject" | "recipient" | "body_content" | "proposal" | "approval_mode" | "created_at"> & { origin_module?: Memorandum["origin_module"] },
   author: { full_name: string; position: string | null } | null,
 ): MemoDoc {
+  const repair = memo.origin_module === "repair";
   return {
-    agency: AGENCY,
+    variant: repair ? "repair" : "general",
+    agency: repair ? REPAIR_AGENCY : AGENCY,
     refNo: officialRef(memo.doc_ref_no),
     date: formatThaiDate(memo.created_at),
     subject: memo.subject,
     recipient: memo.recipient,
     paragraphs: splitParagraphs(memo.body_content),
     proposal: memo.proposal?.trim() || null,
-    closing: CLOSING,
+    closing: repair ? REPAIR_CLOSING : CLOSING,
     signerName: author?.full_name ?? "",
     signerPosition: author?.position ?? "",
     decisionBlock: memo.approval_mode === "paper_hybrid",

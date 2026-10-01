@@ -3,7 +3,13 @@ const THAI = /[฀-๿]/;
 
 /** Thai words in order, including spaces and punctuation as their own pieces. */
 export function thaiWords(text: string): string[] {
-  return Array.from(segmenter.segment(text), (s) => s.segment);
+  const parts = Array.from(segmenter.segment(text), (s) => s.segment);
+  // Keep a run of dots ("........") together so a blank to fill in never splits across lines.
+  return parts.reduce<string[]>((out, part) => {
+    if (/^\.+$/.test(part) && out.length && /^\.+$/.test(out[out.length - 1])) out[out.length - 1] += part;
+    else out.push(part);
+    return out;
+  }, []);
 }
 
 /**

@@ -41,6 +41,8 @@ export async function createMemoFromTicket(formData: FormData) {
     .maybeSingle();
   if (!ticket) redirect("/memos");
 
+  const { data: author } = await supabase.from("profiles").select("full_name, position").eq("id", auth.user.id).maybeSingle();
+
   // doc_ref_no is left empty: the database assigns MEMO-YYYYMM-XXXX until the records office numbers it.
   const { data: memo, error } = await supabase
     .from("memorandums")
@@ -50,7 +52,7 @@ export async function createMemoFromTicket(formData: FormData) {
       reference_id: ticketId,
       author_id: auth.user.id,
       approval_mode: "paper_hybrid",
-      ...draftFromTicket(ticket as unknown as TicketRow),
+      ...draftFromTicket(ticket as unknown as TicketRow, author),
     })
     .select("id")
     .single();

@@ -76,19 +76,21 @@ export function memoToPdf(doc: MemoDoc): Promise<Buffer> {
     };
 
     /** "label value ........" with the label bold; every line of a wrapped value runs out on a dotted line. */
-    const labelled = (label: string, value: string, after = 0) => {
-      pdf.font(bold).fontSize(SIZE);
+    const labelled = (label: string, value: string, after = 0, opts: { size?: number; boldValue?: boolean } = {}) => {
+      const size = opts.size ?? SIZE;
+      const line = size * 1.45;
+      pdf.font(bold).fontSize(size);
       const labelWidth = pdf.widthOfString(label + " ");
-      ensure(LINE);
+      ensure(line);
       pdf.text(label, M.left, y, { lineBreak: false });
-      pdf.font(regular);
+      pdf.font(opts.boldValue ? bold : regular);
       const lines = wrap(value, contentWidth - labelWidth);
       (lines.length ? lines : [""]).forEach((l, i) => {
-        ensure(LINE);
+        ensure(line);
         const x = M.left + labelWidth;
         pdf.text(l, x, y, { lineBreak: false });
-        leader(x + pdf.widthOfString(l) + 3, M.left + contentWidth, y);
-        y += LINE;
+        leader(x + pdf.widthOfString(l) + 3, M.left + contentWidth, y + (size - SIZE));
+        y += line;
         if (i === 0 && lines.length > 1) return;
       });
       y += after;
@@ -101,7 +103,8 @@ export function memoToPdf(doc: MemoDoc): Promise<Buffer> {
     pdf.text("บันทึกข้อความ", M.left, cm(1.5) + (garudaH - 29 * 1.2) / 2, { width: contentWidth, align: "center", lineBreak: false });
     y = cm(1.5) + garudaH + 10;
 
-    labelled("ส่วนราชการ", doc.agency);
+    const repair = doc.variant === "repair";
+    labelled("ส่วนราชการ", doc.agency, 0, repair ? { size: 20, boldValue: true } : {});
 
     // "ที่ ... วันที่ ..." on one line, each followed by its dotted leader
     pdf.font(bold).fontSize(SIZE).text("ที่", M.left, y, { lineBreak: false });
@@ -115,8 +118,8 @@ export function memoToPdf(doc: MemoDoc): Promise<Buffer> {
     leader(dateX + dateLabel + pdf.widthOfString(doc.date) + 3, M.left + contentWidth, y);
     y += LINE;
 
-    labelled("เรื่อง", doc.subject);
-    labelled("เรียน", doc.recipient, 8);
+    labelled("เรื่อง", doc.subject, 0, { boldValue: repair });
+    labelled("เรียน", doc.recipient, 8, { boldValue: repair });
 
     const indent = cm(2.5);
     for (const p of doc.paragraphs) paragraph(p, { firstIndent: indent, after: 5 });
@@ -140,9 +143,55 @@ export function memoToPdf(doc: MemoDoc): Promise<Buffer> {
       if (name) centred(`(${name})`);
       if (position) centred(position);
     };
-    signature(doc.signerName, doc.signerPosition);
+    if (repair) {
+      ensure(LINE * 4);
+      centred("(ลงชื่อ)...................... ผู้รายงาน");
+      centred(`(${doc.signerName || "..........................................."})`);
+      centred(`ตำแหน่ง ${doc.signerPosition || ".........................................."}`);
+      if (doc.decisionBlock) {
+        y += 20;
+        // Two columns: the unit head's opinion on the left, the director's order on the right.
+        const colW = contentWidth / 2;
+        const boxH = LINE * 7.2;
+        ensure(boxH + 4);
+        pdf.rect(M.left, y, contentWidth, boxH).lineWidth(0.8).stroke("#000000");
+        pdf.moveTo(M.left + colW, y).lineTo(M.left + colW, y + boxH).stroke("#000000");
+        const cell = (x: number, lines: { text: string; bold?: boolean; gapBefore?: number }[]) => {
+          let cy = y + 6;
+          for (const l of lines) {
+            cy += l.gapBefore ?? 0;
+            pdf.font(l.bold ? bold : regular).fontSize(SIZE);
+            for (const part of wrap(l.text, colW - 14)) {
+              pdf.text(part, x + 7, cy, { width: colW - 14, align: "center", lineBreak: false });
+              cy += LINE;
+            }
+          }
+        };
+        cell(M.left, [
+          { text: "ความเห็นของหัวหน้างานอาคารสถานที่ / รองผู้อำนวยการกลุ่มบริหารทั่วไป", bold: true },
+          { text: "ลงชื่อ ..............................", gapBefore: 12 },
+          { text: "(..............................)" },
+        ]);
+        cell(M.left + colW, [
+          { text: "คำสั่งการ / การพิจารณาของผู้อำนวยการโรงเรียน", bold: true },
+          { text: "อนุมัติ      ไม่อนุมัติ" },
+          { text: "ลงชื่อ ..............................", gapBefore: 6 },
+          { text: "(..............................)" },
+        ]);
+        // Check boxes drawn as shapes so no symbol font is needed.
+        const boxY = y + 6 + LINE * 2 + 3;
+        pdf.font(regular).fontSize(SIZE);
+        const labelsW = pdf.widthOfString("อนุมัติ      ไม่อนุมัติ");
+        const startX = M.left + colW + (colW - labelsW) / 2;
+        pdf.rect(startX - 13, boxY, 9, 9).lineWidth(0.8).stroke("#000000");
+        pdf.rect(startX + pdf.widthOfString("อนุมัติ      ") - 13, boxY, 9, 9).lineWidth(0.8).stroke("#000000");
+        y += boxH;
+      }
+    } else {
+      signature(doc.signerName, doc.signerPosition);
+    }
 
-    if (doc.decisionBlock) {
+    if (!repair && doc.decisionBlock) {
       y += 22;
       ensure(LINE * 7);
       pdf.font(bold).fontSize(SIZE).text("ความเห็นของผู้อำนวยการ", M.left, y, { lineBreak: false });
