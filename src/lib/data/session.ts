@@ -6,6 +6,8 @@ import type { UserRole } from "@/types/database";
 
 export const hasSupabase = () => Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 export const isStaffRole = (role?: UserRole | null) => role === "staff" || role === "super_admin";
+/** Anyone who can decide on room requests: repair staff, admins and the meeting-room officer. */
+export const isRoomManager = (role?: UserRole | null) => isStaffRole(role) || role === "room_staff";
 
 /**
  * The signed-in user with a server client, or null (demo mode or signed out). Cached for the

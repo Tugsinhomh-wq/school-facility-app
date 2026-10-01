@@ -10,7 +10,7 @@ import { QuickStats } from "@/components/dashboard/quick-stats";
 import { RecentTicketsFeed } from "@/components/dashboard/recent-tickets-feed";
 import { MyReservations, PendingReservations, TodayMeetings } from "@/components/dashboard/reservation-cards";
 import { getDashboardBase, getRepairsData, getRoomsData, type DashboardBase, type DashTab } from "@/lib/data/dashboard";
-import { isStaffRole } from "@/lib/data/session";
+import { isRoomManager, isStaffRole } from "@/lib/data/session";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +41,7 @@ async function Repairs({ base }: { base: DashboardBase }) {
 
 async function Rooms({ base }: { base: DashboardBase }) {
   const data = await getRoomsData();
-  const staff = isStaffRole(base.viewer?.role);
+  const staff = isRoomManager(base.viewer?.role);
   return (
     <BentoGrid>
       {staff ? (

@@ -1,6 +1,6 @@
 // Mirrors supabase/schema.sql. Keep the two in sync.
 
-export type UserRole = "super_admin" | "staff" | "user";
+export type UserRole = "super_admin" | "staff" | "room_staff" | "user";
 export type TicketStatus = "pending" | "in_progress" | "completed" | "cancelled";
 export type UrgencyLevel = "low" | "medium" | "high" | "emergency";
 export type ApprovalMode = "paper_hybrid" | "digital_multistage";

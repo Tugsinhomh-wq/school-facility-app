@@ -12,7 +12,7 @@ import {
   type PendingReservation,
   type TodayMeeting,
 } from "@/lib/data/rooms";
-import { getSession, isStaffRole } from "@/lib/data/session";
+import { getSession, isRoomManager, isStaffRole } from "@/lib/data/session";
 import { MOCK_BUILDINGS, MOCK_MEMOS, MOCK_TICKETS } from "@/lib/mock-data";
 import type { Building, Memorandum, RepairTicketWithLocation, TicketStatus, UrgencyLevel, UserRole } from "@/types/database";
 
@@ -153,7 +153,7 @@ export async function getRoomsData(): Promise<RoomsData> {
   try {
     const s = await getSession();
     if (!s) return mock();
-    const staff = isStaffRole(s.viewer.role);
+    const staff = isRoomManager(s.viewer.role);
     const [liveRooms, pending, mine] = await Promise.all([
       getLiveRooms(s.supabase),
       staff ? getPendingReservations(s.supabase) : Promise.resolve([] as PendingReservation[]),

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { draftFromReservation } from "@/lib/memo/draft";
-import { hasSupabase, isStaffRole } from "@/lib/data/session";
+import { hasSupabase, isRoomManager } from "@/lib/data/session";
 import { MOCK_MEMOS } from "@/lib/mock-data";
 import { createClient } from "@/lib/supabase/server";
 import { atBangkok, isYmd } from "@/lib/time";
@@ -128,7 +128,7 @@ export async function createMemoFromReservation(formData: FormData) {
   if (!r) redirect("/meeting-rooms");
 
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", auth.user.id).maybeSingle();
-  if (r.applicant_id !== auth.user.id && !isStaffRole(profile?.role)) redirect("/meeting-rooms");
+  if (r.applicant_id !== auth.user.id && !isRoomManager(profile?.role)) redirect("/meeting-rooms");
 
   const one = <T,>(v: T | T[] | null): T | null => (Array.isArray(v) ? (v[0] ?? null) : v);
   const room = one(r.room as { name: string; building: { name: string } | { name: string }[] | null } | { name: string; building: { name: string } | { name: string }[] | null }[] | null);
@@ -152,4 +152,66 @@ export async function createMemoFromReservation(formData: FormData) {
 
   revalidatePath("/memos");
   redirect(`/memos/${memo.id}`);
+}
+
+export type RoomResult = { ok: boolean; message: string } | null;
+
+const toCapacity = (v: FormDataEntryValue | null) => {
+  const n = Number(String(v ?? "").trim());
+  return String(v ?? "").trim() === "" ? null : Number.isInteger(n) && n > 0 && n <= 5000 ? n : NaN;
+};
+
+/** Room officers (and staff): rename a hall, set seats, equipment, the approval rule, and open or close it for booking. */
+export async function saveRoom(_prev: RoomResult, formData: FormData): Promise<RoomResult> {
+  const id = String(formData.get("id") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  const capacity = toCapacity(formData.get("capacity"));
+  const equipment = String(formData.get("equipment") ?? "").split(",").map((e) => e.trim()).filter(Boolean).slice(0, 20);
+  if (!id || !name || name.length > 80) return { ok: false, message: "กรอกชื่อห้อง (ไม่เกิน 80 ตัวอักษร)" };
+  if (Number.isNaN(capacity)) return { ok: false, message: "จำนวนที่นั่งต้องเป็นจำนวนเต็มบวก หรือเว้นว่างไว้" };
+  if (!hasSupabase()) return { ok: true, message: "โหมดสาธิต: ยังไม่ได้ตั้งค่า Supabase จึงไม่ได้บันทึกข้อมูลจริง" };
+
+  const supabase = await createClient();
+  const { data: auth } = await getAuth(supabase);
+  if (!auth.user) return { ok: false, message: "เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่" };
+
+  const { data, error } = await supabase
+    .from("rooms")
+    .update({ name, capacity, equipment, requires_approval: formData.get("requires_approval") === "on", is_bookable: formData.get("is_bookable") === "on" })
+    .eq("id", id)
+    .select("building_id");
+  if (error || !data?.length) return { ok: false, message: "บันทึกไม่สำเร็จ ไม่มีสิทธิ์แก้ไขห้องนี้" };
+  // A hall's building row carries the same name, so the repair form shows the new name too.
+  await supabase.from("buildings").update({ name }).eq("id", data[0].building_id).like("code", "HALL-%");
+
+  revalidatePath("/meeting-rooms");
+  revalidatePath("/meeting-rooms/manage");
+  revalidatePath("/");
+  return { ok: true, message: "บันทึกแล้ว" };
+}
+
+/** Add a hall: a building row (HALL-nn) plus its room. */
+export async function addRoom(_prev: RoomResult, formData: FormData): Promise<RoomResult> {
+  const name = String(formData.get("name") ?? "").trim();
+  const capacity = toCapacity(formData.get("capacity"));
+  if (!name || name.length > 80) return { ok: false, message: "กรอกชื่อห้อง (ไม่เกิน 80 ตัวอักษร)" };
+  if (Number.isNaN(capacity)) return { ok: false, message: "จำนวนที่นั่งต้องเป็นจำนวนเต็มบวก หรือเว้นว่างไว้" };
+  if (!hasSupabase()) return { ok: true, message: "โหมดสาธิต: ยังไม่ได้ตั้งค่า Supabase จึงไม่ได้บันทึกข้อมูลจริง" };
+
+  const supabase = await createClient();
+  const { data: auth } = await getAuth(supabase);
+  if (!auth.user) return { ok: false, message: "เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่" };
+
+  const { data: codes } = await supabase.from("buildings").select("code").like("code", "HALL-%");
+  const next = Math.max(0, ...((codes ?? []) as { code: string }[]).map((c) => Number(c.code.slice(5)) || 0)) + 1;
+  const code = `HALL-${String(next).padStart(2, "0")}`;
+
+  const { data: b, error: be } = await supabase.from("buildings").insert({ code, name, floor_count: 1 }).select("id").single();
+  if (be || !b) return { ok: false, message: "เพิ่มห้องไม่สำเร็จ ไม่มีสิทธิ์หรือมีชื่อซ้ำ" };
+  const { error: re } = await supabase.from("rooms").insert({ building_id: b.id, room_number: code, name, capacity, is_bookable: true, requires_approval: formData.get("requires_approval") === "on", equipment: [] });
+  if (re) return { ok: false, message: "เพิ่มห้องไม่สำเร็จ" };
+
+  revalidatePath("/meeting-rooms");
+  revalidatePath("/meeting-rooms/manage");
+  return { ok: true, message: `เพิ่มห้อง ${name} แล้ว` };
 }

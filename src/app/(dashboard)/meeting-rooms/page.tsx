@@ -1,6 +1,8 @@
+import Link from "next/link";
+
 import { RoomCalendar } from "@/components/meeting/room-calendar";
 import { getMeetingWeek } from "@/lib/data/rooms";
-import { isStaffRole } from "@/lib/data/session";
+import { isRoomManager } from "@/lib/data/session";
 import { bangkokYmd, isYmd, mondayOf } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +16,14 @@ export default async function MeetingRoomsPage({ searchParams }: { searchParams:
 
   return (
     <>
-      <h1 className="font-display text-3xl font-bold tracking-tight">ขอใช้ห้องประชุม</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="font-display text-3xl font-bold tracking-tight">ขอใช้ห้องประชุม</h1>
+        {isRoomManager(data.viewer?.role) && (
+          <Link href="/meeting-rooms/manage" className="text-sm text-primary underline-offset-4 hover:underline">
+            จัดการห้อง
+          </Link>
+        )}
+      </div>
       <p className="mt-1 mb-6 text-muted-foreground">
         ดูตารางว่างและจองห้อง ระบบกันเวลาชนกันให้{data.source === "mock" && " (ข้อมูลตัวอย่าง)"}
       </p>
@@ -25,7 +34,7 @@ export default async function MeetingRoomsPage({ searchParams }: { searchParams:
         weekStart={weekStart}
         roomId={roomId}
         userId={data.userId}
-        isStaff={isStaffRole(data.viewer?.role)}
+        isStaff={isRoomManager(data.viewer?.role)}
         live={data.source === "supabase"}
       />
     </>

@@ -24,7 +24,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         {children}
       </div>
       {session && <QuickReportFab />}
-      <MobileNav showMemos={session?.viewer.role === "staff" || session?.viewer.role === "super_admin"} />
+      <MobileNav showMemos={Boolean(session && session.viewer.role !== "user")} />
     </div>
   );
 }
