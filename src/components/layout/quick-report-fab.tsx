@@ -1,13 +1,23 @@
 "use client";
 
 import { Plus } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
 
-import { createRepairTicket, type ReportResult } from "@/app/(dashboard)/actions";
+import {
+  createRepairTicket,
+  type ReportResult,
+} from "@/app/(dashboard)/actions";
 import { ImagePicker } from "@/components/tickets/image-picker";
 import { SimilarTickets } from "@/components/tickets/similar-tickets";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
@@ -20,7 +30,15 @@ const URGENCY_CHOICES = [
 ] as const;
 
 /** Common faults: one tap fills the title, so most reports need no typing. */
-const SYMPTOMS = ["หลอดไฟขาด", "น้ำรั่ว", "แอร์ไม่เย็น", "ประตู/กุญแจเสีย", "ส้วม/ก๊อกน้ำเสีย", "ปลั๊กไฟ/ไฟฟ้า", "โต๊ะเก้าอี้ชำรุด"];
+const SYMPTOMS = [
+  "หลอดไฟขาด",
+  "น้ำรั่ว",
+  "แอร์ไม่เย็น",
+  "ประตู/กุญแจเสีย",
+  "ส้วม/ก๊อกน้ำเสีย",
+  "ปลั๊กไฟ/ไฟฟ้า",
+  "โต๊ะเก้าอี้ชำรุด",
+];
 
 interface Building {
   id: string;
@@ -34,10 +52,17 @@ function QuickForm({ buildings }: { buildings: Building[] }) {
   const [buildingId, setBuildingId] = useState("");
   const [spot, setSpot] = useState("");
   const titleInput = useRef<HTMLInputElement>(null);
-  const [state, action, pending] = useActionState<ReportResult | null, FormData>(createRepairTicket, null);
+  const [state, action, pending] = useActionState<
+    ReportResult | null,
+    FormData
+  >(createRepairTicket, null);
 
   if (state?.ok) {
-    return <p className="py-6 text-center text-base font-medium">🎉 {state.message}</p>;
+    return (
+      <p className="py-6 text-center text-base font-medium">
+        🎉 {state.message}
+      </p>
+    );
   }
 
   return (
@@ -65,7 +90,11 @@ function QuickForm({ buildings }: { buildings: Building[] }) {
       </div>
       <div className="space-y-2">
         <Label htmlFor="q-title">เสียตรงไหน เป็นอะไร</Label>
-        <div className="flex flex-wrap gap-2" role="group" aria-label="อาการที่พบบ่อย">
+        <div
+          className="flex flex-wrap gap-2"
+          role="group"
+          aria-label="อาการที่พบบ่อย"
+        >
           {SYMPTOMS.map((sym) => (
             <button
               key={sym}
@@ -74,22 +103,45 @@ function QuickForm({ buildings }: { buildings: Building[] }) {
               onClick={() => setTitle(sym)}
               className={cn(
                 "min-h-10 rounded-full border px-3.5 text-sm transition-colors",
-                title === sym ? "border-primary bg-primary text-primary-foreground" : "border-input text-foreground",
+                title === sym
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-input text-foreground",
               )}
             >
               {sym}
             </button>
           ))}
-          <button type="button" onClick={() => titleInput.current?.focus()} className="min-h-10 rounded-full border border-dashed border-input px-3.5 text-sm text-muted-foreground">
+          <button
+            type="button"
+            onClick={() => titleInput.current?.focus()}
+            className="min-h-10 rounded-full border border-dashed border-input px-3.5 text-sm text-muted-foreground"
+          >
             อื่นๆ พิมพ์เอง
           </button>
         </div>
-        <Input ref={titleInput} id="q-title" name="title" required maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="เช่น หลอดไฟห้อง 112 ขาด" className="h-12 text-base" />
+        <Input
+          ref={titleInput}
+          id="q-title"
+          name="title"
+          required
+          maxLength={120}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="เช่น หลอดไฟห้อง 112 ขาด"
+          className="h-12 text-base"
+        />
       </div>
       <SimilarTickets buildingId={buildingId} text={`${title}${spot}`} />
       <div className="space-y-1.5">
         <Label htmlFor="q-loc">ห้องหรือจุดที่พบ (ถ้ามี)</Label>
-        <Input id="q-loc" name="location_detail" value={spot} onChange={(e) => setSpot(e.target.value)} placeholder="เช่น หน้าโรงอาหาร" className="h-12 text-base" />
+        <Input
+          id="q-loc"
+          name="location_detail"
+          value={spot}
+          onChange={(e) => setSpot(e.target.value)}
+          placeholder="เช่น หน้าโรงอาหาร"
+          className="h-12 text-base"
+        />
       </div>
       <fieldset className="space-y-1.5">
         <legend className="text-sm font-medium">ความเร่งด่วน</legend>
@@ -121,8 +173,16 @@ function QuickForm({ buildings }: { buildings: Building[] }) {
           {state.message}
         </p>
       )}
-      <Button type="submit" disabled={pending || busy} className="h-12 w-full text-base">
-        {pending ? "กำลังส่ง..." : busy ? "กำลังอัปโหลดรูป..." : "ส่งเรื่องแจ้งซ่อม"}
+      <Button
+        type="submit"
+        disabled={pending || busy}
+        className="h-12 w-full text-base"
+      >
+        {pending
+          ? "กำลังส่ง..."
+          : busy
+            ? "กำลังอัปโหลดรูป..."
+            : "ส่งเรื่องแจ้งซ่อม"}
       </Button>
     </form>
   );
@@ -133,6 +193,9 @@ export function QuickReportFab() {
   const [open, setOpen] = useState(false);
   const [formKey, setFormKey] = useState(0);
   const [buildings, setBuildings] = useState<Building[]>([]);
+  const pathname = usePathname();
+  // The summary and account pages are not for reporting repairs.
+  const hidden = pathname === "/summary" || pathname === "/account";
 
   // Load the building list the first time the sheet opens, so pages do not pay for it.
   useEffect(() => {
@@ -150,6 +213,8 @@ export function QuickReportFab() {
       cancelled = true;
     };
   }, [open, buildings.length]);
+
+  if (hidden) return null;
 
   return (
     <>
@@ -169,7 +234,9 @@ export function QuickReportFab() {
         <DialogContent className="top-auto bottom-0 max-h-[92dvh] max-w-full translate-y-0 overflow-y-auto rounded-b-none rounded-t-2xl pb-[calc(1rem+env(safe-area-inset-bottom))] sm:top-1/2 sm:bottom-auto sm:max-w-md sm:-translate-y-1/2 sm:rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-lg">แจ้งซ่อม</DialogTitle>
-            <DialogDescription>ถ่ายรูป เลือกอาคาร พิมพ์สั้นๆ แล้วกดส่ง</DialogDescription>
+            <DialogDescription>
+              ถ่ายรูป เลือกอาคาร พิมพ์สั้นๆ แล้วกดส่ง
+            </DialogDescription>
           </DialogHeader>
           <QuickForm key={formKey} buildings={buildings} />
         </DialogContent>

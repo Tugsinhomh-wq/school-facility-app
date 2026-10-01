@@ -15,7 +15,7 @@ interface Photo {
  * Uploads each chosen photo straight to the private bucket (compressed to JPEG) and
  * posts only the storage paths with the form, as repeated `image_paths` fields.
  */
-export function ImagePicker({ onBusyChange, camera = false }: { onBusyChange?: (busy: boolean) => void; camera?: boolean }) {
+export function ImagePicker({ onBusyChange, camera = false, bucket = BUCKET, label = "รูปประกอบ (ไม่บังคับ)" }: { onBusyChange?: (busy: boolean) => void; camera?: boolean; bucket?: string; label?: string }) {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [uploading, setUploading] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +41,7 @@ export function ImagePicker({ onBusyChange, camera = false }: { onBusyChange?: (
       try {
         const blob = await compressImage(file);
         const path = `${data.user.id}/${crypto.randomUUID()}.jpg`;
-        const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, blob, { contentType: "image/jpeg" });
+        const { error: uploadError } = await supabase.storage.from(bucket).upload(path, blob, { contentType: "image/jpeg" });
         if (uploadError) throw uploadError;
         const preview = URL.createObjectURL(blob);
         previews.current.push(preview);
@@ -57,7 +57,7 @@ export function ImagePicker({ onBusyChange, camera = false }: { onBusyChange?: (
   async function remove(photo: Photo) {
     setPhotos((p) => p.filter((x) => x.path !== photo.path));
     // Best effort: a leftover file is harmless, it is only reachable by its owner and staff.
-    await createClient().storage.from(BUCKET).remove([photo.path]);
+    await createClient().storage.from(bucket).remove([photo.path]);
   }
 
   const full = photos.length + uploading >= MAX_IMAGES;
@@ -65,7 +65,7 @@ export function ImagePicker({ onBusyChange, camera = false }: { onBusyChange?: (
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium">รูปประกอบ (ไม่บังคับ)</span>
+        <span className="text-sm font-medium">{label}</span>
         <span className="text-xs text-muted-foreground">
           {photos.length}/{MAX_IMAGES} รูป
         </span>

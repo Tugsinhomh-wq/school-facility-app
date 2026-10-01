@@ -13,9 +13,15 @@ export interface NavItem {
 export function SiteNav({ items }: { items: NavItem[] }) {
   const pathname = usePathname();
   return (
-    <nav aria-label="เมนูหลัก" className="-mx-1 flex min-w-0 gap-1 overflow-x-auto px-1">
+    <nav
+      aria-label="เมนูหลัก"
+      className="-mx-1 flex min-w-0 gap-1 overflow-x-auto px-1"
+    >
       {items.map(({ href, label }) => {
-        const active = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+        const active =
+          href === "/"
+            ? pathname === "/"
+            : pathname === href || pathname.startsWith(`${href}/`);
         return (
           <Link
             key={href}
@@ -23,7 +29,9 @@ export function SiteNav({ items }: { items: NavItem[] }) {
             aria-current={active ? "page" : undefined}
             className={cn(
               "shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-              active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              active
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >
             {label}
