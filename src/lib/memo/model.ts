@@ -23,11 +23,15 @@ export interface MemoDoc {
 /** The system's temporary number (MEMO-…) is not the official one; the real number comes from the general administration office. */
 const isTemporaryRef = (ref: string) => !ref.trim() || /^MEMO-/i.test(ref.trim());
 
-/** Until the number is issued, the "ที่" line is left blank for it to be written in: "บท ........ / 2569". */
-export function officialRef(docRefNo: string, createdAt: string | Date) {
+/**
+ * Until the number is issued, the "ที่" line is left blank for it to be written in: "บท ........ / 2569".
+ * The year is the year of the day the file is opened or exported, so it rolls over on its own.
+ * A number that has been typed in (บท 123/2569) is never touched: it is the issued number.
+ */
+export function officialRef(docRefNo: string, now: string | Date = new Date()) {
   if (!isTemporaryRef(docRefNo)) return docRefNo.trim();
   // Buddhist year computed by hand: Intl adds a "พ.ศ." prefix in browsers but not in Node.
-  const year = Number(new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Bangkok", year: "numeric" }).format(new Date(createdAt))) + 543;
+  const year = Number(new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Bangkok", year: "numeric" }).format(new Date(now))) + 543;
   return `บท ........ / ${year}`;
 }
 
@@ -47,7 +51,7 @@ export function buildMemoDoc(
 ): MemoDoc {
   return {
     agency: AGENCY,
-    refNo: officialRef(memo.doc_ref_no, memo.created_at),
+    refNo: officialRef(memo.doc_ref_no),
     date: formatThaiDate(memo.created_at),
     subject: memo.subject,
     recipient: memo.recipient,
