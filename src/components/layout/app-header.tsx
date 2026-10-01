@@ -12,20 +12,36 @@ export function AppHeader({ viewer }: { viewer: Viewer | null }) {
   const summary: NavItem = { href: "/summary", label: "สรุปภาพรวม" };
   const items: NavItem[] =
     viewer?.role === "executive"
-      ? [summary] // executives see the summary page and nothing else
+      ? [summary, { href: "/account", label: "บัญชีของฉัน" }] // executives: the summary page and their own account
       : [
           { href: "/", label: "แดชบอร์ด" },
           { href: "/tickets", label: "รายการแจ้งซ่อม" },
           { href: "/meeting-rooms", label: "ขอใช้ห้องประชุม" },
-          ...(!viewer || viewer.role !== "user" ? [{ href: "/memos", label: "บันทึกข้อความ" }] : []),
-          ...(viewer?.role === "super_admin" ? [summary] : []),
+          ...(!viewer || viewer.role !== "user"
+            ? [{ href: "/memos", label: "บันทึกข้อความ" }]
+            : []),
+          ...(viewer?.role === "super_admin"
+            ? [summary, { href: "/feedback", label: "ความคิดเห็น" }]
+            : []),
         ];
 
   return (
     <header className="mb-6 flex flex-wrap md:mb-8 items-center gap-x-6 gap-y-3">
-      <Link href="/" className="flex items-center gap-3 rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
-        <Image src="/logo.png" alt="ตราโรงเรียนละหานทรายรัชดาภิเษก" width={640} height={1016} className="h-9 w-auto md:h-10" priority />
-        <span className="font-display text-lg font-semibold leading-tight">ระบบแจ้งซ่อม</span>
+      <Link
+        href="/"
+        className="flex items-center gap-3 rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        <Image
+          src="/logo.png"
+          alt="ตราโรงเรียนละหานทรายรัชดาภิเษก"
+          width={640}
+          height={1016}
+          className="h-9 w-auto md:h-10"
+          priority
+        />
+        <span className="font-display text-lg font-semibold leading-tight">
+          ระบบแจ้งซ่อม
+        </span>
       </Link>
       <div className="hidden min-w-0 md:block md:flex-1">
         <SiteNav items={items} />
@@ -44,7 +60,10 @@ export function AppHeader({ viewer }: { viewer: Viewer | null }) {
           </Link>
         )}
         {!viewer && (
-          <Link href="/login" className="rounded-lg border border-border px-3 py-1.5 text-sm md:hidden">
+          <Link
+            href="/login"
+            className="rounded-lg border border-border px-3 py-1.5 text-sm md:hidden"
+          >
             เข้าสู่ระบบ
           </Link>
         )}

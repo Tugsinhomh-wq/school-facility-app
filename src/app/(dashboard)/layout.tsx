@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { QuickReportFab } from "@/components/layout/quick-report-fab";
+import { LastPageTracker } from "@/components/layout/last-page-tracker";
 import { AppHeader } from "@/components/layout/app-header";
 import { GridPattern } from "@/components/ui/grid-pattern";
 import { getSession } from "@/lib/data/session";
@@ -20,6 +21,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         className="h-[360px] stroke-primary/10 fill-primary/5 [mask-image:linear-gradient(to_bottom,white,transparent)]"
       />
       <div className="relative mx-auto max-w-7xl px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-28 sm:px-6 md:pt-[calc(1.5rem+env(safe-area-inset-top))] md:pb-8">
+        <LastPageTracker />
         <AppHeader viewer={session?.viewer ?? null} />
         {children}
       </div>

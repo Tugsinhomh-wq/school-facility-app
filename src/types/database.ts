@@ -101,3 +101,18 @@ export type NewRepairTicket = Pick<
   RepairTicket,
   "building_id" | "title" | "description" | "urgency"
 > & { location_detail?: string | null };
+
+export type FeedbackKind = "problem" | "request" | "praise" | "other";
+export type FeedbackStatus = "new" | "reviewing" | "done";
+
+export interface Feedback {
+  id: string;
+  user_id: string;
+  kind: FeedbackKind;
+  message: string;
+  image_paths: string[];
+  page_url: string | null;
+  user_agent: string | null;
+  status: FeedbackStatus;
+  created_at: string;
+}
