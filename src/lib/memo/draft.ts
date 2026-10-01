@@ -1,32 +1,32 @@
 import { bahtText, formatBahtNumber, formatThaiDate, SCHOOL_NAME } from "@/lib/memo/model";
-import { URGENCY_LABEL } from "@/lib/ticket-meta";
 import { atBangkok, bangkokYmd, formatInstantHm } from "@/lib/time";
 import type { TicketRow } from "@/types/tickets";
 
-/** First draft of a repair memo from a ticket. Staff edit it in the editor before exporting. */
-export function draftFromTicket(t: TicketRow) {
-  // Titles often already name the place ("ท่อน้ำรั่วโรงอาหาร"), so only add what is missing.
-  const place = [t.building?.name, t.room?.name ?? t.location_detail]
-    .filter((part): part is string => Boolean(part) && !t.title.includes(part as string))
-    .join(" ");
-  const reporter = t.reporter?.full_name ? `${t.reporter.full_name} ` : "";
+/**
+ * First draft of a repair memo from a ticket, in the building unit's three-part form:
+ * reason, facts and cost, then the request (the closing line is added by the renderer).
+ * `author` is the staff member writing the memo ("ข้าพเจ้า"); staff edit the text before exporting.
+ */
+export function draftFromTicket(t: TicketRow, author?: { full_name: string; position: string | null } | null) {
+  const where = [t.building?.name, t.room?.name ?? t.location_detail].filter(Boolean).join(" ");
+  const who = author?.full_name ? `ข้าพเจ้า ${author.full_name} ตำแหน่ง ${author.position || "........................"}` : "ข้าพเจ้า";
+  const reporter = t.reporter?.full_name ? `ได้รับแจ้งจาก${t.reporter.full_name}` : "ได้รับแจ้ง";
   const cost = Number(t.estimated_cost);
+  const urgent = t.urgency === "high" || t.urgency === "emergency";
+  const damage = [t.title, t.description && t.description !== t.title ? t.description : ""].filter(Boolean).join(" ");
 
-  const paragraphs = [
-    `ตามที่${reporter}ได้แจ้งว่า ${t.title}${place ? ` บริเวณ${place}` : ""} เมื่อวันที่ ${formatThaiDate(t.created_at)} (เลขที่งาน ${t.ticket_number}, ระดับ${URGENCY_LABEL[t.urgency]})${t.description ? ` โดยมีรายละเอียดดังนี้ ${t.description}` : ""}`,
-    t.technician_notes
-      ? `ฝ่ายอาคารสถานที่ได้ตรวจสอบแล้ว ${t.technician_notes}`
-      : "ฝ่ายอาคารสถานที่ได้ตรวจสอบแล้ว พบว่าควรดำเนินการซ่อมแซมโดยเร็ว เพื่อความปลอดภัยและไม่ให้กระทบการเรียนการสอน",
-  ];
+  const reason = `ด้วย${who} ${reporter} ถึงความชำรุดเสียหายของอาคารสถานที่ ณ ${where || "บริเวณโรงเรียน"} เมื่อวันที่ ${formatThaiDate(t.created_at)} (เลขที่งาน ${t.ticket_number}) โดยมีสภาพความเสียหายดังนี้ ${damage}`;
+  const facts =
+    `งานอาคารสถานที่ได้ดำเนินการตรวจสอบสภาพความเสียหายดังกล่าวแล้ว พบว่ามีความจำเป็นต้องดำเนินการซ่อมแซม${urgent ? "อย่างเร่งด่วน" : "โดยเร็ว"} เพื่อความปลอดภัยของนักเรียนและครูผู้สอน และไม่ให้เกิดความเสียหายลุกลาม` +
+    (t.technician_notes ? ` ${t.technician_notes}` : "") +
+    (cost > 0 ? ` โดยประมาณการค่าใช้จ่ายเบื้องต้น เป็นจำนวนเงิน ${formatBahtNumber(cost)} บาท (${bahtText(cost)}) ตามรายการประมาณการแนบท้ายนี้` : " ทั้งนี้อยู่ระหว่างประมาณการค่าใช้จ่าย");
 
   return {
-    subject: `ขออนุมัติดำเนินการซ่อม ${t.title}`,
+    subject: "ขออนุมัติซ่อมแซมอาคารสถานที่และสิ่งอำนวยความสะดวกที่ชำรุด",
     recipient: `ผู้อำนวยการ${SCHOOL_NAME}`,
-    body_content: paragraphs.join("\n"),
-    proposal:
-      cost > 0
-        ? `ฝ่ายอาคารสถานที่ประมาณการค่าใช้จ่ายในการซ่อมเป็นเงิน ${formatBahtNumber(cost)} บาท (${bahtText(cost)}) จึงเห็นควรอนุมัติให้ดำเนินการซ่อมตามที่เสนอ`
-        : "เห็นควรอนุมัติให้ดำเนินการซ่อมตามที่เสนอ",
+    body_content: [reason, facts].join("\n"),
+    // The request itself is the fixed closing paragraph, so the free proposal field stays empty.
+    proposal: "",
   };
 }
 
