@@ -155,7 +155,7 @@ export function RoomCalendar({ rooms, bookings, weekStart, roomId, userId, isSta
       </div>
 
       <p className="text-sm text-muted-foreground">
-        {room.name} · {room.building_name}{room.capacity ? ` · ${room.capacity} ที่นั่ง` : ""} ·{" "}
+        {room.name}{room.building_name !== room.name ? ` · ${room.building_name}` : ""}{room.capacity ? ` · ${room.capacity} ที่นั่ง` : ""} ·{" "}
         {room.requires_approval ? "ต้องให้ ผอ. อนุมัติ" : "จองแล้วได้ทันที"}. แตะช่วงว่างเพื่อจอง
       </p>
 

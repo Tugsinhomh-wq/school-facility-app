@@ -66,9 +66,11 @@ export interface MockRoom {
 }
 
 export const MOCK_ROOMS: MockRoom[] = [
-  { id: "r1", room_number: "MTG-01", name: "ห้องประชุมใหญ่", building_name: "อาคาร 2", capacity: 60, requires_approval: true, equipment: ["โปรเจกเตอร์", "ไมค์ลอย", "เครื่องเสียง"] },
-  { id: "r2", room_number: "MTG-02", name: "ห้องประชุมย่อย", building_name: "อาคาร 2", capacity: 15, requires_approval: false, equipment: ["จอ TV", "ไวท์บอร์ด"] },
-  { id: "r3", room_number: "301", name: "ห้องคอมพิวเตอร์", building_name: "อาคาร 3", capacity: 40, requires_approval: false, equipment: ["คอมพิวเตอร์ 40 เครื่อง", "โปรเจกเตอร์"] },
+  { id: "r1", room_number: "HALL-01", name: "ห้องประชุมภูมินทร์", building_name: "ห้องประชุมภูมินทร์", capacity: null, requires_approval: true, equipment: [] },
+  { id: "r2", room_number: "HALL-02", name: "ห้องประชุมมหาชนก", building_name: "ห้องประชุมมหาชนก", capacity: null, requires_approval: true, equipment: [] },
+  { id: "r3", room_number: "HALL-03", name: "ห้องประชุมเฉลิมพระเกียรติ", building_name: "ห้องประชุมเฉลิมพระเกียรติ", capacity: null, requires_approval: true, equipment: [] },
+  { id: "r4", room_number: "HALL-04", name: "ห้องประชุมบุคลากรครู", building_name: "ห้องประชุมบุคลากรครู", capacity: null, requires_approval: false, equipment: [] },
+  { id: "r5", room_number: "HALL-05", name: "ห้องประชุมเล็ก", building_name: "ห้องประชุมเล็ก", capacity: null, requires_approval: false, equipment: [] },
 ];
 
 export interface MockBooking {
@@ -99,11 +101,11 @@ function at(dayOffset: number, hhmm: string) {
 export function mockBookings(): MockBooking[] {
   const base = { applicant_id: "mock-user", attendee_count: 8, equipment_needed: null };
   return [
-    { ...base, id: "b0", room_id: "r3", applicant_name: "ครูนภา ศรีสุข", purpose: "อบรมการใช้โปรแกรมสำนักงาน", attendee_count: 30, start_time: inMinutes(-30), end_time: inMinutes(45), status: "approved" },
-    { ...base, id: "b1", room_id: "r2", applicant_name: "ครูสมหญิง ใจดี", purpose: "ประชุมกลุ่มสาระวิทยาศาสตร์", start_time: at(0, "09:00"), end_time: at(0, "10:30"), status: "approved" },
+    { ...base, id: "b0", room_id: "r4", applicant_name: "ครูนภา ศรีสุข", purpose: "อบรมการใช้โปรแกรมสำนักงาน", attendee_count: 30, start_time: inMinutes(-30), end_time: inMinutes(45), status: "approved" },
+    { ...base, id: "b1", room_id: "r5", applicant_name: "ครูสมหญิง ใจดี", purpose: "ประชุมกลุ่มสาระวิทยาศาสตร์", start_time: at(0, "09:00"), end_time: at(0, "10:30"), status: "approved" },
     { ...base, id: "b2", room_id: "r1", applicant_name: "ครูวิชัย มั่นคง", purpose: "ประชุมผู้ปกครองชั้น ม.1", attendee_count: 45, start_time: at(0, "13:00"), end_time: at(0, "15:00"), status: "approved" },
     { ...base, id: "b3", room_id: "r1", applicant_name: "ครูสมชาย รักงาน", purpose: "อบรมการใช้ระบบแจ้งซ่อม", attendee_count: 30, start_time: at(1, "10:00"), end_time: at(1, "12:00"), status: "pending" },
-    { ...base, id: "b4", room_id: "r2", applicant_name: "ครูนภา ศรีสุข", purpose: "ประชุมฝ่ายวิชาการ", attendee_count: 10, start_time: at(1, "09:00"), end_time: at(1, "10:00"), status: "approved" },
+    { ...base, id: "b4", room_id: "r5", applicant_name: "ครูนภา ศรีสุข", purpose: "ประชุมฝ่ายวิชาการ", attendee_count: 10, start_time: at(1, "09:00"), end_time: at(1, "10:00"), status: "approved" },
     { ...base, id: "b5", room_id: "r1", applicant_name: "ครูวิชัย มั่นคง", purpose: "ซ้อมพิธีเปิดกีฬาสี", attendee_count: 50, start_time: at(1, "13:00"), end_time: at(1, "15:00"), status: "approved" },
   ];
 }
