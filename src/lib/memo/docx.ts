@@ -3,7 +3,7 @@ import path from "node:path";
 
 import { AlignmentType, BorderStyle, Document, ImageRun, LeaderType, Packer, Paragraph, type IParagraphOptions, Table, TableCell, TableRow, TabStopType, TextRun, WidthType } from "docx";
 
-import { SCHOOL_NAME, type MemoDoc } from "@/lib/memo/model";
+import { DEPUTY, DIRECTOR, SCHOOL_NAME, type MemoDoc } from "@/lib/memo/model";
 import { withBreakHints } from "@/lib/memo/thai-text";
 
 const CM = 567; // twips per centimetre
@@ -35,9 +35,8 @@ export async function memoToDocx(doc: MemoDoc, { fontName = "TH Sarabun New" }: 
   const labelled = (label: string, value: string, extra: Omit<IParagraphOptions, "children"> = {}, opts: { size?: number; boldValue?: boolean } = {}) =>
     new Paragraph({
       alignment: AlignmentType.LEFT,
-      tabStops: [{ type: TabStopType.RIGHT, position: RIGHT, leader: LeaderType.DOT }],
       ...extra,
-      children: [run(label, true, opts.size), run(` ${value}`, Boolean(opts.boldValue), opts.size), new TextRun({ text: "\t" })],
+      children: [run(label, true, opts.size), run(` ${value}`, Boolean(opts.boldValue), opts.size)],
     });
 
   const indent = { firstLine: 2.5 * CM };
@@ -79,12 +78,8 @@ export async function memoToDocx(doc: MemoDoc, { fontName = "TH Sarabun New" }: 
     header,
     labelled("ส่วนราชการ", doc.agency, { spacing: { before: 120 } }, {}),
     new Paragraph({
-      tabStops: [
-        { type: TabStopType.LEFT, position: 7.8 * CM, leader: LeaderType.DOT },
-        { type: TabStopType.LEFT, position: 8 * CM },
-        { type: TabStopType.RIGHT, position: RIGHT, leader: LeaderType.DOT },
-      ],
-      children: [run("ที่", true), run(` ${doc.refNo}`), new TextRun({ text: "\t" }), new TextRun({ text: "\t" }), run("วันที่", true), run(` ${doc.date}`), new TextRun({ text: "\t" })],
+      tabStops: [{ type: TabStopType.LEFT, position: 5 * CM }],
+      children: [run("ที่", true), run(` ${doc.refNo}`), new TextRun({ text: "\t" }), run("วันที่", true), run(` ${doc.date}`)],
     }),
     labelled("เรื่อง", doc.subject),
     labelled("เรียน", doc.recipient, { spacing: { after: 120 } }),
@@ -107,19 +102,19 @@ export async function memoToDocx(doc: MemoDoc, { fontName = "TH Sarabun New" }: 
   if (doc.decisionBlock && repair) {
     // Two short stacked notes with dotted lines to write on, then a signature each: no boxes.
     const dotted = () => new Paragraph({ tabStops: [{ type: TabStopType.RIGHT, position: RIGHT, leader: LeaderType.DOT }], children: [new TextRun({ text: "\t" })] });
-    const sign = (position?: string) => [
+    const sign = (name: string, position: string) => [
       new Paragraph({ ...signer, spacing: { before: 280 }, children: [run("ลงชื่อ ..............................")] }),
-      new Paragraph({ ...signer, children: [run("(..............................)")] }),
-      ...(position ? [new Paragraph({ ...signer, children: [run(position)] })] : []),
+      new Paragraph({ ...signer, children: [run(`(${name})`)] }),
+      new Paragraph({ ...signer, children: [run(position)] }),
     ];
     children.push(
-      new Paragraph({ spacing: { before: 280 }, children: [run("ความเห็นของหัวหน้างานอาคารสถานที่ / รองผู้อำนวยการกลุ่มบริหารทั่วไป", true)] }),
+      new Paragraph({ spacing: { before: 280 }, children: [run("ความเห็นของรองผู้อำนวยการกลุ่มบริหารทั่วไป", true)] }),
       dotted(),
-      ...sign(),
+      ...sign(DEPUTY.name, DEPUTY.position),
       new Paragraph({ spacing: { before: 280 }, children: [run("คำสั่งการ / การพิจารณาของผู้อำนวยการโรงเรียน", true)] }),
       new Paragraph({ indent: { left: 0.5 * CM }, children: [run("☐ อนุมัติ        ☐ ไม่อนุมัติ")] }),
       dotted(),
-      ...sign("ผู้อำนวยการโรงเรียน"),
+      ...sign(DIRECTOR.name, DIRECTOR.position),
     );
   } else if (doc.decisionBlock) {
     children.push(

@@ -3,7 +3,7 @@ import path from "node:path";
 
 import PDFDocument from "pdfkit";
 
-import { SCHOOL_NAME, type MemoDoc } from "@/lib/memo/model";
+import { DEPUTY, DIRECTOR, SCHOOL_NAME, type MemoDoc } from "@/lib/memo/model";
 import { thaiWords } from "@/lib/memo/thai-text";
 
 const FONT_DIR = path.join(process.cwd(), "src/lib/memo/fonts");
@@ -89,7 +89,6 @@ export function memoToPdf(doc: MemoDoc): Promise<Buffer> {
         ensure(line);
         const x = M.left + labelWidth;
         pdf.text(l, x, y, { lineBreak: false });
-        leader(x + pdf.widthOfString(l) + 3, M.left + contentWidth, y + (size - SIZE));
         y += line;
         if (i === 0 && lines.length > 1) return;
       });
@@ -110,12 +109,10 @@ export function memoToPdf(doc: MemoDoc): Promise<Buffer> {
     pdf.font(bold).fontSize(SIZE).text("ที่", M.left, y, { lineBreak: false });
     const thiWidth = pdf.widthOfString("ที่ ");
     pdf.font(regular).text(doc.refNo, M.left + thiWidth, y, { lineBreak: false });
-    const dateX = M.left + cm(8);
-    leader(M.left + thiWidth + pdf.widthOfString(doc.refNo) + 3, dateX - 6, y);
+    const dateX = M.left + cm(5);
     pdf.font(bold).text("วันที่", dateX, y, { lineBreak: false });
     const dateLabel = pdf.widthOfString("วันที่ ");
     pdf.font(regular).text(doc.date, dateX + dateLabel, y, { lineBreak: false });
-    leader(dateX + dateLabel + pdf.widthOfString(doc.date) + 3, M.left + contentWidth, y);
     y += LINE;
 
     labelled("เรื่อง", doc.subject);
@@ -127,8 +124,8 @@ export function memoToPdf(doc: MemoDoc): Promise<Buffer> {
     paragraph(doc.closing, { firstIndent: indent, after: 20 });
 
     // Signature block, centred in the right-hand column
-    const sigX = M.left + cm(8);
-    const sigWidth = contentWidth - cm(8);
+    const sigX = M.left + cm(6);
+    const sigWidth = contentWidth - cm(6);
     const centred = (text: string, isBold = false) => {
       pdf.font(isBold ? bold : regular).fontSize(SIZE);
       for (const line of wrap(text, sigWidth)) {
@@ -155,22 +152,22 @@ export function memoToPdf(doc: MemoDoc): Promise<Buffer> {
           leader(x, x + width, y);
           y += LINE;
         };
-        const sign = (position?: string) => {
+        const sign = (name: string, position: string) => {
           ensure(LINE * 4);
           y += LINE * 0.4;
           centred("ลงชื่อ ..............................");
-          centred("(..............................)");
-          if (position) centred(position);
+          centred(`(${name})`);
+          centred(position);
         };
         y += LINE * 0.6;
         ensure(LINE * 13); // keep both notes together on one page
         pdf.font(bold).fontSize(SIZE);
-        for (const line of wrap("ความเห็นของหัวหน้างานอาคารสถานที่ / รองผู้อำนวยการกลุ่มบริหารทั่วไป", contentWidth)) {
+        for (const line of wrap("ความเห็นของรองผู้อำนวยการกลุ่มบริหารทั่วไป", contentWidth)) {
           pdf.text(line, M.left, y, { lineBreak: false });
           y += LINE;
         }
         dotted(contentWidth);
-        sign();
+        sign(DEPUTY.name, DEPUTY.position);
 
         y += LINE * 0.6;
         pdf.font(bold).fontSize(SIZE);
@@ -186,7 +183,7 @@ export function memoToPdf(doc: MemoDoc): Promise<Buffer> {
         }
         y += LINE;
         dotted(contentWidth);
-        sign("ผู้อำนวยการโรงเรียน");
+        sign(DIRECTOR.name, DIRECTOR.position);
       }
     } else {
       signature(doc.signerName, doc.signerPosition);
