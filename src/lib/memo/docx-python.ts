@@ -3,6 +3,8 @@ import path from "node:path";
 
 import type { MemoDoc } from "@/lib/memo/model";
 
+const GARUDA = path.join(/* turbopackIgnore: true */ process.cwd(), "src/lib/memo/assets/garuda.png");
+
 // The scripts folder is read at request time only by the child process, not imported.
 const SCRIPT_DIR = path.join(/* turbopackIgnore: true */ process.cwd(), "scripts");
 
@@ -36,6 +38,6 @@ export function memoToDocxPython(doc: MemoDoc, timeoutMs = 30_000): Promise<Buff
       else reject(new Error(`memo_docx.py exited ${code}: ${Buffer.concat(err).toString().slice(-500)}`));
     });
     child.stdin.on("error", () => {}); // a failed spawn surfaces through "error"/"close"
-    child.stdin.end(JSON.stringify(doc));
+    child.stdin.end(JSON.stringify({ ...doc, garuda: GARUDA }));
   });
 }

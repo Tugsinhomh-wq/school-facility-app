@@ -68,7 +68,14 @@ export function memoToPdf(doc: MemoDoc): Promise<Buffer> {
       y += opts.after ?? 0;
     };
 
-    /** "label value" where the label is bold and the value wraps under itself. */
+    /** Dotted leader from x1 to x2 on the baseline of the line starting at `top`. */
+    const leader = (x1: number, x2: number, top: number) => {
+      if (x2 - x1 < 6) return;
+      const base = top + SIZE * 1.02;
+      pdf.save().dash(0.9, { space: 2 }).lineWidth(0.8).moveTo(x1, base).lineTo(x2, base).stroke("#000000").undash().restore();
+    };
+
+    /** "label value ........" with the label bold; every line of a wrapped value runs out on a dotted line. */
     const labelled = (label: string, value: string, after = 0) => {
       pdf.font(bold).fontSize(SIZE);
       const labelWidth = pdf.widthOfString(label + " ");
@@ -78,33 +85,37 @@ export function memoToPdf(doc: MemoDoc): Promise<Buffer> {
       const lines = wrap(value, contentWidth - labelWidth);
       (lines.length ? lines : [""]).forEach((l, i) => {
         ensure(LINE);
-        pdf.text(l, M.left + labelWidth, y, { lineBreak: false });
+        const x = M.left + labelWidth;
+        pdf.text(l, x, y, { lineBreak: false });
+        leader(x + pdf.widthOfString(l) + 3, M.left + contentWidth, y);
         y += LINE;
         if (i === 0 && lines.length > 1) return;
       });
       y += after;
     };
 
-    // Title
+    // Header: garuda (1.5 cm high) at the top left, the title centred on the same line.
+    const garudaH = cm(1.5);
+    pdf.image(path.join(FONT_DIR, "../assets/garuda.png"), M.left, cm(1.5), { height: garudaH });
     pdf.font(bold).fontSize(29);
-    pdf.text("บันทึกข้อความ", M.left, y, { width: contentWidth, align: "center", lineBreak: false });
-    y += 29 * 1.5 + 6;
+    pdf.text("บันทึกข้อความ", M.left, cm(1.5) + (garudaH - 29 * 1.2) / 2, { width: contentWidth, align: "center", lineBreak: false });
+    y = cm(1.5) + garudaH + 10;
 
     labelled("ส่วนราชการ", doc.agency);
 
-    // "ที่ ... วันที่ ..." on one line
+    // "ที่ ... วันที่ ..." on one line, each followed by its dotted leader
     pdf.font(bold).fontSize(SIZE).text("ที่", M.left, y, { lineBreak: false });
     const thiWidth = pdf.widthOfString("ที่ ");
     pdf.font(regular).text(doc.refNo, M.left + thiWidth, y, { lineBreak: false });
     const dateX = M.left + cm(8);
+    leader(M.left + thiWidth + pdf.widthOfString(doc.refNo) + 3, dateX - 6, y);
     pdf.font(bold).text("วันที่", dateX, y, { lineBreak: false });
     const dateLabel = pdf.widthOfString("วันที่ ");
     pdf.font(regular).text(doc.date, dateX + dateLabel, y, { lineBreak: false });
+    leader(dateX + dateLabel + pdf.widthOfString(doc.date) + 3, M.left + contentWidth, y);
     y += LINE;
 
     labelled("เรื่อง", doc.subject);
-    pdf.moveTo(M.left, y).lineTo(M.left + contentWidth, y).lineWidth(0.6).stroke("#000000");
-    y += 6;
     labelled("เรียน", doc.recipient, 8);
 
     const indent = cm(2.5);

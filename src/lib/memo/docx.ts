@@ -1,4 +1,7 @@
-import { AlignmentType, BorderStyle, Document, Packer, Paragraph, type IParagraphOptions, TabStopType, TextRun } from "docx";
+import fs from "node:fs";
+import path from "node:path";
+
+import { AlignmentType, BorderStyle, Document, ImageRun, LeaderType, Packer, Paragraph, type IParagraphOptions, Table, TableCell, TableRow, TabStopType, TextRun, WidthType } from "docx";
 
 import { SCHOOL_NAME, type MemoDoc } from "@/lib/memo/model";
 import { withBreakHints } from "@/lib/memo/thai-text";
@@ -26,21 +29,63 @@ export async function memoToDocx(doc: MemoDoc, { fontName = "TH Sarabun New" }: 
   const plain = (text: string, extra: Omit<IParagraphOptions, "children"> = {}) =>
     new Paragraph({ alignment: AlignmentType.LEFT, ...extra, children: [run(text)] });
 
+  const RIGHT = 16 * CM; // text width: 21 - 3 - 2 cm
+  /** "label value ........": a right tab with a dot leader fills the rest of the line. */
   const labelled = (label: string, value: string, extra: Omit<IParagraphOptions, "children"> = {}) =>
-    new Paragraph({ alignment: AlignmentType.LEFT, ...extra, children: [run(label, true), run(` ${value}`)] });
+    new Paragraph({
+      alignment: AlignmentType.LEFT,
+      tabStops: [{ type: TabStopType.RIGHT, position: RIGHT, leader: LeaderType.DOT }],
+      ...extra,
+      children: [run(label, true), run(` ${value}`), new TextRun({ text: "\t" })],
+    });
 
   const indent = { firstLine: 2.5 * CM };
   const body = { indent, spacing: { after: 120 } };
   const signer = { indent: { left: 8 * CM }, alignment: AlignmentType.CENTER } as const;
 
-  const children: Paragraph[] = [
-    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 240 }, children: [run("บันทึกข้อความ", true, 58)] }),
-    labelled("ส่วนราชการ", doc.agency),
+  const noBorder = { style: BorderStyle.NONE, size: 0, color: "FFFFFF" } as const;
+  const cell = (width: number, children: Paragraph[]) =>
+    new TableCell({ width: { size: width, type: WidthType.DXA }, borders: { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder }, children });
+  // Garuda 1.5 cm high at the left, the title centred; the side columns match so the title is centred on the page.
+  const garudaH = 1.5 * CM;
+  const header = new Table({
+    width: { size: 16 * CM, type: WidthType.DXA },
+    columnWidths: [3 * CM, 10 * CM, 3 * CM],
+    borders: { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder, insideHorizontal: noBorder, insideVertical: noBorder },
+    rows: [
+      new TableRow({
+        children: [
+          cell(3 * CM, [
+            new Paragraph({
+              children: [
+                new ImageRun({
+                  type: "png",
+                  data: fs.readFileSync(path.join(/* turbopackIgnore: true */ process.cwd(), "src/lib/memo/assets/garuda.png")),
+                  transformation: { width: Math.round((garudaH / 15) * 0.8917), height: Math.round(garudaH / 15) },
+                  altText: { title: "ตราครุฑ", description: "ตราครุฑ", name: "garuda" },
+                }),
+              ],
+            }),
+          ]),
+          cell(10 * CM, [new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 60 }, children: [run("บันทึกข้อความ", true, 58)] })]),
+          cell(3 * CM, [new Paragraph({ children: [] })]),
+        ],
+      }),
+    ],
+  });
+
+  const children: (Paragraph | Table)[] = [
+    header,
+    labelled("ส่วนราชการ", doc.agency, { spacing: { before: 120 } }),
     new Paragraph({
-      tabStops: [{ type: TabStopType.LEFT, position: 8 * CM }],
-      children: [run("ที่", true), run(` ${doc.refNo}`), new TextRun({ text: "\t" }), run("วันที่", true), run(` ${doc.date}`)],
+      tabStops: [
+        { type: TabStopType.LEFT, position: 7.8 * CM, leader: LeaderType.DOT },
+        { type: TabStopType.LEFT, position: 8 * CM },
+        { type: TabStopType.RIGHT, position: RIGHT, leader: LeaderType.DOT },
+      ],
+      children: [run("ที่", true), run(` ${doc.refNo}`), new TextRun({ text: "\t" }), new TextRun({ text: "\t" }), run("วันที่", true), run(` ${doc.date}`), new TextRun({ text: "\t" })],
     }),
-    labelled("เรื่อง", doc.subject, { border: { bottom: { style: BorderStyle.SINGLE, size: 6, space: 4, color: "000000" } }, spacing: { after: 120 } }),
+    labelled("เรื่อง", doc.subject),
     labelled("เรียน", doc.recipient, { spacing: { after: 160 } }),
     ...doc.paragraphs.map((p) => plain(p, body)),
     ...(doc.proposal ? [plain(doc.proposal, body)] : []),
