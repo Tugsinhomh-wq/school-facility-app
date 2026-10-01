@@ -96,14 +96,14 @@ def build(memo: dict) -> bytes:
         col.width = Cm(width)
         cell.width = Cm(width)
     garuda_cell, title_cell, _ = header.rows[0].cells
-    garuda_cell.paragraphs[0].add_run().add_picture(memo["garuda"], height=Cm(1.5))
+    garuda_cell.paragraphs[0].add_run().add_picture(memo["garuda"], height=Cm(2.2))
     title_p = title_cell.paragraphs[0]
     title_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    title_p.paragraph_format.space_before = Pt(3)
-    add_text(title_p, "บันทึกข้อความ", bold=True, size=29)
+    title_p.paragraph_format.space_before = Pt(18)
+    add_text(title_p, "บันทึกข้อความ", bold=True, size=24)
 
     repair = memo.get("variant") == "repair"
-    labelled(doc, "ส่วนราชการ", memo["agency"], size=20 if repair else SIZE, bold_value=repair, before=6)
+    labelled(doc, "ส่วนราชการ", memo["agency"], before=6)
 
     row = para(doc)
     row.paragraph_format.tab_stops.add_tab_stop(Cm(7.8), WD_TAB_ALIGNMENT.LEFT, WD_TAB_LEADER.DOTS)
@@ -116,13 +116,13 @@ def build(memo: dict) -> bytes:
     add_text(row, " " + memo["date"])
     row.add_run("\t")
 
-    labelled(doc, "เรื่อง", memo["subject"], bold_value=repair)
-    labelled(doc, "เรียน", memo["recipient"], bold_value=repair, after=8)
+    labelled(doc, "เรื่อง", memo["subject"])
+    labelled(doc, "เรียน", memo["recipient"], after=6)
 
     for text in memo["paragraphs"]:
-        add_text(para(doc, first_line=2.5, after=6), text)
+        add_text(para(doc, first_line=2.5, after=2), text)
     if memo.get("proposal"):
-        add_text(para(doc, first_line=2.5, after=6), memo["proposal"])
+        add_text(para(doc, first_line=2.5, after=2), memo["proposal"])
     add_text(para(doc, first_line=2.5, after=18), memo["closing"])
 
     def signature(name, position):
@@ -137,25 +137,24 @@ def build(memo: dict) -> bytes:
         add_text(para(doc, align=WD_ALIGN_PARAGRAPH.CENTER, left=8), f"({memo.get('signerName') or '...........................................'})")
         add_text(para(doc, align=WD_ALIGN_PARAGRAPH.CENTER, left=8), f"ตำแหน่ง {memo.get('signerPosition') or '..........................................'}")
         if memo.get("decisionBlock"):
-            add_text(para(doc, before=18), "")
-            table = doc.add_table(rows=1, cols=2)
-            table.style = "Table Grid"
-            table.autofit = False
-            for col, cell in zip(table.columns, table.rows[0].cells):
-                col.width = Cm(8)
-                cell.width = Cm(8)
-            def fill(cell, items):
-                first = True
-                for text, bold, before in items:
-                    p = cell.paragraphs[0] if first else cell.add_paragraph()
-                    first = False
-                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    p.paragraph_format.space_before = Pt(before)
-                    p.paragraph_format.space_after = Pt(0)
-                    add_text(p, text, bold=bold)
-            left, right = table.rows[0].cells
-            fill(left, [("ความเห็นของหัวหน้างานอาคารสถานที่ / รองผู้อำนวยการกลุ่มบริหารทั่วไป", True, 0), ("ลงชื่อ ..............................", False, 24), ("(..............................)", False, 0)])
-            fill(right, [("คำสั่งการ / การพิจารณาของผู้อำนวยการโรงเรียน", True, 0), ("☐ อนุมัติ      ☐ ไม่อนุมัติ", False, 4), ("ลงชื่อ ..............................", False, 12), ("(..............................)", False, 0)])
+            def dotted_line():
+                p = para(doc)
+                p.paragraph_format.tab_stops.add_tab_stop(Cm(16), WD_TAB_ALIGNMENT.RIGHT, WD_TAB_LEADER.DOTS)
+                p.add_run("\t")
+
+            def sign(position=None):
+                add_text(para(doc, align=WD_ALIGN_PARAGRAPH.CENTER, left=8, before=14), "ลงชื่อ ..............................")
+                add_text(para(doc, align=WD_ALIGN_PARAGRAPH.CENTER, left=8), "(..............................)")
+                if position:
+                    add_text(para(doc, align=WD_ALIGN_PARAGRAPH.CENTER, left=8), position)
+
+            add_text(para(doc, before=14), "ความเห็นของหัวหน้างานอาคารสถานที่ / รองผู้อำนวยการกลุ่มบริหารทั่วไป", bold=True)
+            dotted_line()
+            sign()
+            add_text(para(doc, before=14), "คำสั่งการ / การพิจารณาของผู้อำนวยการโรงเรียน", bold=True)
+            add_text(para(doc, left=0.5), "☐ อนุมัติ        ☐ ไม่อนุมัติ")
+            dotted_line()
+            sign("ผู้อำนวยการโรงเรียน")
     else:
         signature(memo.get("signerName", ""), memo.get("signerPosition", ""))
         if memo.get("decisionBlock"):
