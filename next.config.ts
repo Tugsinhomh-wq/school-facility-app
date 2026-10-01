@@ -5,7 +5,8 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["pdfkit"],
   // The Thai fonts are read with fs at request time; make sure they ship with the PDF route.
   outputFileTracingIncludes: {
-    "/memos/[id]/pdf": ["./src/lib/memo/fonts/**"],
+    "/memos/[id]/pdf": ["./src/lib/memo/fonts/**", "./src/lib/memo/assets/**"],
+    "/memos/[id]/docx": ["./src/lib/memo/assets/**"],
   },
 };
 

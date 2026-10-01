@@ -16,6 +16,8 @@ from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
+from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.enum.text import WD_TAB_ALIGNMENT, WD_TAB_LEADER
 from docx.shared import Cm, Pt
 
 from thai_zwsp import insert_zwsp
@@ -64,20 +66,13 @@ def para(doc, *, align=WD_ALIGN_PARAGRAPH.LEFT, first_line=None, left=None, befo
     return p
 
 
-def bottom_border(p):
-    ppr = p._p.get_or_add_pPr()
-    borders = OxmlElement("w:pBdr")
-    bottom = OxmlElement("w:bottom")
-    for k, v in (("w:val", "single"), ("w:sz", "6"), ("w:space", "4"), ("w:color", "000000")):
-        bottom.set(qn(k), v)
-    borders.append(bottom)
-    ppr.append(borders)
-
-
 def labelled(doc, label, value, **kw):
+    """label (bold) + value, then a dotted leader out to the right margin."""
     p = para(doc, **kw)
+    p.paragraph_format.tab_stops.add_tab_stop(Cm(16), WD_TAB_ALIGNMENT.RIGHT, WD_TAB_LEADER.DOTS)
     add_text(p, label, bold=True)
     add_text(p, " " + value)
+    p.add_run("\t")
     return p
 
 
@@ -93,21 +88,34 @@ def build(memo: dict) -> bytes:
     sec.top_margin, sec.bottom_margin = Cm(2.5), Cm(2.0)
     sec.left_margin, sec.right_margin = Cm(3.0), Cm(2.0)
 
-    title = para(doc, align=WD_ALIGN_PARAGRAPH.CENTER, after=12)
-    add_text(title, "บันทึกข้อความ", bold=True, size=29)
+    # Header: garuda (1.5 cm high) at the left, the title centred; borderless 3 + 10 + 3 cm table.
+    header = doc.add_table(rows=1, cols=3)
+    header.alignment = WD_TABLE_ALIGNMENT.LEFT
+    header.autofit = False
+    for col, cell, width in zip(header.columns, header.rows[0].cells, (3, 10, 3)):
+        col.width = Cm(width)
+        cell.width = Cm(width)
+    garuda_cell, title_cell, _ = header.rows[0].cells
+    garuda_cell.paragraphs[0].add_run().add_picture(memo["garuda"], height=Cm(1.5))
+    title_p = title_cell.paragraphs[0]
+    title_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    title_p.paragraph_format.space_before = Pt(3)
+    add_text(title_p, "บันทึกข้อความ", bold=True, size=29)
 
-    labelled(doc, "ส่วนราชการ", memo["agency"])
+    labelled(doc, "ส่วนราชการ", memo["agency"], before=6)
 
     row = para(doc)
+    row.paragraph_format.tab_stops.add_tab_stop(Cm(7.8), WD_TAB_ALIGNMENT.LEFT, WD_TAB_LEADER.DOTS)
     row.paragraph_format.tab_stops.add_tab_stop(Cm(8))
+    row.paragraph_format.tab_stops.add_tab_stop(Cm(16), WD_TAB_ALIGNMENT.RIGHT, WD_TAB_LEADER.DOTS)
     add_text(row, "ที่", bold=True)
     add_text(row, " " + memo["refNo"])
-    row.add_run("\t")
+    row.add_run("\t\t")
     add_text(row, "วันที่", bold=True)
     add_text(row, " " + memo["date"])
+    row.add_run("\t")
 
-    subject = labelled(doc, "เรื่อง", memo["subject"], after=6)
-    bottom_border(subject)
+    labelled(doc, "เรื่อง", memo["subject"])
     labelled(doc, "เรียน", memo["recipient"], after=8)
 
     for text in memo["paragraphs"]:

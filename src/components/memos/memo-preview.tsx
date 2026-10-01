@@ -1,27 +1,46 @@
+import type { ReactNode } from "react";
+
 import type { MemoDoc } from "@/lib/memo/model";
 import { SCHOOL_NAME } from "@/lib/memo/model";
 
 /**
  * On-screen A4 page. Sizes are in container-width units so the layout matches
- * the PDF at any width: 210 mm page, 3 cm left margin, 2 cm right, 2.5 cm top.
+ * the PDF at any width: 210 mm page, 3 cm left margin, 2 cm right, garuda 1.5 cm from the top.
  */
+
+/** "label value ........" with a dotted line running to the right margin. */
+function Field({ label, children, after }: { label: string; children: ReactNode; after?: string }) {
+  return (
+    <p className="flex items-end" style={{ marginBottom: after }}>
+      <b className="shrink-0">{label}&nbsp;</b>
+      <span className="min-w-0 flex-1 border-b border-dotted border-black">{children}</span>
+    </p>
+  );
+}
+
 export function MemoPreview({ doc, fontClass }: { doc: MemoDoc; fontClass: string }) {
   return (
     <div className="[container-type:inline-size]">
       <div
         className={`${fontClass} aspect-[210/297] w-full bg-white text-black shadow-lg ring-1 ring-black/10`}
-        style={{ padding: "11.9cqw 9.5cqw 9.5cqw 14.3cqw", fontSize: "2.4cqw", lineHeight: 1.45 }}
+        style={{ padding: "7.1cqw 9.5cqw 9.5cqw 14.3cqw", fontSize: "2.4cqw", lineHeight: 1.45 }}
       >
-        <p className="text-center font-bold" style={{ fontSize: "5.4cqw", lineHeight: 1.4, marginBottom: "1cqw" }}>
-          บันทึกข้อความ
-        </p>
-        <p><b>ส่วนราชการ</b> {doc.agency}</p>
-        <p className="flex">
-          <span className="basis-[38%]"><b>ที่</b> {doc.refNo}</span>
-          <span><b>วันที่</b> {doc.date}</span>
-        </p>
-        <p className="border-b border-black" style={{ paddingBottom: "0.6cqw", marginBottom: "0.6cqw" }}><b>เรื่อง</b> {doc.subject}</p>
-        <p style={{ marginBottom: "1.4cqw" }}><b>เรียน</b> {doc.recipient}</p>
+        <div className="relative flex items-center justify-center" style={{ height: "7.14cqw", marginBottom: "2cqw" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/garuda.png" alt="ตราครุฑ" className="absolute left-0 top-0 w-auto" style={{ height: "7.14cqw" }} />
+          <p className="font-bold" style={{ fontSize: "5.4cqw", lineHeight: 1.2 }}>
+            บันทึกข้อความ
+          </p>
+        </div>
+        <Field label="ส่วนราชการ">{doc.agency}</Field>
+        <div className="flex items-end">
+          <b className="shrink-0">ที่&nbsp;</b>
+          <span className="min-w-0 flex-[0_0_32%] border-b border-dotted border-black">{doc.refNo}</span>
+          <b className="shrink-0" style={{ marginLeft: "2cqw" }}>วันที่&nbsp;</b>
+          <span className="min-w-0 flex-1 border-b border-dotted border-black">{doc.date}</span>
+        </div>
+        <Field label="เรื่อง">{doc.subject}</Field>
+        <Field label="เรียน" after="1.4cqw">{doc.recipient}</Field>
 
         {[...doc.paragraphs, ...(doc.proposal ? [doc.proposal] : []), doc.closing].map((p, i, all) => (
           <p key={i} style={{ textIndent: "11.9cqw", marginBottom: i === all.length - 1 ? "4cqw" : "0.8cqw" }}>{p}</p>

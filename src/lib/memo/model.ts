@@ -1,7 +1,7 @@
 import type { Memorandum } from "@/types/database";
 
 export const SCHOOL_NAME = "โรงเรียนละหานทรายรัชดาภิเษก";
-export const AGENCY = `${SCHOOL_NAME} ฝ่ายอาคารสถานที่`;
+export const AGENCY = `${SCHOOL_NAME} กลุ่มงานบริหารทั่วไป`;
 export const CLOSING = "จึงเรียนมาเพื่อโปรดพิจารณา";
 
 /** Everything the three renderers (preview, PDF, Word) need, already formatted. */
@@ -20,6 +20,17 @@ export interface MemoDoc {
   decisionBlock: boolean;
 }
 
+/** The system's temporary number (MEMO-…) is not the official one; the real number comes from the general administration office. */
+const isTemporaryRef = (ref: string) => !ref.trim() || /^MEMO-/i.test(ref.trim());
+
+/** Until the number is issued, the "ที่" line is left blank for it to be written in: "บท ........ / 2569". */
+export function officialRef(docRefNo: string, createdAt: string | Date) {
+  if (!isTemporaryRef(docRefNo)) return docRefNo.trim();
+  // Buddhist year computed by hand: Intl adds a "พ.ศ." prefix in browsers but not in Node.
+  const year = Number(new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Bangkok", year: "numeric" }).format(new Date(createdAt))) + 543;
+  return `บท ........ / ${year}`;
+}
+
 export function formatThaiDate(input: string | Date) {
   return new Intl.DateTimeFormat("th-TH-u-ca-buddhist", { timeZone: "Asia/Bangkok", day: "numeric", month: "long", year: "numeric" }).format(new Date(input));
 }
@@ -36,7 +47,7 @@ export function buildMemoDoc(
 ): MemoDoc {
   return {
     agency: AGENCY,
-    refNo: memo.doc_ref_no,
+    refNo: officialRef(memo.doc_ref_no, memo.created_at),
     date: formatThaiDate(memo.created_at),
     subject: memo.subject,
     recipient: memo.recipient,

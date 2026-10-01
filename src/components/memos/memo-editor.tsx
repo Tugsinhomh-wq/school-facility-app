@@ -36,7 +36,7 @@ export function MemoEditor({ memo, fontClass }: { memo: MemoRecord; fontClass: s
         <div className="space-y-1.5">
           <Label htmlFor="doc_ref_no">เลขที่หนังสือ (ที่)</Label>
           <Input id="doc_ref_no" name="doc_ref_no" value={fields.doc_ref_no} onChange={set("doc_ref_no")} />
-          <p className="text-xs text-muted-foreground">เลขชั่วคราวขึ้นต้น MEMO- เปลี่ยนเป็นเลขจริงจากงานสารบรรณได้</p>
+          <p className="text-xs text-muted-foreground">เลขขึ้นต้น MEMO- เป็นเลขภายในของระบบ ในเอกสารจะเว้นเป็น “บท ........ / ปี” ขอเลขจากห้องบริหารทั่วไปแล้วกรอกที่นี่ เช่น บท 123/2569</p>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="subject">เรื่อง</Label>
