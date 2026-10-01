@@ -11,6 +11,8 @@ import { MergePanel } from "@/components/tickets/merge-panel";
 import { getDuplicateContext, getTicketDetail } from "@/lib/data/tickets";
 import { formatBaht, formatDateTh, STATUS_CLASS, STATUS_LABEL, URGENCY_CLASS, URGENCY_LABEL } from "@/lib/ticket-meta";
 
+import { guardExecutive } from "@/lib/data/session";
+
 export const dynamic = "force-dynamic";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -23,6 +25,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 export default async function TicketDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  await guardExecutive();
   const { id } = await params;
   const { ticket, viewer, imageUrls } = await getTicketDetail(id);
   if (!ticket) notFound();

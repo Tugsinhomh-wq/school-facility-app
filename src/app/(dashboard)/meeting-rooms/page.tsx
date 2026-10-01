@@ -2,13 +2,14 @@ import Link from "next/link";
 
 import { RoomCalendar } from "@/components/meeting/room-calendar";
 import { getMeetingWeek } from "@/lib/data/rooms";
-import { isRoomManager } from "@/lib/data/session";
+import { isRoomManager, guardExecutive } from "@/lib/data/session";
 import { bangkokYmd, isYmd, mondayOf } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "ขอใช้ห้องประชุม | ระบบแจ้งซ่อม โรงเรียนละหานทรายรัชดาภิเษก" };
 
 export default async function MeetingRoomsPage({ searchParams }: { searchParams: Promise<{ week?: string; room?: string; error?: string }> }) {
+  await guardExecutive();
   const sp = await searchParams;
   const weekStart = mondayOf(isYmd(sp.week) ? sp.week : bangkokYmd(new Date()));
   const data = await getMeetingWeek(weekStart);

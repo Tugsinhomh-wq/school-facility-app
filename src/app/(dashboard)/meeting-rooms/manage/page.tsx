@@ -4,12 +4,13 @@ import { redirect } from "next/navigation";
 
 import { AddRoomForm, RoomManageForm } from "@/components/meeting/room-manage-form";
 import { getManagedRooms } from "@/lib/data/rooms";
-import { isRoomManager } from "@/lib/data/session";
+import { isRoomManager, guardExecutive } from "@/lib/data/session";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "จัดการห้องประชุม | ระบบแจ้งซ่อม โรงเรียนละหานทรายรัชดาภิเษก" };
 
 export default async function ManageRoomsPage() {
+  await guardExecutive();
   const data = await getManagedRooms();
   if (!data || !isRoomManager(data.viewer?.role)) redirect("/meeting-rooms");
 

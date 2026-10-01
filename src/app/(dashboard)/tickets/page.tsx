@@ -5,10 +5,13 @@ import { TicketTable } from "@/components/tickets/ticket-table";
 import { Button } from "@/components/ui/button";
 import { getTicketList, PAGE_SIZE, parseFilters } from "@/lib/data/tickets";
 
+import { guardExecutive } from "@/lib/data/session";
+
 export const dynamic = "force-dynamic";
 export const metadata = { title: "รายการแจ้งซ่อม | ระบบแจ้งซ่อม โรงเรียนละหานทรายรัชดาภิเษก" };
 
 export default async function TicketsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  await guardExecutive();
   const filters = parseFilters(await searchParams);
   const list = await getTicketList(filters);
   const isStaff = list.viewer?.role === "staff" || list.viewer?.role === "super_admin";

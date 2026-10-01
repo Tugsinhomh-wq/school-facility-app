@@ -10,6 +10,8 @@ export const DEPUTY = { name: "นางสาวทักษิณา จัต
 export const DIRECTOR = { name: "นายสิรวิชญ์ สิทธินอก", position: `ผู้อำนวยการ${SCHOOL_NAME}` };
 export const REPAIR_CLOSING = "จึงเรียนมาเพื่อโปรดทราบ และพิจารณาอนุมัติให้ดำเนินการซ่อมแซม พร้อมจัดสรรงบประมาณสนับสนุนต่อไป";
 export const CLOSING = "จึงเรียนมาเพื่อโปรดพิจารณา";
+/** Summary reports are for the director's acknowledgement. */
+export const ACK_CLOSING = "จึงเรียนมาเพื่อโปรดทราบ";
 
 /** Everything the three renderers (preview, PDF, Word) need, already formatted. */
 export interface MemoDoc {
@@ -68,7 +70,7 @@ export function buildMemoDoc(
     recipient: memo.recipient,
     paragraphs: splitParagraphs(memo.body_content),
     proposal: memo.proposal?.trim() || null,
-    closing: repair ? REPAIR_CLOSING : CLOSING,
+    closing: repair ? REPAIR_CLOSING : memo.origin_module === "general_memo" ? ACK_CLOSING : CLOSING,
     signerName: author?.full_name ?? "",
     signerPosition: author?.position ?? "",
     decisionBlock: memo.approval_mode === "paper_hybrid",
