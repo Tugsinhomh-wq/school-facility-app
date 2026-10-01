@@ -23,8 +23,8 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         <AppHeader viewer={session?.viewer ?? null} />
         {children}
       </div>
-      {session && <QuickReportFab />}
-      <MobileNav showMemos={Boolean(session && session.viewer.role !== "user")} />
+      {session && session.viewer.role !== "executive" && <QuickReportFab />}
+      <MobileNav showMemos={Boolean(session && session.viewer.role !== "user" && session.viewer.role !== "executive")} executive={session?.viewer.role === "executive"} showSummary={session?.viewer.role === "super_admin"} />
     </div>
   );
 }

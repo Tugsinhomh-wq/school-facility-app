@@ -10,7 +10,7 @@ import { QuickStats } from "@/components/dashboard/quick-stats";
 import { RecentTicketsFeed } from "@/components/dashboard/recent-tickets-feed";
 import { MyReservations, PendingReservations, TodayMeetings } from "@/components/dashboard/reservation-cards";
 import { getDashboardBase, getRepairsData, getRoomsData, type DashboardBase, type DashTab } from "@/lib/data/dashboard";
-import { isRoomManager, isStaffRole } from "@/lib/data/session";
+import { isRoomManager, isStaffRole, guardExecutive } from "@/lib/data/session";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +56,7 @@ async function Rooms({ base }: { base: DashboardBase }) {
 }
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  await guardExecutive();
   const tab = parseTab((await searchParams).tab);
   const base = await getDashboardBase();
 

@@ -39,6 +39,7 @@ export const ROLE_LABEL: Record<UserRole, string> = {
   super_admin: "ผู้ดูแลระบบ",
   staff: "เจ้าหน้าที่",
   room_staff: "เจ้าหน้าที่ห้องประชุม",
+  executive: "ผู้บริหาร",
   user: "ผู้ใช้งาน",
 };
 

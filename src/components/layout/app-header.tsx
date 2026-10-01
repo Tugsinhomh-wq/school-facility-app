@@ -7,14 +7,19 @@ import { SiteNav, type NavItem } from "@/components/layout/site-nav";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import type { Viewer } from "@/lib/data/dashboard";
 
-/** The navigation bar shared by every page. Memos are for staff, so regular users do not see that tab. */
+/** The navigation bar shared by every page. Memos are for staff, the summary for executives and the administrator. */
 export function AppHeader({ viewer }: { viewer: Viewer | null }) {
-  const items: NavItem[] = [
-    { href: "/", label: "แดชบอร์ด" },
-    { href: "/tickets", label: "รายการแจ้งซ่อม" },
-    { href: "/meeting-rooms", label: "ขอใช้ห้องประชุม" },
-    ...(!viewer || viewer.role !== "user" ? [{ href: "/memos", label: "บันทึกข้อความ" }] : []),
-  ];
+  const summary: NavItem = { href: "/summary", label: "สรุปภาพรวม" };
+  const items: NavItem[] =
+    viewer?.role === "executive"
+      ? [summary] // executives see the summary page and nothing else
+      : [
+          { href: "/", label: "แดชบอร์ด" },
+          { href: "/tickets", label: "รายการแจ้งซ่อม" },
+          { href: "/meeting-rooms", label: "ขอใช้ห้องประชุม" },
+          ...(!viewer || viewer.role !== "user" ? [{ href: "/memos", label: "บันทึกข้อความ" }] : []),
+          ...(viewer?.role === "super_admin" ? [summary] : []),
+        ];
 
   return (
     <header className="mb-6 flex flex-wrap md:mb-8 items-center gap-x-6 gap-y-3">

@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { cache } from "react";
 
 import type { Viewer } from "@/lib/data/dashboard";
@@ -8,6 +9,9 @@ export const hasSupabase = () => Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL &&
 export const isStaffRole = (role?: UserRole | null) => role === "staff" || role === "super_admin";
 /** Anyone who can decide on room requests: repair staff, admins and the meeting-room officer. */
 export const isRoomManager = (role?: UserRole | null) => isStaffRole(role) || role === "room_staff";
+
+/** The executive summary page: executives and the system administrator only. */
+export const canSeeSummary = (role?: UserRole | null) => role === "executive" || role === "super_admin";
 
 /**
  * The signed-in user with a server client, or null (demo mode or signed out). Cached for the
@@ -23,3 +27,9 @@ export const getSession = cache(async () => {
   const viewer: Viewer = { name: profile?.full_name ?? auth.user.email ?? "ผู้ใช้", role: (profile?.role as UserRole | undefined) ?? "user" };
   return { supabase, viewer, userId: auth.user.id };
 });
+
+/** Executives see the summary page only: any other page sends them there. */
+export async function guardExecutive() {
+  const session = await getSession();
+  if (session?.viewer.role === "executive") redirect("/summary");
+}
