@@ -4,7 +4,10 @@ export const SCHOOL_NAME = "โรงเรียนละหานทราย�
 export const AGENCY = `${SCHOOL_NAME} กลุ่มงานบริหารทั่วไป`;
 /** Phone of the building unit, for the repair memo header. Leave empty to print a dotted blank. */
 export const BUILDING_UNIT_PHONE = "044-649-007";
-export const REPAIR_AGENCY = `${SCHOOL_NAME} กลุ่มบริหารทั่วไป งานอาคารสถานที่ โทร. ${BUILDING_UNIT_PHONE || "........"}`;
+export const REPAIR_AGENCY = `${SCHOOL_NAME} กลุ่มบริหารทั่วไป`;
+/** Executives who sign the opinion / order notes at the end of a repair memo. */
+export const DEPUTY = { name: "นางสาวทักษิณา จัตุกูล", position: "รองผู้อำนวยการกลุ่มบริหารทั่วไป" };
+export const DIRECTOR = { name: "นายสิรวิชญ์ สิทธินอก", position: `ผู้อำนวยการ${SCHOOL_NAME}` };
 export const REPAIR_CLOSING = "จึงเรียนมาเพื่อโปรดทราบ และพิจารณาอนุมัติให้ดำเนินการซ่อมแซม พร้อมจัดสรรงบประมาณสนับสนุนต่อไป";
 export const CLOSING = "จึงเรียนมาเพื่อโปรดพิจารณา";
 

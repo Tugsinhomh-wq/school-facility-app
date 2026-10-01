@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import type { MemoDoc } from "@/lib/memo/model";
-import { SCHOOL_NAME } from "@/lib/memo/model";
+import { DEPUTY, DIRECTOR, SCHOOL_NAME } from "@/lib/memo/model";
 
 /**
  * On-screen A4 page. Sizes are in container-width units so the layout matches
@@ -11,9 +11,9 @@ import { SCHOOL_NAME } from "@/lib/memo/model";
 /** "label value ........" with a dotted line running to the right margin. */
 function Field({ label, children, after, big, strong }: { label: string; children: ReactNode; after?: string; big?: boolean; strong?: boolean }) {
   return (
-    <p className="flex items-start" style={{ marginBottom: after, fontSize: big ? "3cqw" : undefined }}>
-      <b className="shrink-0">{label}&nbsp;</b>
-      <span className={`min-w-0 flex-1 border-b border-dotted border-black ${big || strong ? "font-bold" : ""}`}>{children}</span>
+    <p style={{ marginBottom: after, fontSize: big ? "3cqw" : undefined }}>
+      <b>{label}&nbsp;</b>
+      <span className={big || strong ? "font-bold" : ""}>{children}</span>
     </p>
   );
 }
@@ -36,9 +36,9 @@ export function MemoPreview({ doc, fontClass }: { doc: MemoDoc; fontClass: strin
         <Field label="ส่วนราชการ" >{doc.agency}</Field>
         <div className="flex items-end">
           <b className="shrink-0">ที่&nbsp;</b>
-          <span className="min-w-0 flex-[0_0_32%] border-b border-dotted border-black">{doc.refNo}</span>
-          <b className="shrink-0" style={{ marginLeft: "2cqw" }}>วันที่&nbsp;</b>
-          <span className="min-w-0 flex-1 border-b border-dotted border-black">{doc.date}</span>
+          <span className="shrink-0" style={{ width: "21.5cqw" }}>{doc.refNo}</span>
+          <b className="shrink-0">วันที่&nbsp;</b>
+          <span className="min-w-0 flex-1">{doc.date}</span>
         </div>
         <Field label="เรื่อง" >{doc.subject}</Field>
         <Field label="เรียน" after="1.4cqw" >{doc.recipient}</Field>
@@ -56,19 +56,20 @@ export function MemoPreview({ doc, fontClass }: { doc: MemoDoc; fontClass: strin
             </div>
             {doc.decisionBlock && (
               <div style={{ marginTop: "3cqw" }}>
-                <p className="font-bold">ความเห็นของหัวหน้างานอาคารสถานที่ / รองผู้อำนวยการกลุ่มบริหารทั่วไป</p>
+                <p className="font-bold">ความเห็นของ{DEPUTY.position}</p>
                 <p className="border-b border-dotted border-black" style={{ height: "3.4cqw" }} />
                 <div className="text-center" style={{ marginLeft: "38%", marginTop: "3cqw", marginBottom: "3cqw" }}>
                   <p>ลงชื่อ ..............................</p>
-                  <p>(..............................)</p>
+                  <p>({DEPUTY.name})</p>
+                  <p>{DEPUTY.position}</p>
                 </div>
                 <p className="font-bold">คำสั่งการ / การพิจารณาของผู้อำนวยการโรงเรียน</p>
                 <p style={{ paddingLeft: "3cqw" }}>☐ อนุมัติ &nbsp;&nbsp; ☐ ไม่อนุมัติ</p>
                 <p className="border-b border-dotted border-black" style={{ height: "3.4cqw" }} />
                 <div className="text-center" style={{ marginLeft: "38%", marginTop: "3cqw" }}>
                   <p>ลงชื่อ ..............................</p>
-                  <p>(..............................)</p>
-                  <p>ผู้อำนวยการโรงเรียน</p>
+                  <p>({DIRECTOR.name})</p>
+                  <p>{DIRECTOR.position}</p>
                 </div>
               </div>
             )}

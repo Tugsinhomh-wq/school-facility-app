@@ -74,12 +74,10 @@ def para(doc, *, align=WD_ALIGN_PARAGRAPH.LEFT, first_line=None, left=None, befo
 
 
 def labelled(doc, label, value, size=SIZE, bold_value=False, **kw):
-    """label (bold) + value, then a dotted leader out to the right margin."""
+    """label (bold) + value, no leader."""
     p = para(doc, **kw)
-    p.paragraph_format.tab_stops.add_tab_stop(Cm(16), WD_TAB_ALIGNMENT.RIGHT, WD_TAB_LEADER.DOTS)
     add_text(p, label, bold=True, size=size)
     add_text(p, " " + value, bold=bold_value, size=size)
-    p.add_run("\t")
     return p
 
 
@@ -113,15 +111,12 @@ def build(memo: dict) -> bytes:
     labelled(doc, "ส่วนราชการ", memo["agency"], before=6)
 
     row = para(doc)
-    row.paragraph_format.tab_stops.add_tab_stop(Cm(7.8), WD_TAB_ALIGNMENT.LEFT, WD_TAB_LEADER.DOTS)
-    row.paragraph_format.tab_stops.add_tab_stop(Cm(8))
-    row.paragraph_format.tab_stops.add_tab_stop(Cm(16), WD_TAB_ALIGNMENT.RIGHT, WD_TAB_LEADER.DOTS)
+    row.paragraph_format.tab_stops.add_tab_stop(Cm(5))
     add_text(row, "ที่", bold=True)
     add_text(row, " " + memo["refNo"])
-    row.add_run("\t\t")
+    row.add_run("\t")
     add_text(row, "วันที่", bold=True)
     add_text(row, " " + memo["date"])
-    row.add_run("\t")
 
     labelled(doc, "เรื่อง", memo["subject"])
     labelled(doc, "เรียน", memo["recipient"], after=6)
@@ -149,19 +144,18 @@ def build(memo: dict) -> bytes:
                 p.paragraph_format.tab_stops.add_tab_stop(Cm(16), WD_TAB_ALIGNMENT.RIGHT, WD_TAB_LEADER.DOTS)
                 p.add_run("\t")
 
-            def sign(position=None):
+            def sign(name, position):
                 add_text(para(doc, align=WD_ALIGN_PARAGRAPH.CENTER, left=8, before=14), "ลงชื่อ ..............................")
-                add_text(para(doc, align=WD_ALIGN_PARAGRAPH.CENTER, left=8), "(..............................)")
-                if position:
-                    add_text(para(doc, align=WD_ALIGN_PARAGRAPH.CENTER, left=8), position)
+                add_text(para(doc, align=WD_ALIGN_PARAGRAPH.CENTER, left=8), f"({name})")
+                add_text(para(doc, align=WD_ALIGN_PARAGRAPH.CENTER, left=8), position)
 
-            add_text(para(doc, before=14), "ความเห็นของหัวหน้างานอาคารสถานที่ / รองผู้อำนวยการกลุ่มบริหารทั่วไป", bold=True)
+            add_text(para(doc, before=14), "ความเห็นของรองผู้อำนวยการกลุ่มบริหารทั่วไป", bold=True)
             dotted_line()
-            sign()
+            sign("นางสาวทักษิณา จัตุกูล", "รองผู้อำนวยการกลุ่มบริหารทั่วไป")
             add_text(para(doc, before=14), "คำสั่งการ / การพิจารณาของผู้อำนวยการโรงเรียน", bold=True)
             add_text(para(doc, left=0.5), "☐ อนุมัติ        ☐ ไม่อนุมัติ")
             dotted_line()
-            sign("ผู้อำนวยการโรงเรียน")
+            sign("นายสิรวิชญ์ สิทธินอก", f"ผู้อำนวยการ{SCHOOL}")
     else:
         signature(memo.get("signerName", ""), memo.get("signerPosition", ""))
         if memo.get("decisionBlock"):
