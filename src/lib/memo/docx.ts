@@ -41,14 +41,14 @@ export async function memoToDocx(doc: MemoDoc, { fontName = "TH Sarabun New" }: 
     });
 
   const indent = { firstLine: 2.5 * CM };
-  const body = { indent, spacing: { after: 120 } };
+  const body = { indent, spacing: { after: 40 } };
   const signer = { indent: { left: 8 * CM }, alignment: AlignmentType.CENTER } as const;
 
   const noBorder = { style: BorderStyle.NONE, size: 0, color: "FFFFFF" } as const;
   const cell = (width: number, children: Paragraph[]) =>
     new TableCell({ width: { size: width, type: WidthType.DXA }, borders: { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder }, children });
   // Garuda 1.5 cm high at the left, the title centred; the side columns match so the title is centred on the page.
-  const garudaH = 1.5 * CM;
+  const garudaH = 2.2 * CM;
   const header = new Table({
     width: { size: 16 * CM, type: WidthType.DXA },
     columnWidths: [3 * CM, 10 * CM, 3 * CM],
@@ -68,7 +68,7 @@ export async function memoToDocx(doc: MemoDoc, { fontName = "TH Sarabun New" }: 
               ],
             }),
           ]),
-          cell(10 * CM, [new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 60 }, children: [run("บันทึกข้อความ", true, 58)] })]),
+          cell(10 * CM, [new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 360 }, children: [run("บันทึกข้อความ", true, 48)] })]),
           cell(3 * CM, [new Paragraph({ children: [] })]),
         ],
       }),
@@ -77,7 +77,7 @@ export async function memoToDocx(doc: MemoDoc, { fontName = "TH Sarabun New" }: 
 
   const children: (Paragraph | Table)[] = [
     header,
-    labelled("ส่วนราชการ", doc.agency, { spacing: { before: 120 } }, repair ? { size: 40, boldValue: true } : {}),
+    labelled("ส่วนราชการ", doc.agency, { spacing: { before: 120 } }, {}),
     new Paragraph({
       tabStops: [
         { type: TabStopType.LEFT, position: 7.8 * CM, leader: LeaderType.DOT },
@@ -86,8 +86,8 @@ export async function memoToDocx(doc: MemoDoc, { fontName = "TH Sarabun New" }: 
       ],
       children: [run("ที่", true), run(` ${doc.refNo}`), new TextRun({ text: "\t" }), new TextRun({ text: "\t" }), run("วันที่", true), run(` ${doc.date}`), new TextRun({ text: "\t" })],
     }),
-    labelled("เรื่อง", doc.subject, {}, { boldValue: repair }),
-    labelled("เรียน", doc.recipient, { spacing: { after: 160 } }, { boldValue: repair }),
+    labelled("เรื่อง", doc.subject),
+    labelled("เรียน", doc.recipient, { spacing: { after: 120 } }),
     ...doc.paragraphs.map((p) => plain(p, body)),
     ...(doc.proposal ? [plain(doc.proposal, body)] : []),
     plain(doc.closing, { ...body, spacing: { after: 360 } }),
@@ -105,38 +105,21 @@ export async function memoToDocx(doc: MemoDoc, { fontName = "TH Sarabun New" }: 
   ];
 
   if (doc.decisionBlock && repair) {
-    // Two columns: the unit head's opinion on the left, the director's order on the right.
-    const line = { style: BorderStyle.SINGLE, size: 6, color: "000000" } as const;
-    const box = (texts: { text: string; bold?: boolean; before?: number }[]) =>
-      new TableCell({
-        width: { size: 8 * CM, type: WidthType.DXA },
-        borders: { top: line, bottom: line, left: line, right: line },
-        margins: { top: 80, bottom: 80, left: 100, right: 100 },
-        children: texts.map((t) => new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: t.before ?? 0 }, children: [run(t.text, t.bold)] })),
-      });
+    // Two short stacked notes with dotted lines to write on, then a signature each: no boxes.
+    const dotted = () => new Paragraph({ tabStops: [{ type: TabStopType.RIGHT, position: RIGHT, leader: LeaderType.DOT }], children: [new TextRun({ text: "\t" })] });
+    const sign = (position?: string) => [
+      new Paragraph({ ...signer, spacing: { before: 280 }, children: [run("ลงชื่อ ..............................")] }),
+      new Paragraph({ ...signer, children: [run("(..............................)")] }),
+      ...(position ? [new Paragraph({ ...signer, children: [run(position)] })] : []),
+    ];
     children.push(
-      new Paragraph({ spacing: { before: 360 }, children: [] }),
-      new Table({
-        width: { size: 16 * CM, type: WidthType.DXA },
-        columnWidths: [8 * CM, 8 * CM],
-        rows: [
-          new TableRow({
-            children: [
-              box([
-                { text: "ความเห็นของหัวหน้างานอาคารสถานที่ / รองผู้อำนวยการกลุ่มบริหารทั่วไป", bold: true },
-                { text: "ลงชื่อ ..............................", before: 480 },
-                { text: "(..............................)" },
-              ]),
-              box([
-                { text: "คำสั่งการ / การพิจารณาของผู้อำนวยการโรงเรียน", bold: true },
-                { text: "☐ อนุมัติ      ☐ ไม่อนุมัติ", before: 80 },
-                { text: "ลงชื่อ ..............................", before: 240 },
-                { text: "(..............................)" },
-              ]),
-            ],
-          }),
-        ],
-      }),
+      new Paragraph({ spacing: { before: 280 }, children: [run("ความเห็นของหัวหน้างานอาคารสถานที่ / รองผู้อำนวยการกลุ่มบริหารทั่วไป", true)] }),
+      dotted(),
+      ...sign(),
+      new Paragraph({ spacing: { before: 280 }, children: [run("คำสั่งการ / การพิจารณาของผู้อำนวยการโรงเรียน", true)] }),
+      new Paragraph({ indent: { left: 0.5 * CM }, children: [run("☐ อนุมัติ        ☐ ไม่อนุมัติ")] }),
+      dotted(),
+      ...sign("ผู้อำนวยการโรงเรียน"),
     );
   } else if (doc.decisionBlock) {
     children.push(
