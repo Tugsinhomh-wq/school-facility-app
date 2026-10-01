@@ -25,14 +25,14 @@ async function Repairs({ base }: { base: DashboardBase }) {
       {staff ? (
         <>
           <QuickStats stats={base.stats} />
-          <RecentTicketsFeed tickets={data.queue} title="งานที่รอรับเรื่อง" hint="เรื่องเร่งด่วนอยู่บนสุด" className="md:col-span-3 lg:col-span-5 lg:row-span-2" />
+          <RecentTicketsFeed tickets={data.queue} title="งานที่รอรับเรื่อง" hint="เรื่องเร่งด่วนอยู่บนสุด" className="md:col-span-3 lg:col-span-7 lg:row-span-2" />
           <BuildingMatrix byBuilding={base.byBuilding} />
-          <DocumentHub documents={data.documents} canDraft />
+          <DocumentHub documents={data.documents} canDraft className="md:col-span-3 lg:col-span-5" />
         </>
       ) : (
         <>
           <QuickReportCard buildings={data.buildings} canAttach={canAttach} />
-          <RecentTicketsFeed tickets={data.recent} title="งานที่ฉันแจ้งล่าสุด" hint="รายการของคุณ 5 รายการล่าสุด" className="md:col-span-6 lg:col-span-5 lg:row-span-2" />
+          <RecentTicketsFeed tickets={data.recent} title="งานที่ฉันแจ้งล่าสุด" hint="รายการของคุณ 5 รายการล่าสุด" className="md:col-span-3 lg:col-span-7" />
         </>
       )}
     </BentoGrid>
@@ -49,8 +49,8 @@ async function Rooms({ base }: { base: DashboardBase }) {
       ) : (
         <MyReservations items={data.myReservations} className="md:col-span-3 lg:col-span-4" />
       )}
-      <LiveRoomStatus rooms={data.liveRooms} />
       <TodayMeetings meetings={base.todayMeetings} className="md:col-span-3 lg:col-span-4" />
+      <LiveRoomStatus rooms={data.liveRooms} />
     </BentoGrid>
   );
 }

@@ -8,7 +8,7 @@ import { formatInstantHm } from "@/lib/time";
 
 export function LiveRoomStatus({ rooms }: { rooms: LiveRoom[] }) {
   return (
-    <BentoCard className="md:col-span-6 lg:col-span-4">
+    <BentoCard className="md:col-span-6 lg:col-span-4 lg:order-none">
       <div className="flex items-center gap-2">
         <DoorOpen className="size-5 text-muted-foreground" aria-hidden />
         <h2 className="text-lg font-semibold">สถานะห้องประชุมสด</h2>

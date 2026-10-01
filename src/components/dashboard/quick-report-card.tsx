@@ -106,7 +106,7 @@ export function QuickReportCard({ buildings, canAttach }: { buildings: BuildingO
 
   return (
     // Phones have the floating report button instead, so this card is hidden there.
-    <BentoCard tone="royal" className="max-md:hidden md:col-span-3 lg:col-span-7 items-start justify-center gap-3">
+    <BentoCard tone="royal" className="max-md:hidden md:col-span-3 lg:col-span-5 items-start justify-center gap-3">
       <div className="flex size-11 items-center justify-center rounded-lg bg-[#f2b04a] text-[#131f78]">
         <Wrench className="size-5" aria-hidden />
       </div>
