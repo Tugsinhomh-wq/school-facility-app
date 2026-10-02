@@ -40,7 +40,7 @@ async function Repairs({ base }: { base: DashboardBase }) {
             tickets={data.queue}
             title="งานที่รอรับเรื่อง"
             hint="เรื่องเร่งด่วนอยู่บนสุด"
-            className="md:col-span-3 lg:col-span-7 lg:row-span-2"
+            className="max-md:order-first md:col-span-3 lg:col-span-7 lg:row-span-2"
           />
           <BuildingMatrix byBuilding={base.byBuilding} />
           <DocumentHub

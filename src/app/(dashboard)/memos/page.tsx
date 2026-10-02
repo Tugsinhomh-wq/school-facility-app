@@ -54,14 +54,18 @@ export default async function MemosPage({
           ติดต่อผู้ดูแลระบบ
         </p>
       ) : (
-        <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
-          <section aria-labelledby="memo-list">
+        <div className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-8 lg:mt-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
+          <section
+            aria-labelledby="memo-list"
+            className="order-2 min-w-0 lg:order-1"
+          >
             <h2 id="memo-list" className="mb-3 text-lg font-semibold">
               ร่างที่สร้างแล้ว
             </h2>
             {list.memos.length === 0 ? (
               <p className="rounded-xl border border-dashed border-border bg-card/60 p-8 text-center text-muted-foreground">
-                ยังไม่มีร่างบันทึกข้อความ เลือกงานซ่อมทางขวาเพื่อสร้างร่างแรก
+                ยังไม่มีร่างบันทึกข้อความ
+                เลือกงานซ่อมที่ยังไม่มีบันทึกเพื่อสร้างร่างแรก
               </p>
             ) : (
               <ul className="divide-y divide-border rounded-xl border border-border bg-card/85 backdrop-blur-sm">
@@ -69,17 +73,17 @@ export default async function MemosPage({
                   <li key={m.id}>
                     <Link
                       href={`/memos/${m.id}`}
-                      className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-muted/40"
+                      className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 hover:bg-muted/40 active:bg-muted/60"
                     >
                       <span className="min-w-0">
-                        <span className="block truncate font-medium">
+                        <span className="line-clamp-2 font-medium leading-snug">
                           {m.subject}
                         </span>
                         <span className="block truncate text-xs text-muted-foreground">
                           {m.doc_ref_no} · {formatDateTh(m.created_at)}
                         </span>
                       </span>
-                      <Badge variant="outline">
+                      <Badge variant="outline" className="shrink-0">
                         {APPROVAL_LABEL[m.final_status]}
                       </Badge>
                     </Link>
@@ -89,50 +93,7 @@ export default async function MemosPage({
             )}
           </section>
 
-          <div className="space-y-8">
-            {list.viewer?.role !== "room_staff" && (
-              <section aria-labelledby="memo-summary">
-                <h2 id="memo-summary" className="mb-3 text-lg font-semibold">
-                  บันทึกสรุปเสนอ ผอ.
-                </h2>
-                <form
-                  action={createSummaryMemo}
-                  className="space-y-2 rounded-lg border border-border bg-card/85 p-3"
-                >
-                  <p className="text-xs text-muted-foreground">
-                    สร้างร่างจากตัวเลขจริงในระบบ ใช้ข้อมูลล่าสุดขณะกดสร้าง
-                    แก้ข้อความได้ก่อนส่งออก
-                  </p>
-                  <label className="block text-sm">
-                    <span className="mb-1 block text-muted-foreground">
-                      ช่วงที่ต้องการสรุป
-                    </span>
-                    <select
-                      name="period"
-                      className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
-                    >
-                      <optgroup label="รายเดือน">
-                        {recentPeriods("month", 6).map((p) => (
-                          <option key={p.key} value={`month:${p.key}`}>
-                            {p.label}
-                          </option>
-                        ))}
-                      </optgroup>
-                      <optgroup label="รายภาคเรียน">
-                        {recentPeriods("term", 4).map((p) => (
-                          <option key={p.key} value={`term:${p.key}`}>
-                            {p.label}
-                          </option>
-                        ))}
-                      </optgroup>
-                    </select>
-                  </label>
-                  <Button type="submit" size="sm" variant="outline">
-                    ร่างบันทึกสรุป
-                  </Button>
-                </form>
-              </section>
-            )}
+          <div className="order-1 min-w-0 space-y-6 lg:order-2 lg:space-y-8">
             <section aria-labelledby="memo-candidates">
               <h2 id="memo-candidates" className="mb-3 text-lg font-semibold">
                 งานซ่อมที่ยังไม่มีบันทึก
@@ -157,7 +118,11 @@ export default async function MemosPage({
                       </p>
                       <form action={createMemoFromTicket} className="mt-2">
                         <input type="hidden" name="ticket_id" value={t.id} />
-                        <Button type="submit" size="sm" variant="outline">
+                        <Button
+                          type="submit"
+                          variant="outline"
+                          className="h-10 w-full sm:w-auto"
+                        >
                           ร่างบันทึกข้อความ
                         </Button>
                       </form>
@@ -166,6 +131,52 @@ export default async function MemosPage({
                 </ul>
               )}
             </section>
+            {list.viewer?.role !== "room_staff" && (
+              <details className="group rounded-xl border border-border bg-card/85 backdrop-blur-sm">
+                <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-base font-semibold [&::-webkit-details-marker]:hidden">
+                  บันทึกสรุปเสนอ ผอ.
+                  <span className="text-xs font-normal text-muted-foreground group-open:hidden">
+                    แตะเพื่อเปิด
+                  </span>
+                </summary>
+                <form
+                  action={createSummaryMemo}
+                  className="space-y-3 border-t border-border p-4"
+                >
+                  <p className="text-xs text-muted-foreground">
+                    สร้างร่างจากตัวเลขจริงในระบบ ใช้ข้อมูลล่าสุดขณะกดสร้าง
+                    แก้ข้อความได้ก่อนส่งออก
+                  </p>
+                  <label className="block text-sm">
+                    <span className="mb-1 block text-muted-foreground">
+                      ช่วงที่ต้องการสรุป
+                    </span>
+                    <select
+                      name="period"
+                      className="h-12 w-full rounded-lg border border-input bg-background px-3 text-base"
+                    >
+                      <optgroup label="รายเดือน">
+                        {recentPeriods("month", 6).map((p) => (
+                          <option key={p.key} value={`month:${p.key}`}>
+                            {p.label}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="รายภาคเรียน">
+                        {recentPeriods("term", 4).map((p) => (
+                          <option key={p.key} value={`term:${p.key}`}>
+                            {p.label}
+                          </option>
+                        ))}
+                      </optgroup>
+                    </select>
+                  </label>
+                  <Button type="submit" className="h-11 w-full">
+                    ร่างบันทึกสรุป
+                  </Button>
+                </form>
+              </details>
+            )}
           </div>
         </div>
       )}

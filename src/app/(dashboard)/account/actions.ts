@@ -80,18 +80,16 @@ export async function savePushSubscription(
     return { ok: false, message: "เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่" };
   const userAgent = (await headers()).get("user-agent")?.slice(0, 300) ?? null;
   // The same device can re-subscribe, or be used by another person after sign-out: the endpoint is unique, so replace it.
-  const { error } = await supabase
-    .from("push_subscriptions")
-    .upsert(
-      {
-        user_id: auth.user.id,
-        endpoint: sub.endpoint,
-        p256dh: sub.keys.p256dh,
-        auth: sub.keys.auth,
-        user_agent: userAgent,
-      },
-      { onConflict: "endpoint" },
-    );
+  const { error } = await supabase.from("push_subscriptions").upsert(
+    {
+      user_id: auth.user.id,
+      endpoint: sub.endpoint,
+      p256dh: sub.keys.p256dh,
+      auth: sub.keys.auth,
+      user_agent: userAgent,
+    },
+    { onConflict: "endpoint" },
+  );
   return error
     ? { ok: false, message: "เปิดการแจ้งเตือนไม่สำเร็จ ลองใหม่อีกครั้ง" }
     : { ok: true, message: "เปิดการแจ้งเตือนแล้ว" };
