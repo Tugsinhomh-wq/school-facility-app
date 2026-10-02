@@ -45,15 +45,13 @@ export async function sendFeedback(
     return { ok: false, message: "รูปที่แนบไม่ถูกต้อง ลองแนบใหม่อีกครั้ง" };
 
   const userAgent = (await headers()).get("user-agent")?.slice(0, 300) ?? null;
-  const { error } = await supabase
-    .from("feedback")
-    .insert({
-      kind,
-      message,
-      image_paths: imagePaths,
-      page_url: pageUrl,
-      user_agent: userAgent,
-    });
+  const { error } = await supabase.from("feedback").insert({
+    kind,
+    message,
+    image_paths: imagePaths,
+    page_url: pageUrl,
+    user_agent: userAgent,
+  });
   if (error) return { ok: false, message: "ส่งไม่สำเร็จ ลองใหม่อีกครั้ง" };
   return {
     ok: true,

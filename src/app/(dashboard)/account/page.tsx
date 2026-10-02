@@ -1,4 +1,4 @@
-import { Inbox, LogOut } from "lucide-react";
+import { Inbox, LogOut, Users } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -47,6 +47,17 @@ export default async function AccountPage() {
         >
           <Inbox aria-hidden />
           อ่านความคิดเห็นทั้งหมด
+        </Button>
+      )}
+      {session.viewer.role === "super_admin" && (
+        <Button
+          variant="outline"
+          className="h-12 w-full text-base"
+          nativeButton={false}
+          render={<Link href="/users" />}
+        >
+          <Users aria-hidden />
+          จัดการผู้ใช้
         </Button>
       )}
       <form action={signOut}>
