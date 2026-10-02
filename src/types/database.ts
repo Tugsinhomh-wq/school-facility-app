@@ -65,6 +65,8 @@ export interface RepairTicket {
   urgency: UrgencyLevel;
   status: TicketStatus;
   image_urls: string[];
+  /** Photos staff add once the repair is done. */
+  after_image_urls?: string[];
   estimated_cost: number;
   technician_notes: string | null;
   /** Set when this report repeats another open ticket; status then follows that ticket. */

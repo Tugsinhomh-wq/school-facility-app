@@ -1,8 +1,9 @@
-import { Inbox, LogOut } from "lucide-react";
+import { ChevronRight, Inbox, LogOut, Users } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { signOut } from "@/app/auth/actions";
+import { PushToggle } from "@/components/account/push-toggle";
 import { FeedbackButton } from "@/components/feedback/feedback-button";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -37,17 +38,52 @@ export default async function AccountPage() {
         <span>โหมดสว่าง / มืด</span>
         <ThemeToggle />
       </div>
+      <PushToggle />
       <FeedbackButton />
       {session.viewer.role === "super_admin" && (
-        <Button
-          variant="outline"
-          className="h-12 w-full text-base"
-          nativeButton={false}
-          render={<Link href="/feedback" />}
+        <nav
+          aria-label="เครื่องมือผู้ดูแลระบบ"
+          className="overflow-hidden rounded-xl border border-border bg-card/85"
         >
-          <Inbox aria-hidden />
-          อ่านความคิดเห็นทั้งหมด
-        </Button>
+          <p className="px-5 pt-4 pb-1 text-sm text-muted-foreground">
+            เครื่องมือผู้ดูแลระบบ
+          </p>
+          {[
+            {
+              href: "/users",
+              label: "จัดการผู้ใช้",
+              hint: "เปลี่ยนบทบาท ปิดบัญชี",
+              icon: Users,
+            },
+            {
+              href: "/feedback",
+              label: "ความคิดเห็นจากผู้ใช้",
+              hint: "อ่านและติดตามสถานะ",
+              icon: Inbox,
+            },
+          ].map(({ href, label, hint, icon: Icon }) => (
+            <Link
+              key={href}
+              href={href}
+              className="flex min-h-16 items-center gap-3 border-t border-border px-5 py-3 first:border-t-0 active:bg-muted/60"
+            >
+              <Icon
+                className="size-5 shrink-0 text-muted-foreground"
+                aria-hidden
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block font-medium">{label}</span>
+                <span className="block text-xs text-muted-foreground">
+                  {hint}
+                </span>
+              </span>
+              <ChevronRight
+                className="size-4 shrink-0 text-muted-foreground"
+                aria-hidden
+              />
+            </Link>
+          ))}
+        </nav>
       )}
       <form action={signOut}>
         <Button
@@ -59,6 +95,14 @@ export default async function AccountPage() {
           ออกจากระบบ
         </Button>
       </form>
+      <p className="flex justify-center gap-4 text-xs text-muted-foreground">
+        <Link href="/privacy" className="hover:text-foreground">
+          นโยบายความเป็นส่วนตัว
+        </Link>
+        <Link href="/terms" className="hover:text-foreground">
+          เงื่อนไขการใช้งาน
+        </Link>
+      </p>
     </div>
   );
 }

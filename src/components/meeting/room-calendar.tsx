@@ -129,7 +129,7 @@ export function RoomCalendar({ rooms, bookings, weekStart, roomId, userId, isSta
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-        <div role="tablist" aria-label="เลือกห้อง" className="-mx-4 flex w-[calc(100%+2rem)] snap-x gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:w-auto sm:flex-wrap sm:px-0">
+        <div role="tablist" aria-label="เลือกห้อง" className="-mx-4 flex w-[calc(100%+2rem)] snap-x scroll-px-4 gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:w-auto sm:flex-wrap sm:px-0">
           {rooms.map((r) => (
             <Link
               key={r.id}

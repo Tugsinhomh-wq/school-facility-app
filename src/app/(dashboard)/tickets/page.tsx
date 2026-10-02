@@ -8,13 +8,20 @@ import { getTicketList, PAGE_SIZE, parseFilters } from "@/lib/data/tickets";
 import { guardExecutive } from "@/lib/data/session";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "รายการแจ้งซ่อม | ระบบแจ้งซ่อม โรงเรียนละหานทรายรัชดาภิเษก" };
+export const metadata = {
+  title: "รายการแจ้งซ่อม | ระบบแจ้งซ่อม โรงเรียนละหานทรายรัชดาภิเษก",
+};
 
-export default async function TicketsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+export default async function TicketsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   await guardExecutive();
   const filters = parseFilters(await searchParams);
   const list = await getTicketList(filters);
-  const isStaff = list.viewer?.role === "staff" || list.viewer?.role === "super_admin";
+  const isStaff =
+    list.viewer?.role === "staff" || list.viewer?.role === "super_admin";
   const pages = Math.max(1, Math.ceil(list.total / PAGE_SIZE));
 
   const href = (page: number) => {
@@ -30,25 +37,56 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
 
   return (
     <>
-      <h1 className="font-display text-3xl font-bold tracking-tight">{isStaff || !list.viewer ? "รายการแจ้งซ่อม" : "งานที่ฉันแจ้ง"}</h1>
+      <h1 className="font-display text-3xl font-bold tracking-tight">
+        {isStaff || !list.viewer ? "รายการแจ้งซ่อม" : "งานที่ฉันแจ้ง"}
+      </h1>
       <p className="mt-1 text-muted-foreground">
         {list.total} รายการ{list.source === "mock" && " (ข้อมูลตัวอย่าง)"}
       </p>
 
       <div className="mt-6 space-y-4">
         <TicketFiltersBar filters={filters} buildings={list.buildings} />
-        <TicketTable tickets={list.tickets} showReporter={isStaff} hasFilters={Boolean(filters.status || filters.urgency || filters.building || filters.q)} />
+        <TicketTable
+          tickets={list.tickets}
+          showReporter={isStaff}
+          hasFilters={Boolean(
+            filters.status || filters.urgency || filters.building || filters.q,
+          )}
+        />
 
         {pages > 1 && (
-          <nav aria-label="หน้ารายการ" className="flex items-center justify-between text-sm">
+          <nav
+            aria-label="หน้ารายการ"
+            className="flex items-center justify-between text-sm"
+          >
             <span className="text-muted-foreground">
               หน้า {filters.page} จาก {pages}
             </span>
             <div className="flex gap-2">
-              <Button variant="outline" nativeButton={false} disabled={filters.page <= 1} render={<Link href={href(filters.page - 1)} aria-disabled={filters.page <= 1} />}>
+              <Button
+                variant="outline"
+                nativeButton={false}
+                disabled={filters.page <= 1}
+                render={
+                  <Link
+                    href={href(filters.page - 1)}
+                    aria-disabled={filters.page <= 1}
+                  />
+                }
+              >
                 ก่อนหน้า
               </Button>
-              <Button variant="outline" nativeButton={false} disabled={filters.page >= pages} render={<Link href={href(filters.page + 1)} aria-disabled={filters.page >= pages} />}>
+              <Button
+                variant="outline"
+                nativeButton={false}
+                disabled={filters.page >= pages}
+                render={
+                  <Link
+                    href={href(filters.page + 1)}
+                    aria-disabled={filters.page >= pages}
+                  />
+                }
+              >
                 ถัดไป
               </Button>
             </div>

@@ -19,14 +19,24 @@ async function listAll(supabase: SupabaseClient) {
   const storage = supabase.storage.from(BUCKET);
 
   for (let folderOffset = 0; ; folderOffset += PAGE) {
-    const { data: folders, error } = await storage.list("", { limit: PAGE, offset: folderOffset });
+    const { data: folders, error } = await storage.list("", {
+      limit: PAGE,
+      offset: folderOffset,
+    });
     if (error) throw error;
     for (const folder of folders) {
       for (let offset = 0; ; offset += PAGE) {
-        const { data: items, error: listError } = await storage.list(folder.name, { limit: PAGE, offset });
+        const { data: items, error: listError } = await storage.list(
+          folder.name,
+          { limit: PAGE, offset },
+        );
         if (listError) throw listError;
         for (const item of items) {
-          if (item.id) files.push({ path: `${folder.name}/${item.name}`, createdAt: new Date(item.created_at ?? 0).getTime() });
+          if (item.id)
+            files.push({
+              path: `${folder.name}/${item.name}`,
+              createdAt: new Date(item.created_at ?? 0).getTime(),
+            });
         }
         if (items.length < PAGE) break;
       }
@@ -41,10 +51,21 @@ async function listAll(supabase: SupabaseClient) {
  * older than `minAgeMinutes`, so a photo uploaded a moment ago for a form still being filled
  * in is never touched. Any failure reading the tickets aborts before deleting anything.
  */
-export async function cleanupOrphanImages(supabase: SupabaseClient, opts: { minAgeMinutes: number; dryRun: boolean; maxDelete?: number }): Promise<CleanupResult> {
-  const { data: tickets, error } = await supabase.from("repair_tickets").select("image_urls").not("image_urls", "eq", "{}");
+export async function cleanupOrphanImages(
+  supabase: SupabaseClient,
+  opts: { minAgeMinutes: number; dryRun: boolean; maxDelete?: number },
+): Promise<CleanupResult> {
+  const { data: tickets, error } = await supabase
+    .from("repair_tickets")
+    .select("image_urls, after_image_urls");
   if (error) throw error;
-  const referenced = new Set((tickets ?? []).flatMap((t) => (t.image_urls as string[] | null) ?? []));
+  // Both the reporter's photos and the staff after-repair photos count as in use.
+  const referenced = new Set(
+    (tickets ?? []).flatMap((t) => [
+      ...((t.image_urls as string[] | null) ?? []),
+      ...((t.after_image_urls as string[] | null) ?? []),
+    ]),
+  );
 
   const files = await listAll(supabase);
   const cutoff = Date.now() - opts.minAgeMinutes * 60_000;
@@ -54,10 +75,19 @@ export async function cleanupOrphanImages(supabase: SupabaseClient, opts: { minA
 
   let deleted = 0;
   if (!opts.dryRun && orphans.length > 0) {
-    const { data, error: removeError } = await supabase.storage.from(BUCKET).remove(orphans);
+    const { data, error: removeError } = await supabase.storage
+      .from(BUCKET)
+      .remove(orphans);
     if (removeError) throw removeError;
     deleted = data?.length ?? 0;
   }
 
-  return { scanned: files.length, referenced: files.length - unreferenced.length, tooRecent: unreferenced.length - old.length, orphans, deleted, dryRun: opts.dryRun };
+  return {
+    scanned: files.length,
+    referenced: files.length - unreferenced.length,
+    tooRecent: unreferenced.length - old.length,
+    orphans,
+    deleted,
+    dryRun: opts.dryRun,
+  };
 }

@@ -52,7 +52,7 @@ function mockList(f: TicketFilters): TicketList {
   };
 }
 
-const SELECT = "*, building:buildings(name), room:rooms(room_number, name), reporter:profiles(full_name), dups:repair_tickets!repair_tickets_duplicate_of_fkey(count)";
+const SELECT = "*, building:buildings(name), room:rooms(room_number, name), reporter:profiles(full_name), dups:repair_tickets!duplicate_of(count)";
 
 export async function getTicketList(f: TicketFilters): Promise<TicketList> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return mockList(f);
@@ -100,12 +100,14 @@ export interface TicketDetail {
   ticket: TicketRow | null;
   /** Short-lived signed URLs for ticket.image_urls (the bucket is private). */
   imageUrls: string[];
+  /** Signed URLs for ticket.after_image_urls. */
+  afterImageUrls: string[];
 }
 
 export async function getTicketDetail(id: string): Promise<TicketDetail> {
   const mock = (): TicketDetail => {
     const t = MOCK_TICKETS.find((x) => x.id === id);
-    return { source: "mock", viewer: null, ticket: t ? withReporter(t) : null, imageUrls: [] };
+    return { source: "mock", viewer: null, ticket: t ? withReporter(t) : null, imageUrls: [], afterImageUrls: [] };
   };
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return mock();
   try {
@@ -123,6 +125,11 @@ export async function getTicketDetail(id: string): Promise<TicketDetail> {
       const { data: signed } = await supabase.storage.from("repair-images").createSignedUrls(row.image_urls, 3600);
       imageUrls = (signed ?? []).flatMap((s) => (s.signedUrl ? [s.signedUrl] : []));
     }
+    let afterImageUrls: string[] = [];
+    if (row?.after_image_urls?.length) {
+      const { data: signed } = await supabase.storage.from("repair-images").createSignedUrls(row.after_image_urls, 3600);
+      afterImageUrls = (signed ?? []).flatMap((s) => (s.signedUrl ? [s.signedUrl] : []));
+    }
     return {
       source: "supabase",
       viewer: {
@@ -132,6 +139,7 @@ export async function getTicketDetail(id: string): Promise<TicketDetail> {
       // A malformed id or an RLS-hidden row both come back as no ticket.
       ticket: row,
       imageUrls,
+      afterImageUrls,
     };
   } catch {
     return mock();

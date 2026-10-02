@@ -15,7 +15,21 @@ interface Photo {
  * Uploads each chosen photo straight to the private bucket (compressed to JPEG) and
  * posts only the storage paths with the form, as repeated `image_paths` fields.
  */
-export function ImagePicker({ onBusyChange, camera = false, bucket = BUCKET, label = "รูปประกอบ (ไม่บังคับ)" }: { onBusyChange?: (busy: boolean) => void; camera?: boolean; bucket?: string; label?: string }) {
+export function ImagePicker({
+  onBusyChange,
+  camera = false,
+  bucket = BUCKET,
+  label = "รูปประกอบ (ไม่บังคับ)",
+  fieldName = "image_paths",
+  maxImages = MAX_IMAGES,
+}: {
+  onBusyChange?: (busy: boolean) => void;
+  camera?: boolean;
+  bucket?: string;
+  label?: string;
+  fieldName?: string;
+  maxImages?: number;
+}) {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [uploading, setUploading] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -24,10 +38,16 @@ export function ImagePicker({ onBusyChange, camera = false, bucket = BUCKET, lab
   const previews = useRef<string[]>([]);
 
   useEffect(() => onBusyChange?.(uploading > 0), [uploading, onBusyChange]);
-  useEffect(() => () => previews.current.forEach((url) => URL.revokeObjectURL(url)), []);
+  useEffect(
+    () => () => previews.current.forEach((url) => URL.revokeObjectURL(url)),
+    [],
+  );
 
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []).slice(0, MAX_IMAGES - photos.length - uploading);
+    const files = Array.from(e.target.files ?? []).slice(
+      0,
+      maxImages - photos.length - uploading,
+    );
     e.target.value = "";
     if (files.length === 0) return;
     setError(null);
@@ -41,13 +61,17 @@ export function ImagePicker({ onBusyChange, camera = false, bucket = BUCKET, lab
       try {
         const blob = await compressImage(file);
         const path = `${data.user.id}/${crypto.randomUUID()}.jpg`;
-        const { error: uploadError } = await supabase.storage.from(bucket).upload(path, blob, { contentType: "image/jpeg" });
+        const { error: uploadError } = await supabase.storage
+          .from(bucket)
+          .upload(path, blob, { contentType: "image/jpeg" });
         if (uploadError) throw uploadError;
         const preview = URL.createObjectURL(blob);
         previews.current.push(preview);
         setPhotos((p) => [...p, { path, preview }]);
       } catch {
-        setError("แนบรูปบางรูปไม่สำเร็จ ไฟล์อาจเสียหรือไม่ใช่รูปภาพ ลองเลือกรูปใหม่อีกครั้ง");
+        setError(
+          "แนบรูปบางรูปไม่สำเร็จ ไฟล์อาจเสียหรือไม่ใช่รูปภาพ ลองเลือกรูปใหม่อีกครั้ง",
+        );
       } finally {
         setUploading((n) => n - 1);
       }
@@ -60,21 +84,28 @@ export function ImagePicker({ onBusyChange, camera = false, bucket = BUCKET, lab
     await createClient().storage.from(bucket).remove([photo.path]);
   }
 
-  const full = photos.length + uploading >= MAX_IMAGES;
+  const full = photos.length + uploading >= maxImages;
 
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium">{label}</span>
         <span className="text-xs text-muted-foreground">
-          {photos.length}/{MAX_IMAGES} รูป
+          {photos.length}/{maxImages} รูป
         </span>
       </div>
       <div className="flex flex-wrap gap-2">
         {photos.map((p) => (
-          <div key={p.path} className="relative size-16 overflow-hidden rounded-lg border border-border">
+          <div
+            key={p.path}
+            className="relative size-16 overflow-hidden rounded-lg border border-border"
+          >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={p.preview} alt="รูปที่แนบ" className="size-full object-cover" />
+            <img
+              src={p.preview}
+              alt="รูปที่แนบ"
+              className="size-full object-cover"
+            />
             <button
               type="button"
               onClick={() => remove(p)}
@@ -83,12 +114,20 @@ export function ImagePicker({ onBusyChange, camera = false, bucket = BUCKET, lab
             >
               <X className="size-3" aria-hidden />
             </button>
-            <input type="hidden" name="image_paths" value={p.path} />
+            <input type="hidden" name={fieldName} value={p.path} />
           </div>
         ))}
         {Array.from({ length: uploading }, (_, i) => (
-          <div key={`u${i}`} className="flex size-16 items-center justify-center rounded-lg border border-dashed border-border" role="status" aria-label="กำลังอัปโหลด">
-            <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden />
+          <div
+            key={`u${i}`}
+            className="flex size-16 items-center justify-center rounded-lg border border-dashed border-border"
+            role="status"
+            aria-label="กำลังอัปโหลด"
+          >
+            <Loader2
+              className="size-4 animate-spin text-muted-foreground"
+              aria-hidden
+            />
           </div>
         ))}
         {!full && camera && (
@@ -112,8 +151,26 @@ export function ImagePicker({ onBusyChange, camera = false, bucket = BUCKET, lab
           </button>
         )}
       </div>
-      <input ref={shot} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} onChange={onPick} aria-label="ถ่ายรูปประกอบ" />
-      <input ref={input} type="file" accept="image/*,.heic,.heif" multiple className="sr-only" tabIndex={-1} onChange={onPick} aria-label="เลือกรูปประกอบ" />
+      <input
+        ref={shot}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="sr-only"
+        tabIndex={-1}
+        onChange={onPick}
+        aria-label="ถ่ายรูปประกอบ"
+      />
+      <input
+        ref={input}
+        type="file"
+        accept="image/*,.heic,.heif"
+        multiple
+        className="sr-only"
+        tabIndex={-1}
+        onChange={onPick}
+        aria-label="เลือกรูปประกอบ"
+      />
       {error && (
         <p role="alert" className="text-xs text-destructive">
           {error}

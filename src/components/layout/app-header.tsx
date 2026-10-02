@@ -21,7 +21,11 @@ export function AppHeader({ viewer }: { viewer: Viewer | null }) {
             ? [{ href: "/memos", label: "บันทึกข้อความ" }]
             : []),
           ...(viewer?.role === "super_admin"
-            ? [summary, { href: "/feedback", label: "ความคิดเห็น" }]
+            ? [
+                summary,
+                { href: "/feedback", label: "ความคิดเห็น" },
+                { href: "/users", label: "ผู้ใช้" },
+              ]
             : []),
         ];
 
