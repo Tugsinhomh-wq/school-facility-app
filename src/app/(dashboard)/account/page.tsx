@@ -1,4 +1,4 @@
-import { ChevronRight, Inbox, LogOut, Users } from "lucide-react";
+import { ChevronRight, Inbox, LogOut, Trash2, Users } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -60,6 +60,12 @@ export default async function AccountPage() {
               label: "ความคิดเห็นจากผู้ใช้",
               hint: "อ่านและติดตามสถานะ",
               icon: Inbox,
+            },
+            {
+              href: "/trash",
+              label: "ถังขยะงานแจ้งซ่อม",
+              hint: "กู้คืนหรือลบถาวร",
+              icon: Trash2,
             },
           ].map(({ href, label, hint, icon: Icon }) => (
             <Link

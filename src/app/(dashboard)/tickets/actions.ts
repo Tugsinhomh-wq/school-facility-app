@@ -1,8 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
+import { hasSupabase, getSession } from "@/lib/data/session";
 import { notifyReporterStatus } from "@/lib/push";
+import { purgeTickets } from "@/lib/trash";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { TicketStatus } from "@/types/database";
 import { getAuth } from "@/lib/supabase/auth";
@@ -173,4 +177,49 @@ export async function mergeTicket(
     ok: true,
     message: split ? "แยกออกจากงานหลักแล้ว" : "รวมกับงานหลักแล้ว",
   };
+}
+
+/** Administrator only (the database function checks again): move tickets, and the reports merged into them, to the trash. */
+export async function trashTickets(formData: FormData) {
+  const ids = formData
+    .getAll("ids")
+    .map(String)
+    .filter((id) => UUID.test(id));
+  if (ids.length === 0 || ids.length > 200 || !hasSupabase())
+    redirect("/tickets");
+  const session = await getSession();
+  if (!session || session.viewer.role !== "super_admin") redirect("/tickets");
+  const { data } = await session.supabase.rpc("trash_tickets", { p_ids: ids });
+  revalidatePath("/tickets");
+  revalidatePath("/");
+  redirect(`/tickets?trashed=${Number(data ?? 0)}`);
+}
+
+export async function restoreTickets(formData: FormData) {
+  const ids = formData
+    .getAll("ids")
+    .map(String)
+    .filter((id) => UUID.test(id));
+  const session = await getSession();
+  if (ids.length > 0 && session?.viewer.role === "super_admin")
+    await session.supabase.rpc("restore_tickets", { p_ids: ids });
+  revalidatePath("/trash");
+  revalidatePath("/tickets");
+  revalidatePath("/");
+}
+
+/** Deletes for good, with the photos. Administrator only, and only tickets already in the trash. */
+export async function purgeTrashedTickets(formData: FormData) {
+  const ids = formData
+    .getAll("ids")
+    .map(String)
+    .filter((id) => UUID.test(id));
+  const session = await getSession();
+  if (
+    ids.length > 0 &&
+    ids.length <= 200 &&
+    session?.viewer.role === "super_admin"
+  )
+    await purgeTickets(createAdminClient(), { ids });
+  revalidatePath("/trash");
 }

@@ -8,6 +8,7 @@ import { TicketManageForm } from "@/components/tickets/ticket-manage-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MergePanel } from "@/components/tickets/merge-panel";
+import { TrashButton } from "@/components/tickets/trash-button";
 import { getDuplicateContext, getTicketDetail } from "@/lib/data/tickets";
 import {
   formatBaht,
@@ -180,6 +181,7 @@ export default async function TicketDetailPage({
               </Button>
             </form>
             {dupCtx && <MergePanel ticket={ticket} ctx={dupCtx} />}
+            {viewer?.role === "super_admin" && <TrashButton id={ticket.id} />}
           </aside>
         )}
       </div>

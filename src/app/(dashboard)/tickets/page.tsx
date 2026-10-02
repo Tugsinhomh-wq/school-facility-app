@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { TicketFiltersBar } from "@/components/tickets/ticket-filters";
+import { BulkTrashBar } from "@/components/tickets/bulk-trash-bar";
 import { TicketTable } from "@/components/tickets/ticket-table";
 import { Button } from "@/components/ui/button";
 import { getTicketList, PAGE_SIZE, parseFilters } from "@/lib/data/tickets";
@@ -18,10 +19,14 @@ export default async function TicketsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   await guardExecutive();
-  const filters = parseFilters(await searchParams);
+  const sp = await searchParams;
+  const filters = parseFilters(sp);
+  const trashed =
+    Number(Array.isArray(sp.trashed) ? sp.trashed[0] : sp.trashed) || 0;
   const list = await getTicketList(filters);
   const isStaff =
     list.viewer?.role === "staff" || list.viewer?.role === "super_admin";
+  const isAdmin = list.viewer?.role === "super_admin";
   const pages = Math.max(1, Math.ceil(list.total / PAGE_SIZE));
 
   const href = (page: number) => {
@@ -44,9 +49,33 @@ export default async function TicketsPage({
         {list.total} รายการ{list.source === "mock" && " (ข้อมูลตัวอย่าง)"}
       </p>
 
+      {trashed > 0 && (
+        <p
+          role="status"
+          className="mt-4 rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm"
+        >
+          ย้าย {trashed} งานไปถังขยะแล้ว{" "}
+          <Link href="/trash" className="underline">
+            ดูถังขยะ / กู้คืน
+          </Link>
+        </p>
+      )}
+      {isAdmin && (
+        <p className="mt-2 text-sm">
+          <Link
+            href="/trash"
+            className="text-muted-foreground underline-offset-4 hover:underline"
+          >
+            ถังขยะ
+          </Link>
+        </p>
+      )}
+
       <div className="mt-6 space-y-4">
         <TicketFiltersBar filters={filters} buildings={list.buildings} />
+        {isAdmin && list.tickets.length > 0 && <BulkTrashBar />}
         <TicketTable
+          selectable={isAdmin}
           tickets={list.tickets}
           showReporter={isStaff}
           hasFilters={Boolean(
