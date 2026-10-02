@@ -30,14 +30,20 @@ function thaiError(error: { code?: string; message: string }) {
 
 function credentials(formData: FormData) {
   return {
-    email: String(formData.get("email") ?? "").trim().toLowerCase(),
+    email: String(formData.get("email") ?? "")
+      .trim()
+      .toLowerCase(),
     password: String(formData.get("password") ?? ""),
   };
 }
 
-export async function signIn(_prev: AuthResult, formData: FormData): Promise<AuthResult> {
+export async function signIn(
+  _prev: AuthResult,
+  formData: FormData,
+): Promise<AuthResult> {
   const { email, password } = credentials(formData);
-  if (!EMAIL.test(email) || !password) return { ok: false, message: "กรุณากรอกอีเมลและรหัสผ่านให้ครบ" };
+  if (!EMAIL.test(email) || !password)
+    return { ok: false, message: "กรุณากรอกอีเมลและรหัสผ่านให้ครบ" };
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -45,28 +51,70 @@ export async function signIn(_prev: AuthResult, formData: FormData): Promise<Aut
   redirect("/");
 }
 
-export async function signUp(_prev: AuthResult, formData: FormData): Promise<AuthResult> {
+export async function signUp(
+  _prev: AuthResult,
+  formData: FormData,
+): Promise<AuthResult> {
   const { email, password } = credentials(formData);
   const fullName = String(formData.get("full_name") ?? "").trim();
   if (!fullName) return { ok: false, message: "กรุณากรอกชื่อ-นามสกุล" };
-  if (!EMAIL.test(email)) return { ok: false, message: "รูปแบบอีเมลไม่ถูกต้อง" };
-  if (password.length < 8) return { ok: false, message: "รหัสผ่านต้องยาวอย่างน้อย 8 ตัวอักษร" };
+  if (!EMAIL.test(email))
+    return { ok: false, message: "รูปแบบอีเมลไม่ถูกต้อง" };
+  if (password.length < 8)
+    return { ok: false, message: "รหัสผ่านต้องยาวอย่างน้อย 8 ตัวอักษร" };
+  if (formData.get("accept") !== "on")
+    return {
+      ok: false,
+      message: "กรุณายอมรับนโยบายความเป็นส่วนตัวและเงื่อนไขการใช้งานก่อนสมัคร",
+    };
 
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? (host?.startsWith("localhost") ? "http" : "https");
+  const proto =
+    h.get("x-forwarded-proto") ??
+    (host?.startsWith("localhost") ? "http" : "https");
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { full_name: fullName }, emailRedirectTo: `${proto}://${host}/auth/confirm` },
+    options: {
+      data: {
+        full_name: fullName,
+        consented_at: new Date().toISOString(),
+        consent_version: "2569-10-02",
+      },
+      emailRedirectTo: `${proto}://${host}/auth/confirm`,
+    },
   });
   if (error) return { ok: false, message: thaiError(error) };
 
   // With email confirmation off, signUp returns a session and the user is already in.
   if (data.session) redirect("/");
-  return { ok: true, message: "สมัครสำเร็จ ส่งลิงก์ยืนยันไปที่อีเมลแล้ว เปิดลิงก์นั้นก่อนเข้าสู่ระบบ" };
+  return {
+    ok: true,
+    message:
+      "สมัครสำเร็จ ส่งลิงก์ยืนยันไปที่อีเมลแล้ว เปิดลิงก์นั้นก่อนเข้าสู่ระบบ",
+  };
+}
+
+/** Google sign-in, restricted to school accounts (the domain is checked again in /auth/confirm). */
+export async function signInWithGoogle() {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const proto =
+    h.get("x-forwarded-proto") ??
+    (host?.startsWith("localhost") ? "http" : "https");
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${proto}://${host}/auth/confirm`,
+      queryParams: { hd: "lrp.ac.th", prompt: "select_account" },
+    },
+  });
+  if (error || !data.url) redirect("/login?error=google");
+  redirect(data.url);
 }
 
 export async function signOut() {

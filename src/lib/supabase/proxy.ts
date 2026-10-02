@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 // /api/cron is called by a scheduler without a user session; the route checks CRON_SECRET itself.
-const PUBLIC_PREFIXES = ["/login", "/auth", "/api/cron"];
+const PUBLIC_PREFIXES = ["/login", "/auth", "/api/cron", "/privacy", "/terms"];
 
 /**
  * Refreshes the Supabase session cookie and applies the optimistic sign-in

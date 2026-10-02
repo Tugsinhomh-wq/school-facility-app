@@ -70,6 +70,14 @@ export default async function AccountPage() {
           ออกจากระบบ
         </Button>
       </form>
+      <p className="flex justify-center gap-4 text-xs text-muted-foreground">
+        <Link href="/privacy" className="hover:text-foreground">
+          นโยบายความเป็นส่วนตัว
+        </Link>
+        <Link href="/terms" className="hover:text-foreground">
+          เงื่อนไขการใช้งาน
+        </Link>
+      </p>
     </div>
   );
 }
