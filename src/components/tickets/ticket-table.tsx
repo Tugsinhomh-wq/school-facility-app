@@ -38,14 +38,41 @@ export function DuplicateNote({ t }: { t: TicketRow }) {
   return null;
 }
 
+/** Checkbox tied to the bulk form (id "bulk-trash") rendered above the list. */
+function RowCheck({
+  id,
+  title,
+  className,
+}: {
+  id: string;
+  title: string;
+  className?: string;
+}) {
+  return (
+    <span className={className}>
+      <input
+        type="checkbox"
+        name="ids"
+        value={id}
+        form="bulk-trash"
+        aria-label={`เลือก ${title}`}
+        className="size-5 accent-[var(--color-primary)]"
+      />
+    </span>
+  );
+}
+
 export function TicketTable({
   tickets,
   showReporter,
   hasFilters,
+  selectable = false,
 }: {
   tickets: TicketRow[];
   showReporter: boolean;
   hasFilters: boolean;
+  /** Administrator only: a checkbox on every row for moving several tickets to the trash at once. */
+  selectable?: boolean;
 }) {
   if (tickets.length === 0) {
     return (
@@ -61,10 +88,20 @@ export function TicketTable({
     <>
       <ul className="space-y-2 md:hidden">
         {tickets.map((t) => (
-          <li key={t.id}>
+          <li
+            key={t.id}
+            className={selectable ? "flex items-stretch gap-2" : undefined}
+          >
+            {selectable && (
+              <RowCheck
+                id={t.id}
+                title={t.title}
+                className="flex w-9 shrink-0 items-center justify-center"
+              />
+            )}
             <Link
               href={`/tickets/${t.id}`}
-              className="block rounded-xl border border-border bg-card/85 p-4 active:bg-muted/40"
+              className="block min-w-0 flex-1 rounded-xl border border-border bg-card/85 p-4 active:bg-muted/40"
             >
               <span className="flex items-start justify-between gap-2">
                 <span className="text-base font-medium leading-snug">
@@ -104,6 +141,11 @@ export function TicketTable({
         <table className="w-full min-w-[46rem] text-left text-sm">
           <thead className="border-b border-border text-muted-foreground">
             <tr>
+              {selectable && (
+                <th scope="col" className="w-10 px-4 py-3">
+                  <span className="sr-only">เลือก</span>
+                </th>
+              )}
               <th scope="col" className="px-4 py-3 font-medium">
                 เรื่อง
               </th>
@@ -129,6 +171,11 @@ export function TicketTable({
           <tbody className="divide-y divide-border">
             {tickets.map((t) => (
               <tr key={t.id} className="hover:bg-muted/40">
+                {selectable && (
+                  <td className="px-4 py-3">
+                    <RowCheck id={t.id} title={t.title} />
+                  </td>
+                )}
                 <td className="px-4 py-3">
                   <Link
                     href={`/tickets/${t.id}`}
