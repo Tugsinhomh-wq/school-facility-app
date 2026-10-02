@@ -8,5 +8,5 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   // Skip static assets and image files.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.png|logo.png|manifest.webmanifest|icons/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.png|logo.png|manifest.webmanifest|sw.js|icons/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };

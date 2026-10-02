@@ -58,3 +58,52 @@ export async function sendFeedback(
     message: "ขอบคุณสำหรับความคิดเห็น ผู้ดูแลระบบจะนำไปปรับปรุง",
   };
 }
+
+export type PushSub = {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+};
+
+export async function savePushSubscription(
+  sub: PushSub,
+): Promise<FeedbackResult> {
+  if (
+    !sub?.endpoint?.startsWith("https://") ||
+    sub.endpoint.length > 1000 ||
+    !sub.keys?.p256dh ||
+    !sub.keys?.auth
+  )
+    return { ok: false, message: "ข้อมูลการแจ้งเตือนไม่ถูกต้อง" };
+  const supabase = await createClient();
+  const { data: auth } = await getAuth(supabase);
+  if (!auth.user)
+    return { ok: false, message: "เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่" };
+  const userAgent = (await headers()).get("user-agent")?.slice(0, 300) ?? null;
+  // The same device can re-subscribe, or be used by another person after sign-out: the endpoint is unique, so replace it.
+  const { error } = await supabase
+    .from("push_subscriptions")
+    .upsert(
+      {
+        user_id: auth.user.id,
+        endpoint: sub.endpoint,
+        p256dh: sub.keys.p256dh,
+        auth: sub.keys.auth,
+        user_agent: userAgent,
+      },
+      { onConflict: "endpoint" },
+    );
+  return error
+    ? { ok: false, message: "เปิดการแจ้งเตือนไม่สำเร็จ ลองใหม่อีกครั้ง" }
+    : { ok: true, message: "เปิดการแจ้งเตือนแล้ว" };
+}
+
+export async function removePushSubscription(
+  endpoint: string,
+): Promise<FeedbackResult> {
+  const supabase = await createClient();
+  const { data: auth } = await getAuth(supabase);
+  if (!auth.user)
+    return { ok: false, message: "เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่" };
+  await supabase.from("push_subscriptions").delete().eq("endpoint", endpoint);
+  return { ok: true, message: "ปิดการแจ้งเตือนแล้ว" };
+}

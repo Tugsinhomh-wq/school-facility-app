@@ -8,13 +8,24 @@ import { MeetingTicker } from "@/components/dashboard/meeting-ticker";
 import { QuickReportCard } from "@/components/dashboard/quick-report-card";
 import { QuickStats } from "@/components/dashboard/quick-stats";
 import { RecentTicketsFeed } from "@/components/dashboard/recent-tickets-feed";
-import { MyReservations, PendingReservations, TodayMeetings } from "@/components/dashboard/reservation-cards";
-import { getDashboardBase, getRepairsData, getRoomsData, type DashboardBase, type DashTab } from "@/lib/data/dashboard";
+import {
+  MyReservations,
+  PendingReservations,
+  TodayMeetings,
+} from "@/components/dashboard/reservation-cards";
+import {
+  getDashboardBase,
+  getRepairsData,
+  getRoomsData,
+  type DashboardBase,
+  type DashTab,
+} from "@/lib/data/dashboard";
 import { isRoomManager, isStaffRole, guardExecutive } from "@/lib/data/session";
 
 export const dynamic = "force-dynamic";
 
-const parseTab = (v: string | string[] | undefined): DashTab => (v === "rooms" ? "rooms" : "repairs");
+const parseTab = (v: string | string[] | undefined): DashTab =>
+  v === "rooms" ? "rooms" : "repairs";
 
 async function Repairs({ base }: { base: DashboardBase }) {
   const data = await getRepairsData();
@@ -25,14 +36,28 @@ async function Repairs({ base }: { base: DashboardBase }) {
       {staff ? (
         <>
           <QuickStats stats={base.stats} />
-          <RecentTicketsFeed tickets={data.queue} title="งานที่รอรับเรื่อง" hint="เรื่องเร่งด่วนอยู่บนสุด" className="md:col-span-3 lg:col-span-7 lg:row-span-2" />
+          <RecentTicketsFeed
+            tickets={data.queue}
+            title="งานที่รอรับเรื่อง"
+            hint="เรื่องเร่งด่วนอยู่บนสุด"
+            className="md:col-span-3 lg:col-span-7 lg:row-span-2"
+          />
           <BuildingMatrix byBuilding={base.byBuilding} />
-          <DocumentHub documents={data.documents} canDraft className="md:col-span-3 lg:col-span-5" />
+          <DocumentHub
+            documents={data.documents}
+            canDraft
+            className="md:col-span-3 lg:col-span-5"
+          />
         </>
       ) : (
         <>
           <QuickReportCard buildings={data.buildings} canAttach={canAttach} />
-          <RecentTicketsFeed tickets={data.recent} title="งานที่ฉันแจ้งล่าสุด" hint="รายการของคุณ 5 รายการล่าสุด" className="md:col-span-3 lg:col-span-7" />
+          <RecentTicketsFeed
+            tickets={data.recent}
+            title="งานที่ฉันแจ้งล่าสุด"
+            hint="รายการของคุณ 5 รายการล่าสุด"
+            className="md:col-span-3 lg:col-span-7"
+          />
         </>
       )}
     </BentoGrid>
@@ -45,17 +70,30 @@ async function Rooms({ base }: { base: DashboardBase }) {
   return (
     <BentoGrid>
       {staff ? (
-        <PendingReservations items={data.pendingReservations} className="md:col-span-3 lg:col-span-4" />
+        <PendingReservations
+          items={data.pendingReservations}
+          className="md:col-span-3 lg:col-span-4"
+        />
       ) : (
-        <MyReservations items={data.myReservations} className="md:col-span-3 lg:col-span-4" />
+        <MyReservations
+          items={data.myReservations}
+          className="md:col-span-3 lg:col-span-4"
+        />
       )}
-      <TodayMeetings meetings={base.todayMeetings} className="md:col-span-3 lg:col-span-4" />
+      <TodayMeetings
+        meetings={base.todayMeetings}
+        className="md:col-span-3 lg:col-span-4"
+      />
       <LiveRoomStatus rooms={data.liveRooms} />
     </BentoGrid>
   );
 }
 
-export default async function DashboardPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   await guardExecutive();
   const tab = parseTab((await searchParams).tab);
   const base = await getDashboardBase();

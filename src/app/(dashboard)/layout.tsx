@@ -11,7 +11,11 @@ import { getSession } from "@/lib/data/session";
  * Shared frame for every signed-in page. Living in a layout, the header and grid stay mounted while
  * pages change, so a click only has to load the page body.
  */
-export default async function DashboardLayout({ children }: { children: ReactNode }) {
+export default async function DashboardLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const session = await getSession();
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -26,7 +30,15 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         {children}
       </div>
       {session && session.viewer.role !== "executive" && <QuickReportFab />}
-      <MobileNav showMemos={Boolean(session && session.viewer.role !== "user" && session.viewer.role !== "executive")} executive={session?.viewer.role === "executive"} showSummary={session?.viewer.role === "super_admin"} />
+      <MobileNav
+        showMemos={Boolean(
+          session &&
+          session.viewer.role !== "user" &&
+          session.viewer.role !== "executive",
+        )}
+        executive={session?.viewer.role === "executive"}
+        showSummary={session?.viewer.role === "super_admin"}
+      />
     </div>
   );
 }

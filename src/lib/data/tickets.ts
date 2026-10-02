@@ -52,7 +52,7 @@ function mockList(f: TicketFilters): TicketList {
   };
 }
 
-const SELECT = "*, building:buildings(name), room:rooms(room_number, name), reporter:profiles(full_name), dups:repair_tickets!repair_tickets_duplicate_of_fkey(count)";
+const SELECT = "*, building:buildings(name), room:rooms(room_number, name), reporter:profiles(full_name), dups:repair_tickets!duplicate_of(count)";
 
 export async function getTicketList(f: TicketFilters): Promise<TicketList> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return mockList(f);
