@@ -17,13 +17,13 @@ const prompt = Prompt({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#131f78",
+  themeColor: "#f6f7fb",
   viewportFit: "cover",
 };
 
 export const metadata: Metadata = {
   applicationName: "ระบบแจ้งซ่อม",
-  appleWebApp: { capable: true, title: "แจ้งซ่อม", statusBarStyle: "black-translucent" },
+  appleWebApp: { capable: true, title: "แจ้งซ่อม", statusBarStyle: "default" },
   icons: { apple: "/icons/apple-touch-icon.png" },
   title: "ระบบแจ้งซ่อม โรงเรียนละหานทรายรัชดาภิเษก",
   description: "ระบบแจ้งซ่อมอาคารสถานที่และสิ่งแวดล้อมโรงเรียน",
@@ -34,12 +34,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="th"
       suppressHydrationWarning
-      className={`${noto.variable} ${prompt.variable} dark h-full antialiased`}
+      className={`${noto.variable} ${prompt.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        {/* Dark is the default; apply a saved "light" choice before first paint. */}
+        {/* Light is the default; apply a saved "dark" choice before first paint. */}
         <Script id="theme-init" strategy="beforeInteractive">
-          {`try{if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")}catch(e){}`}
+          {`try{if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark")}catch(e){}`}
         </Script>
         {children}
       </body>

@@ -6,6 +6,7 @@ import { DocumentHub } from "@/components/dashboard/document-hub";
 import { LiveRoomStatus } from "@/components/dashboard/live-room-status";
 import { MeetingTicker } from "@/components/dashboard/meeting-ticker";
 import { QuickReportCard } from "@/components/dashboard/quick-report-card";
+import { LoadError } from "@/components/ui/state-card";
 import { QuickStats } from "@/components/dashboard/quick-stats";
 import { RecentTicketsFeed } from "@/components/dashboard/recent-tickets-feed";
 import {
@@ -31,6 +32,8 @@ async function Repairs({ base }: { base: DashboardBase }) {
   const data = await getRepairsData();
   const staff = isStaffRole(base.viewer?.role);
   const canAttach = base.source === "supabase";
+  if (base.failed || data.failed)
+    return <LoadError what="งานแจ้งซ่อม" retryHref="/" />;
   return (
     <BentoGrid>
       {staff ? (
@@ -40,6 +43,9 @@ async function Repairs({ base }: { base: DashboardBase }) {
             tickets={data.queue}
             title="งานที่รอรับเรื่อง"
             hint="เรื่องเร่งด่วนอยู่บนสุด"
+            emptyGood
+            emptyTitle="ไม่มีงานรอรับเรื่อง"
+            emptyHint="งานที่แจ้งเข้ามาทุกงานมีผู้ดูแลแล้ว"
             className="max-md:order-first md:col-span-3 lg:col-span-7 lg:row-span-2"
           />
           <BuildingMatrix byBuilding={base.byBuilding} />
@@ -56,6 +62,8 @@ async function Repairs({ base }: { base: DashboardBase }) {
             tickets={data.recent}
             title="งานที่ฉันแจ้งล่าสุด"
             hint="รายการของคุณ 5 รายการล่าสุด"
+            emptyTitle="ยังไม่เคยแจ้งซ่อม"
+            emptyHint="พบสิ่งชำรุดให้กดปุ่ม แจ้งซ่อม ถ่ายรูป เลือกอาคาร แล้วส่ง ใช้เวลาไม่ถึงนาที"
             className="md:col-span-3 lg:col-span-7"
           />
         </>
@@ -67,6 +75,8 @@ async function Repairs({ base }: { base: DashboardBase }) {
 async function Rooms({ base }: { base: DashboardBase }) {
   const data = await getRoomsData();
   const staff = isRoomManager(base.viewer?.role);
+  if (data.failed)
+    return <LoadError what="ข้อมูลห้องประชุม" retryHref="/?tab=rooms" />;
   return (
     <BentoGrid>
       {staff ? (

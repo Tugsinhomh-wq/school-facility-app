@@ -9,7 +9,7 @@ import { getAuth } from "@/lib/supabase/auth";
 
 const URGENCIES: UrgencyLevel[] = ["low", "medium", "high", "emergency"];
 
-export type ReportResult = { ok: boolean; message: string };
+export type ReportResult = { ok: boolean; message: string; ticketId?: string };
 
 export async function createRepairTicket(
   _prev: ReportResult | null,
@@ -107,6 +107,7 @@ export async function createRepairTicket(
   revalidatePath("/");
   return {
     ok: true,
+    ticketId: created?.id,
     message: duplicateOf
       ? "รับเรื่องแล้ว รวมกับงานที่มีคนแจ้งไว้ สถานะจะตามงานนั้น"
       : "ส่งเรื่องแจ้งซ่อมเรียบร้อยแล้ว",

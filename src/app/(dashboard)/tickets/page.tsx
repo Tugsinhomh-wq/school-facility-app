@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { TicketFiltersBar } from "@/components/tickets/ticket-filters";
 import { BulkTrashBar } from "@/components/tickets/bulk-trash-bar";
+import { LoadError } from "@/components/ui/state-card";
 import { TicketTable } from "@/components/tickets/ticket-table";
 import { Button } from "@/components/ui/button";
 import { getTicketList, PAGE_SIZE, parseFilters } from "@/lib/data/tickets";
@@ -72,54 +73,63 @@ export default async function TicketsPage({
       )}
 
       <div className="mt-6 space-y-4">
-        <TicketFiltersBar filters={filters} buildings={list.buildings} />
-        {isAdmin && list.tickets.length > 0 && <BulkTrashBar />}
-        <TicketTable
-          selectable={isAdmin}
-          tickets={list.tickets}
-          showReporter={isStaff}
-          hasFilters={Boolean(
-            filters.status || filters.urgency || filters.building || filters.q,
-          )}
-        />
+        {list.failed ? (
+          <LoadError what="รายการแจ้งซ่อม" retryHref="/tickets" />
+        ) : (
+          <>
+            <TicketFiltersBar filters={filters} buildings={list.buildings} />
+            {isAdmin && list.tickets.length > 0 && <BulkTrashBar />}
+            <TicketTable
+              selectable={isAdmin}
+              tickets={list.tickets}
+              showReporter={isStaff}
+              hasFilters={Boolean(
+                filters.status ||
+                filters.urgency ||
+                filters.building ||
+                filters.q,
+              )}
+            />
 
-        {pages > 1 && (
-          <nav
-            aria-label="หน้ารายการ"
-            className="flex items-center justify-between text-sm"
-          >
-            <span className="text-muted-foreground">
-              หน้า {filters.page} จาก {pages}
-            </span>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                nativeButton={false}
-                disabled={filters.page <= 1}
-                render={
-                  <Link
-                    href={href(filters.page - 1)}
-                    aria-disabled={filters.page <= 1}
-                  />
-                }
+            {pages > 1 && (
+              <nav
+                aria-label="หน้ารายการ"
+                className="flex items-center justify-between text-sm"
               >
-                ก่อนหน้า
-              </Button>
-              <Button
-                variant="outline"
-                nativeButton={false}
-                disabled={filters.page >= pages}
-                render={
-                  <Link
-                    href={href(filters.page + 1)}
-                    aria-disabled={filters.page >= pages}
-                  />
-                }
-              >
-                ถัดไป
-              </Button>
-            </div>
-          </nav>
+                <span className="text-muted-foreground">
+                  หน้า {filters.page} จาก {pages}
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    nativeButton={false}
+                    disabled={filters.page <= 1}
+                    render={
+                      <Link
+                        href={href(filters.page - 1)}
+                        aria-disabled={filters.page <= 1}
+                      />
+                    }
+                  >
+                    ก่อนหน้า
+                  </Button>
+                  <Button
+                    variant="outline"
+                    nativeButton={false}
+                    disabled={filters.page >= pages}
+                    render={
+                      <Link
+                        href={href(filters.page + 1)}
+                        aria-disabled={filters.page >= pages}
+                      />
+                    }
+                  >
+                    ถัดไป
+                  </Button>
+                </div>
+              </nav>
+            )}
+          </>
         )}
       </div>
     </>

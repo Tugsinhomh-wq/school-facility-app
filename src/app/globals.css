@@ -5,6 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --color-cta: var(--cta);
+  --color-cta-foreground: var(--cta-foreground);
   --color-gold: oklch(0.83 0.145 78);
   --color-navy: oklch(0.34 0.17 266);
   --color-background: var(--background);
@@ -52,24 +54,27 @@
 }
 
 :root {
-  --background: oklch(0.975 0.014 88);
+  --background: oklch(0.975 0.006 270);
   --foreground: oklch(0.2 0.06 266);
-  --card: oklch(0.995 0.006 88);
-  --card-foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.06 266);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.2 0.06 266);
   --primary: oklch(0.34 0.17 266);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.95 0.02 266);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.955 0.02 88);
-  --muted-foreground: oklch(0.45 0.04 266);
+  /* Main action: school gold with navy text (contrast above 7:1). */
+  --cta: oklch(0.83 0.145 78);
+  --cta-foreground: oklch(0.24 0.09 268);
+  --secondary: oklch(0.955 0.012 270);
+  --secondary-foreground: oklch(0.25 0.06 266);
+  --muted: oklch(0.96 0.008 270);
+  --muted-foreground: oklch(0.46 0.04 266);
   --accent: oklch(0.96 0.03 90);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.88 0.03 88);
-  --input: oklch(0.91 0.015 260);
-  --ring: oklch(0.7 0.16 70);
+  --accent-foreground: oklch(0.25 0.06 266);
+  --destructive: oklch(0.52 0.2 27);
+  --border: oklch(0.915 0.012 270);
+  --input: oklch(0.8 0.02 270);
+  --ring: oklch(0.45 0.17 266);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -87,6 +92,8 @@
 }
 
 .dark {
+  --cta: oklch(0.83 0.145 78);
+  --cta-foreground: oklch(0.2 0.08 268);
   --background: oklch(0.19 0.085 268);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.235 0.09 268);
