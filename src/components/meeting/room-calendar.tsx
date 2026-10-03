@@ -1,25 +1,38 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, Lock, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { BookingDetailDialog } from "@/components/meeting/booking-detail-dialog";
-import { BookingDialog, type BookingDefaults } from "@/components/meeting/booking-dialog";
+import {
+  BookingDialog,
+  type BookingDefaults,
+} from "@/components/meeting/booking-dialog";
 import { buildDay, DayQueue } from "@/components/meeting/day-queue";
 import { RoomOverview } from "@/components/meeting/room-overview";
 import { Button } from "@/components/ui/button";
 import type { Booking, RoomInfo } from "@/lib/data/rooms";
 import { DAY_END, DAY_START, segmentOn, STEP } from "@/lib/meeting";
-import { addDays, atBangkok, bangkokMinutes, bangkokYmd, formatDayShort, formatHm } from "@/lib/time";
+import {
+  addDays,
+  atBangkok,
+  bangkokMinutes,
+  bangkokYmd,
+  formatDayShort,
+  formatHm,
+} from "@/lib/time";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 const ROW_H = 28;
 const ROWS = (DAY_END - DAY_START) / STEP;
 const GRID_H = ROWS * ROW_H;
-const HOURS = Array.from({ length: (DAY_END - DAY_START) / 60 }, (_, i) => DAY_START + i * 60);
+const HOURS = Array.from(
+  { length: (DAY_END - DAY_START) / 60 },
+  (_, i) => DAY_START + i * 60,
+);
 
 interface Props {
   rooms: RoomInfo[];
@@ -32,17 +45,46 @@ interface Props {
   live: boolean;
 }
 
-export function RoomCalendar({ rooms, bookings, weekStart, roomId, userId, isStaff, live }: Props) {
+export function RoomCalendar({
+  rooms,
+  bookings,
+  weekStart,
+  roomId,
+  userId,
+  isStaff,
+  live,
+}: Props) {
   const router = useRouter();
   const [defaults, setDefaults] = useState<BookingDefaults | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [now, setNow] = useState<Date | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
 
-  const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
+  const days = useMemo(
+    () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
+    [weekStart],
+  );
   const room = rooms.find((r) => r.id === roomId) ?? rooms[0];
-  const roomBookings = useMemo(() => bookings.filter((b) => b.room_id === room?.id), [bookings, room]);
+  const roomBookings = useMemo(
+    () => bookings.filter((b) => b.room_id === room?.id),
+    [bookings, room],
+  );
   const detail = bookings.find((b) => b.id === detailId) ?? null;
+  // My own requests that are still ahead of us (any room), soonest first.
+  const myUpcoming = useMemo(
+    () =>
+      bookings
+        .filter(
+          (b) =>
+            userId !== null &&
+            b.applicant_id === userId &&
+            (b.status === "pending" || b.status === "approved") &&
+            (!now || new Date(b.end_time) > now),
+        )
+        .sort((a, b) => a.start_time.localeCompare(b.start_time))
+        .slice(0, 4),
+    [bookings, userId, now],
+  );
 
   // Client-only clock: keeps past slots disabled and draws the "now" line without a hydration mismatch.
   useEffect(() => {
@@ -63,10 +105,14 @@ export function RoomCalendar({ rooms, bookings, weekStart, roomId, userId, isSta
       if (channel) return;
       channel = supabase
         .channel("facility-reservations")
-        .on("postgres_changes", { event: "*", schema: "public", table: "facility_reservations" }, () => {
-          clearTimeout(refreshTimer.current);
-          refreshTimer.current = setTimeout(() => router.refresh(), 300);
-        })
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "facility_reservations" },
+          () => {
+            clearTimeout(refreshTimer.current);
+            refreshTimer.current = setTimeout(() => router.refresh(), 300);
+          },
+        )
         .subscribe();
     };
     const disconnect = () => {
@@ -92,17 +138,29 @@ export function RoomCalendar({ rooms, bookings, weekStart, roomId, userId, isSta
 
   const today = now ? bangkokYmd(now) : null;
   const nowMin = now ? bangkokMinutes(now) : null;
-  const isPast = (ymd: string, minute: number) => (now ? atBangkok(ymd, minute + STEP).getTime() <= now.getTime() : false);
+  const isPast = (ymd: string, minute: number) =>
+    now ? atBangkok(ymd, minute + STEP).getTime() <= now.getTime() : false;
   const isTaken = (ymd: string, minute: number) =>
     roomBookings.some((b) => {
       const seg = segmentOn(b, ymd);
       return seg !== null && seg.start < minute + STEP && seg.end > minute;
     });
 
-  const day = picked && days.includes(picked) ? picked : today && days.includes(today) ? today : days[0];
+  const day =
+    picked && days.includes(picked)
+      ? picked
+      : today && days.includes(today)
+        ? today
+        : days[0];
   // On the chosen day, hide time that has already passed (rounded up to the next slot).
-  const earliest = today === day && nowMin !== null ? Math.ceil(nowMin / STEP) * STEP : DAY_START;
-  const dayItems = useMemo(() => buildDay(roomBookings, day, earliest), [roomBookings, day, earliest]);
+  const earliest =
+    today === day && nowMin !== null
+      ? Math.ceil(nowMin / STEP) * STEP
+      : DAY_START;
+  const dayItems = useMemo(
+    () => buildDay(roomBookings, day, earliest),
+    [roomBookings, day, earliest],
+  );
 
   function openBooking(ymd: string, start: number) {
     if (room) setDefaults({ roomId: room.id, ymd, start });
@@ -119,52 +177,172 @@ export function RoomCalendar({ rooms, bookings, weekStart, roomId, userId, isSta
     }
   }
 
-  const href = (week: string, rid = room?.id) => `/meeting-rooms?week=${week}${rid ? `&room=${rid}` : ""}`;
-  const thisWeek = today ? addDays(today, -((new Date(`${today}T00:00:00Z`).getUTCDay() + 6) % 7)) : weekStart;
+  const href = (week: string, rid = room?.id) =>
+    `/meeting-rooms?week=${week}${rid ? `&room=${rid}` : ""}`;
+  const thisWeek = today
+    ? addDays(today, -((new Date(`${today}T00:00:00Z`).getUTCDay() + 6) % 7))
+    : weekStart;
 
   if (!room) {
-    return <p className="rounded-xl border border-dashed border-border bg-card/60 p-10 text-center text-muted-foreground">ยังไม่มีห้องที่เปิดให้ขอใช้ ให้เจ้าหน้าที่ตั้งค่าห้องที่ “เปิดให้จอง” ในฐานข้อมูลก่อน</p>;
+    return (
+      <p className="rounded-xl border border-dashed border-border bg-card/60 p-10 text-center text-muted-foreground">
+        ยังไม่มีห้องที่เปิดให้ขอใช้ ให้เจ้าหน้าที่ตั้งค่าห้องที่ “เปิดให้จอง”
+        ในฐานข้อมูลก่อน
+      </p>
+    );
   }
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-        <div role="tablist" aria-label="เลือกห้อง" className="-mx-4 flex w-[calc(100%+2rem)] snap-x scroll-px-4 gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:w-auto sm:flex-wrap sm:px-0">
+        <div
+          role="tablist"
+          aria-label="เลือกห้อง"
+          className="-mx-4 flex w-[calc(100%+2rem)] snap-x scroll-px-4 gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:w-auto sm:flex-wrap sm:px-0"
+        >
           {rooms.map((r) => (
             <Link
               key={r.id}
               href={href(weekStart, r.id)}
               role="tab"
               aria-selected={r.id === room.id}
-              className={cn("shrink-0 snap-start rounded-full border px-4 py-2 text-sm transition-colors sm:py-1", r.id === room.id ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card/80 hover:bg-muted")}
+              className={cn(
+                "inline-flex min-h-11 shrink-0 snap-start items-center rounded-full border px-4 text-sm transition-colors sm:min-h-0 sm:py-1",
+                r.id === room.id
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-card/80 hover:bg-muted",
+              )}
             >
               {r.name}
             </Link>
           ))}
         </div>
         <div className="flex items-center gap-2 sm:ml-auto">
-          <Button variant="outline" size="icon" nativeButton={false} render={<Link href={href(addDays(weekStart, -7))} aria-label="สัปดาห์ก่อนหน้า" />}>
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-11 sm:size-8"
+            nativeButton={false}
+            render={
+              <Link
+                href={href(addDays(weekStart, -7))}
+                aria-label="สัปดาห์ก่อนหน้า"
+              />
+            }
+          >
             <ChevronLeft aria-hidden />
           </Button>
-          <Button variant="outline" nativeButton={false} render={<Link href={href(thisWeek)} />}>สัปดาห์นี้</Button>
-          <Button variant="outline" size="icon" nativeButton={false} render={<Link href={href(addDays(weekStart, 7))} aria-label="สัปดาห์ถัดไป" />}>
+          <Button
+            variant="outline"
+            className="h-11 sm:h-8"
+            nativeButton={false}
+            render={<Link href={href(thisWeek)} />}
+          >
+            สัปดาห์นี้
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-11 sm:size-8"
+            nativeButton={false}
+            render={
+              <Link
+                href={href(addDays(weekStart, 7))}
+                aria-label="สัปดาห์ถัดไป"
+              />
+            }
+          >
             <ChevronRight aria-hidden />
           </Button>
-          <Button onClick={openNextFree}><Plus aria-hidden /> จองห้อง</Button>
+          <Button
+            variant="cta"
+            className="h-11 px-4 sm:h-8"
+            onClick={openNextFree}
+          >
+            <Plus aria-hidden /> จองห้อง
+          </Button>
         </div>
       </div>
 
       <p className="text-sm text-muted-foreground">
-        {room.name}{room.building_name !== room.name ? ` · ${room.building_name}` : ""}{room.capacity ? ` · ${room.capacity} ที่นั่ง` : ""} ·{" "}
-        {room.requires_approval ? "ต้องให้ ผอ. อนุมัติ" : "จองแล้วได้ทันที"}. แตะช่วงว่างเพื่อจอง
+        {room.name}
+        {room.building_name !== room.name ? ` · ${room.building_name}` : ""}
+        {room.capacity ? ` · ${room.capacity} ที่นั่ง` : ""} ·{" "}
+        {room.requires_approval ? "ต้องให้ ผอ. อนุมัติ" : "จองแล้วได้ทันที"}.
+        แตะช่วงว่างเพื่อจอง
       </p>
 
+      {userId && myUpcoming.length > 0 && (
+        <section
+          aria-labelledby="my-requests"
+          className="rounded-xl border border-border bg-card p-3 sm:p-4"
+        >
+          <h2 id="my-requests" className="mb-2 text-sm font-semibold">
+            คำขอของฉัน
+          </h2>
+          <ul className="space-y-2">
+            {myUpcoming.map((b) => {
+              const roomName =
+                rooms.find((r) => r.id === b.room_id)?.name ?? "ห้องประชุม";
+              const ymd = bangkokYmd(new Date(b.start_time));
+              const pending = b.status === "pending";
+              return (
+                <li key={b.id}>
+                  <button
+                    type="button"
+                    onClick={() => setDetailId(b.id)}
+                    className="flex min-h-14 w-full cursor-pointer items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-left hover:bg-muted/50"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium">
+                        {b.purpose}
+                      </span>
+                      <span className="block text-xs text-muted-foreground">
+                        {roomName} · {formatDayShort(ymd)}{" "}
+                        {formatHm(bangkokMinutes(new Date(b.start_time)))}-
+                        {formatHm(bangkokMinutes(new Date(b.end_time)))} น.
+                      </span>
+                    </span>
+                    <span
+                      className={cn(
+                        "flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium",
+                        pending
+                          ? "bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-300"
+                          : "bg-emerald-100 text-emerald-900 dark:bg-emerald-500/20 dark:text-emerald-300",
+                      )}
+                    >
+                      {pending ? (
+                        <Clock className="size-3" aria-hidden />
+                      ) : (
+                        <Lock className="size-3" aria-hidden />
+                      )}
+                      {pending ? "รออนุมัติ" : "จองสำเร็จ"}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
       <div className="hidden md:block">
-        <RoomOverview rooms={rooms} bookings={bookings} days={days} today={today} activeRoomId={room.id} href={(rid) => href(weekStart, rid)} />
+        <RoomOverview
+          rooms={rooms}
+          bookings={bookings}
+          days={days}
+          today={today}
+          activeRoomId={room.id}
+          href={(rid) => href(weekStart, rid)}
+        />
       </div>
 
       <div className="space-y-3 md:hidden">
-        <div role="tablist" aria-label="เลือกวัน" className="grid grid-cols-7 gap-1">
+        <div
+          role="tablist"
+          aria-label="เลือกวัน"
+          className="grid grid-cols-7 gap-1"
+        >
           {days.map((ymd) => {
             const has = roomBookings.some((b) => segmentOn(b, ymd) !== null);
             return (
@@ -174,16 +352,39 @@ export function RoomCalendar({ rooms, bookings, weekStart, roomId, userId, isSta
                 role="tab"
                 aria-selected={ymd === day}
                 onClick={() => setPicked(ymd)}
-                className={cn("flex min-h-14 flex-col items-center justify-center rounded-xl border text-xs", ymd === day ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card/80", ymd === today && ymd !== day && "border-[#f2b04a]")}
+                className={cn(
+                  "flex min-h-14 flex-col items-center justify-center rounded-xl border text-xs",
+                  ymd === day
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-card/80",
+                  ymd === today && ymd !== day && "border-primary",
+                )}
               >
                 <span>{formatDayShort(ymd).split(" ")[0]}</span>
-                <span className="text-base font-semibold tabular-nums">{Number(ymd.slice(8))}</span>
-                <span aria-hidden className={cn("mt-0.5 size-1.5 rounded-full", has ? (ymd === day ? "bg-primary-foreground" : "bg-primary") : "bg-transparent")} />
+                <span className="text-base font-semibold tabular-nums">
+                  {Number(ymd.slice(8))}
+                </span>
+                <span
+                  aria-hidden
+                  className={cn(
+                    "mt-0.5 size-1.5 rounded-full",
+                    has
+                      ? ymd === day
+                        ? "bg-primary-foreground"
+                        : "bg-primary"
+                      : "bg-transparent",
+                  )}
+                />
               </button>
             );
           })}
         </div>
-        <DayQueue items={dayItems} userId={userId} onBook={(start) => setDefaults({ roomId: room.id, ymd: day, start })} onOpen={setDetailId} />
+        <DayQueue
+          items={dayItems}
+          userId={userId}
+          onBook={(start) => setDefaults({ roomId: room.id, ymd: day, start })}
+          onOpen={setDetailId}
+        />
       </div>
 
       <div className="hidden overflow-x-auto rounded-xl border border-border bg-card/85 backdrop-blur-sm md:block">
@@ -191,21 +392,37 @@ export function RoomCalendar({ rooms, bookings, weekStart, roomId, userId, isSta
           <div className="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] border-b border-border text-center text-sm">
             <div />
             {days.map((ymd) => (
-              <div key={ymd} className={cn("py-2", ymd === today && "font-semibold text-primary")}>{formatDayShort(ymd)}</div>
+              <div
+                key={ymd}
+                className={cn(
+                  "py-2",
+                  ymd === today && "font-semibold text-primary",
+                )}
+              >
+                {formatDayShort(ymd)}
+              </div>
             ))}
           </div>
 
           <div className="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))]">
             <div className="relative" style={{ height: GRID_H }}>
               {HOURS.map((m) => (
-                <span key={m} className="absolute right-2 -translate-y-1/2 text-xs text-muted-foreground tabular-nums" style={{ top: ((m - DAY_START) / STEP) * ROW_H }}>
+                <span
+                  key={m}
+                  className="absolute right-2 -translate-y-1/2 text-xs text-muted-foreground tabular-nums"
+                  style={{ top: ((m - DAY_START) / STEP) * ROW_H }}
+                >
                   {m === DAY_START ? "" : formatHm(m)}
                 </span>
               ))}
             </div>
 
             {days.map((ymd) => (
-              <div key={ymd} className="relative border-l border-border" style={{ height: GRID_H }}>
+              <div
+                key={ymd}
+                className="relative border-l border-border"
+                style={{ height: GRID_H }}
+              >
                 {Array.from({ length: ROWS }, (_, i) => {
                   const minute = DAY_START + i * STEP;
                   const disabled = isPast(ymd, minute) || isTaken(ymd, minute);
@@ -219,8 +436,12 @@ export function RoomCalendar({ rooms, bookings, weekStart, roomId, userId, isSta
                       aria-label={`จอง ${formatDayShort(ymd)} เวลา ${formatHm(minute)} น.`}
                       className={cn(
                         "block w-full border-t outline-none transition-colors",
-                        minute % 60 === 0 ? "border-border" : "border-border/40",
-                        disabled ? "cursor-not-allowed bg-muted/30" : "cursor-pointer hover:bg-primary/15 focus-visible:bg-primary/15",
+                        minute % 60 === 0
+                          ? "border-border"
+                          : "border-border/40",
+                        disabled
+                          ? "cursor-not-allowed bg-muted/30"
+                          : "cursor-pointer hover:bg-primary/15 focus-visible:bg-primary/15",
                       )}
                       style={{ height: ROW_H }}
                     />
@@ -242,20 +463,35 @@ export function RoomCalendar({ rooms, bookings, weekStart, roomId, userId, isSta
                       onClick={() => setDetailId(b.id)}
                       className={cn(
                         "absolute inset-x-0.5 z-10 overflow-hidden rounded-md px-1.5 py-1 text-left text-xs leading-tight outline-none focus-visible:ring-3 focus-visible:ring-ring/60",
-                        pending ? "border border-dashed border-amber-500 bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-200" : "bg-primary text-primary-foreground",
-                        mine && "ring-2 ring-[#f2b04a]",
+                        pending
+                          ? "border border-dashed border-amber-500 bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-200"
+                          : "bg-primary text-primary-foreground",
+                        mine && "ring-2 ring-primary ring-offset-1",
                       )}
-                      style={{ top: ((start - DAY_START) / STEP) * ROW_H + 1, height: ((end - start) / STEP) * ROW_H - 2 }}
+                      style={{
+                        top: ((start - DAY_START) / STEP) * ROW_H + 1,
+                        height: ((end - start) / STEP) * ROW_H - 2,
+                      }}
                     >
                       <span className="block font-medium">{b.purpose}</span>
-                      <span className="block opacity-80">{formatHm(seg.start)}-{formatHm(seg.end)}{pending ? " รออนุมัติ" : ""}</span>
+                      <span className="block opacity-80">
+                        {formatHm(seg.start)}-{formatHm(seg.end)}
+                        {pending ? " รออนุมัติ" : ""}
+                      </span>
                     </button>
                   );
                 })}
 
-                {ymd === today && nowMin !== null && nowMin >= DAY_START && nowMin <= DAY_END && (
-                  <div aria-hidden className="pointer-events-none absolute inset-x-0 z-20 border-t-2 border-red-500" style={{ top: ((nowMin - DAY_START) / STEP) * ROW_H }} />
-                )}
+                {ymd === today &&
+                  nowMin !== null &&
+                  nowMin >= DAY_START &&
+                  nowMin <= DAY_END && (
+                    <div
+                      aria-hidden
+                      className="pointer-events-none absolute inset-x-0 z-20 border-t-2 border-red-500"
+                      style={{ top: ((nowMin - DAY_START) / STEP) * ROW_H }}
+                    />
+                  )}
               </div>
             ))}
           </div>
@@ -263,13 +499,36 @@ export function RoomCalendar({ rooms, bookings, weekStart, roomId, userId, isSta
       </div>
 
       <p className="hidden flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground md:flex">
-        <span className="flex items-center gap-1.5"><span className="size-3 rounded-sm bg-primary" aria-hidden /> จองแล้ว</span>
-        <span className="flex items-center gap-1.5"><span className="size-3 rounded-sm border border-dashed border-amber-500 bg-amber-100" aria-hidden /> รออนุมัติ (ล็อกคิวไว้ระหว่างรอ)</span>
-        <span className="flex items-center gap-1.5"><span className="size-3 rounded-sm ring-2 ring-[#f2b04a]" aria-hidden /> ของฉัน</span>
+        <span className="flex items-center gap-1.5">
+          <span className="size-3 rounded-sm bg-primary" aria-hidden /> จองแล้ว
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span
+            className="size-3 rounded-sm border border-dashed border-amber-500 bg-amber-100"
+            aria-hidden
+          />{" "}
+          รออนุมัติ (ล็อกคิวไว้ระหว่างรอ)
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="size-3 rounded-sm ring-2 ring-primary" aria-hidden />{" "}
+          ของฉัน
+        </span>
       </p>
 
-      <BookingDialog open={defaults !== null} onClose={() => setDefaults(null)} rooms={rooms} bookings={bookings} defaults={defaults} />
-      <BookingDetailDialog booking={detail} room={rooms.find((r) => r.id === detail?.room_id)} mine={userId !== null && detail?.applicant_id === userId} isStaff={isStaff} onClose={() => setDetailId(null)} />
+      <BookingDialog
+        open={defaults !== null}
+        onClose={() => setDefaults(null)}
+        rooms={rooms}
+        bookings={bookings}
+        defaults={defaults}
+      />
+      <BookingDetailDialog
+        booking={detail}
+        room={rooms.find((r) => r.id === detail?.room_id)}
+        mine={userId !== null && detail?.applicant_id === userId}
+        isStaff={isStaff}
+        onClose={() => setDetailId(null)}
+      />
     </div>
   );
 }

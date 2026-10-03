@@ -22,7 +22,7 @@ export default async function DashboardLayout({
       <GridPattern
         width={32}
         height={32}
-        className="h-[360px] stroke-primary/10 fill-primary/5 [mask-image:linear-gradient(to_bottom,white,transparent)]"
+        className="h-[360px] stroke-primary/[0.06] fill-primary/[0.03] [mask-image:linear-gradient(to_bottom,white,transparent)]"
       />
       <div className="relative mx-auto max-w-7xl px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-28 sm:px-6 md:pt-[calc(1.5rem+env(safe-area-inset-top))] md:pb-8">
         <LastPageTracker />

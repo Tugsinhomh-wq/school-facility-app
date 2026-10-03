@@ -58,12 +58,29 @@ export interface MeetingWeek {
   bookings: Booking[];
 }
 
-const ROOM_SELECT = "id, room_number, name, capacity, requires_approval, equipment, building:buildings(name)";
-type RoomRow = { id: string; room_number: string; name: string; capacity: number | null; requires_approval: boolean | null; equipment: string[] | null; building: { name: string } | { name: string }[] | null };
+const ROOM_SELECT =
+  "id, room_number, name, capacity, requires_approval, equipment, building:buildings(name)";
+type RoomRow = {
+  id: string;
+  room_number: string;
+  name: string;
+  capacity: number | null;
+  requires_approval: boolean | null;
+  equipment: string[] | null;
+  building: { name: string } | { name: string }[] | null;
+};
 
 const toRoom = (r: RoomRow): RoomInfo => {
   const building = Array.isArray(r.building) ? r.building[0] : r.building;
-  return { id: r.id, room_number: r.room_number, name: r.name, building_name: building?.name ?? "", capacity: r.capacity, requires_approval: Boolean(r.requires_approval), equipment: r.equipment ?? [] };
+  return {
+    id: r.id,
+    room_number: r.room_number,
+    name: r.name,
+    building_name: building?.name ?? "",
+    capacity: r.capacity,
+    requires_approval: Boolean(r.requires_approval),
+    equipment: r.equipment ?? [],
+  };
 };
 
 /** Rooms and bookings for the week starting at `weekStart` (a Bangkok date, a Monday). */
@@ -76,17 +93,25 @@ export async function getMeetingWeek(weekStart: string): Promise<MeetingWeek> {
     viewer: null,
     userId: null,
     rooms: MOCK_ROOMS,
-    bookings: mockBookings().filter((b) => b.end_time > from && b.start_time < to),
+    bookings: mockBookings().filter(
+      (b) => b.end_time > from && b.start_time < to,
+    ),
   });
 
   try {
     const s = await getSession();
     if (!s) return mock();
     const [rooms, bookings] = await Promise.all([
-      s.supabase.from("rooms").select(ROOM_SELECT).eq("is_bookable", true).order("room_number"),
+      s.supabase
+        .from("rooms")
+        .select(ROOM_SELECT)
+        .eq("is_bookable", true)
+        .order("room_number"),
       s.supabase
         .from("facility_reservations")
-        .select("id, room_id, applicant_id, purpose, attendee_count, equipment_needed, start_time, end_time, status, applicant:profiles(full_name)")
+        .select(
+          "id, room_id, applicant_id, purpose, attendee_count, equipment_needed, start_time, end_time, status, applicant:profiles(full_name)",
+        )
         .in("status", ["pending", "approved"])
         .gt("end_time", from)
         .lt("start_time", to)
@@ -99,9 +124,16 @@ export async function getMeetingWeek(weekStart: string): Promise<MeetingWeek> {
       viewer: s.viewer,
       userId: s.userId,
       rooms: (rooms.data as unknown as RoomRow[]).map(toRoom),
-      bookings: (bookings.data as unknown as (Omit<Booking, "applicant_name"> & { applicant: { full_name: string } | { full_name: string }[] | null })[]).map(
-        ({ applicant, ...b }) => ({ ...b, applicant_name: (Array.isArray(applicant) ? applicant[0] : applicant)?.full_name ?? null }),
-      ),
+      bookings: (
+        bookings.data as unknown as (Omit<Booking, "applicant_name"> & {
+          applicant: { full_name: string } | { full_name: string }[] | null;
+        })[]
+      ).map(({ applicant, ...b }) => ({
+        ...b,
+        applicant_name:
+          (Array.isArray(applicant) ? applicant[0] : applicant)?.full_name ??
+          null,
+      })),
     };
   } catch {
     return mock();
@@ -110,28 +142,59 @@ export async function getMeetingWeek(weekStart: string): Promise<MeetingWeek> {
 
 const todayRange = () => {
   const today = bangkokYmd(new Date());
-  return { today, dayStart: atBangkok(today, 0).toISOString(), dayEnd: atBangkok(addDays(today, 1), 0).toISOString() };
+  return {
+    today,
+    dayStart: atBangkok(today, 0).toISOString(),
+    dayEnd: atBangkok(addDays(today, 1), 0).toISOString(),
+  };
 };
 
 export function mockTodayMeetings(): TodayMeeting[] {
   const { today } = todayRange();
   const names = new Map(MOCK_ROOMS.map((r) => [r.id, r.name]));
   return mockBookings()
-    .filter((b) => b.status === "approved" && bangkokYmd(new Date(b.start_time)) === today)
-    .map((b) => ({ id: b.id, room_id: b.room_id, room_name: names.get(b.room_id) ?? "", title: b.purpose, start_time: b.start_time, end_time: b.end_time }));
+    .filter(
+      (b) =>
+        b.status === "approved" && bangkokYmd(new Date(b.start_time)) === today,
+    )
+    .map((b) => ({
+      id: b.id,
+      room_id: b.room_id,
+      room_name: names.get(b.room_id) ?? "",
+      title: b.purpose,
+      start_time: b.start_time,
+      end_time: b.end_time,
+    }));
 }
 
 export function mockLiveRooms(): LiveRoom[] {
   const now = new Date().toISOString();
   const bookings = mockBookings();
   return MOCK_ROOMS.map((r) => {
-    const active = bookings.find((b) => b.room_id === r.id && b.status === "approved" && b.start_time <= now && now < b.end_time);
-    return { room_id: r.id, room_name: r.name, building_name: r.building_name, capacity: r.capacity, current_status: active ? "busy" : "available", active_meeting_title: active?.purpose ?? null, active_meeting_until: active?.end_time ?? null, booked_by: active?.applicant_name ?? null };
+    const active = bookings.find(
+      (b) =>
+        b.room_id === r.id &&
+        b.status === "approved" &&
+        b.start_time <= now &&
+        now < b.end_time,
+    );
+    return {
+      room_id: r.id,
+      room_name: r.name,
+      building_name: r.building_name,
+      capacity: r.capacity,
+      current_status: active ? "busy" : "available",
+      active_meeting_title: active?.purpose ?? null,
+      active_meeting_until: active?.end_time ?? null,
+      booked_by: active?.applicant_name ?? null,
+    };
   });
 }
 
 /** Approved meetings for today (the ticker and the rooms tab). Empty, not an error, if the SQL is not installed. */
-export async function getTodayMeetings(supabase: SupabaseClient): Promise<TodayMeeting[]> {
+export async function getTodayMeetings(
+  supabase: SupabaseClient,
+): Promise<TodayMeeting[]> {
   try {
     const { dayStart, dayEnd } = todayRange();
     const { data, error } = await supabase
@@ -142,7 +205,16 @@ export async function getTodayMeetings(supabase: SupabaseClient): Promise<TodayM
       .lt("start_time", dayEnd)
       .order("start_time");
     if (error) return [];
-    return (data as unknown as { id: string; room_id: string; purpose: string; start_time: string; end_time: string; room: { name: string } | { name: string }[] | null }[]).map((m) => ({
+    return (
+      data as unknown as {
+        id: string;
+        room_id: string;
+        purpose: string;
+        start_time: string;
+        end_time: string;
+        room: { name: string } | { name: string }[] | null;
+      }[]
+    ).map((m) => ({
       id: m.id,
       room_id: m.room_id,
       room_name: (Array.isArray(m.room) ? m.room[0] : m.room)?.name ?? "",
@@ -155,9 +227,14 @@ export async function getTodayMeetings(supabase: SupabaseClient): Promise<TodayM
   }
 }
 
-export async function getLiveRooms(supabase: SupabaseClient): Promise<LiveRoom[]> {
+export async function getLiveRooms(
+  supabase: SupabaseClient,
+): Promise<LiveRoom[]> {
   try {
-    const { data, error } = await supabase.from("v_live_room_status").select("*").order("room_number");
+    const { data, error } = await supabase
+      .from("v_live_room_status")
+      .select("*")
+      .order("room_number");
     return error ? [] : (data as LiveRoom[]);
   } catch {
     return [];
@@ -174,18 +251,32 @@ export interface PendingReservation {
 }
 
 /** Room requests waiting for approval (staff). */
-export async function getPendingReservations(supabase: SupabaseClient): Promise<PendingReservation[]> {
+export async function getPendingReservations(
+  supabase: SupabaseClient,
+): Promise<PendingReservation[]> {
   try {
     const { data, error } = await supabase
       .from("facility_reservations")
-      .select("id, purpose, start_time, end_time, room:rooms(name), applicant:profiles(full_name)")
+      .select(
+        "id, purpose, start_time, end_time, room:rooms(name), applicant:profiles(full_name)",
+      )
       .eq("status", "pending")
       .gt("end_time", new Date().toISOString())
       .order("start_time")
       .limit(8);
     if (error) return [];
-    const one = <T,>(v: T | T[] | null) => (Array.isArray(v) ? (v[0] ?? null) : v);
-    return (data as unknown as { id: string; purpose: string; start_time: string; end_time: string; room: { name: string } | { name: string }[] | null; applicant: { full_name: string } | { full_name: string }[] | null }[]).map((r) => ({
+    const one = <T>(v: T | T[] | null) =>
+      Array.isArray(v) ? (v[0] ?? null) : v;
+    return (
+      data as unknown as {
+        id: string;
+        purpose: string;
+        start_time: string;
+        end_time: string;
+        room: { name: string } | { name: string }[] | null;
+        applicant: { full_name: string } | { full_name: string }[] | null;
+      }[]
+    ).map((r) => ({
       id: r.id,
       purpose: r.purpose,
       room_name: one(r.room)?.name ?? "",
@@ -202,7 +293,14 @@ export function mockPendingReservations(): PendingReservation[] {
   const names = new Map(MOCK_ROOMS.map((r) => [r.id, r.name]));
   return mockBookings()
     .filter((b) => b.status === "pending")
-    .map((b) => ({ id: b.id, purpose: b.purpose, room_name: names.get(b.room_id) ?? "", start_time: b.start_time, end_time: b.end_time, applicant_name: b.applicant_name }));
+    .map((b) => ({
+      id: b.id,
+      purpose: b.purpose,
+      room_name: names.get(b.room_id) ?? "",
+      start_time: b.start_time,
+      end_time: b.end_time,
+      applicant_name: b.applicant_name,
+    }));
 }
 
 /** "09:00-10:30 น. ห้องประชุมภูมินทร์: ประชุมครู" */
@@ -220,7 +318,10 @@ export interface MyReservation {
 }
 
 /** The viewer's own requests from the last week onward, newest first, whatever their status. */
-export async function getMyReservations(supabase: SupabaseClient, userId: string): Promise<MyReservation[]> {
+export async function getMyReservations(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<MyReservation[]> {
   try {
     const since = new Date(Date.now() - 7 * 24 * 60 * 60_000).toISOString();
     const { data, error } = await supabase
@@ -231,7 +332,11 @@ export async function getMyReservations(supabase: SupabaseClient, userId: string
       .order("start_time", { ascending: false })
       .limit(6);
     if (error) return [];
-    return (data as unknown as (Omit<MyReservation, "room_name"> & { room: { name: string } | { name: string }[] | null })[]).map(({ room, ...r }) => ({
+    return (
+      data as unknown as (Omit<MyReservation, "room_name"> & {
+        room: { name: string } | { name: string }[] | null;
+      })[]
+    ).map(({ room, ...r }) => ({
       ...r,
       room_name: (Array.isArray(room) ? room[0] : room)?.name ?? "",
     }));
@@ -244,7 +349,14 @@ export function mockMyReservations(): MyReservation[] {
   const names = new Map(MOCK_ROOMS.map((r) => [r.id, r.name]));
   return mockBookings()
     .slice(0, 3)
-    .map((b) => ({ id: b.id, purpose: b.purpose, room_name: names.get(b.room_id) ?? "", start_time: b.start_time, end_time: b.end_time, status: b.status }));
+    .map((b) => ({
+      id: b.id,
+      purpose: b.purpose,
+      room_name: names.get(b.room_id) ?? "",
+      start_time: b.start_time,
+      end_time: b.end_time,
+      status: b.status,
+    }));
 }
 
 export interface ManagedRoom {
@@ -259,13 +371,18 @@ export interface ManagedRoom {
 }
 
 /** Every room that is, or used to be, a hall (HALL-nn), open or closed, for the management page. */
-export async function getManagedRooms(): Promise<{ viewer: Viewer | null; rooms: ManagedRoom[] } | null> {
+export async function getManagedRooms(): Promise<{
+  viewer: Viewer | null;
+  rooms: ManagedRoom[];
+} | null> {
   try {
     const s = await getSession();
     if (!s) return null;
     const { data, error } = await s.supabase
       .from("rooms")
-      .select("id, building_id, room_number, name, capacity, is_bookable, requires_approval, equipment, building:buildings!inner(code)")
+      .select(
+        "id, building_id, room_number, name, capacity, is_bookable, requires_approval, equipment, building:buildings!inner(code)",
+      )
       .like("building.code", "HALL-%")
       .order("room_number");
     if (error) return { viewer: s.viewer, rooms: [] };

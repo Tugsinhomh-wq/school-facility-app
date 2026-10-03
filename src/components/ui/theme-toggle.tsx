@@ -4,7 +4,7 @@ import { Moon, Sun } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
-/** Dark is the default; the choice is persisted and applied pre-paint by the layout script. */
+/** Light is the default; the choice is persisted and applied pre-paint by the layout script. */
 export function ThemeToggle() {
   function toggle() {
     const isDark = document.documentElement.classList.toggle("dark");
