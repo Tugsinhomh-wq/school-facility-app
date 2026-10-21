@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import type { TicketFilters } from "@/types/tickets";
 
 const selectClass =
-  "h-9 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+  "h-11 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 /** Status chips are plain links; the rest is a GET form, so every filter state is a shareable URL. */
 export function TicketFiltersBar({
@@ -158,7 +158,7 @@ export function TicketFiltersBar({
           defaultValue={filters.q}
           placeholder="ค้นหาหัวข้อหรือเลขที่งาน"
           aria-label="ค้นหา"
-          className="w-full sm:w-64"
+          className="h-11 w-full sm:w-64"
         />
         <select
           name="building"
@@ -186,10 +186,11 @@ export function TicketFiltersBar({
             </option>
           ))}
         </select>
-        <Button type="submit">ค้นหา</Button>
+        <Button type="submit" className="h-11 px-4">ค้นหา</Button>
         {(filters.q || filters.building || filters.urgency) && (
           <Button
             variant="ghost"
+            className="h-11 px-3"
             nativeButton={false}
             render={<Link href={clearHref} />}
           >

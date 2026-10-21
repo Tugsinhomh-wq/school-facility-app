@@ -195,7 +195,7 @@ export function ReportForm({
         </div>
       )}
 
-      <ImagePicker onBusyChange={setBusy} camera />
+      <ImagePicker onBusyChange={setBusy} camera label="รูปก่อนซ่อม (ไม่บังคับ)" />
 
       <div className="space-y-1.5">
         <Label htmlFor="q-building">

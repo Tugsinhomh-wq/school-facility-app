@@ -88,9 +88,7 @@ export function TicketTable({
                 </span>
                 <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
                   <StatusPill status={t.status} />
-                  {(t.urgency === "high" || t.urgency === "emergency") && (
-                    <UrgencyMark urgency={t.urgency} />
-                  )}
+                  <UrgencyMark urgency={t.urgency} />
                   <DuplicateNote t={t} />
                   <span>{t.ticket_number}</span>
                   {t.image_urls?.length > 0 && (
@@ -158,7 +156,7 @@ export function TicketTable({
                     {t.image_urls?.length > 0 && (
                       <span
                         className="inline-flex items-center gap-1"
-                        title={`มีรูปประกอบ ${t.image_urls.length} รูป`}
+                        title={`มีรูปก่อนซ่อม ${t.image_urls.length} รูป`}
                       >
                         <Camera className="size-3" aria-hidden />
                         {t.image_urls.length}
