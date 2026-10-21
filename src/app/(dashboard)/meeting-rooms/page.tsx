@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { LoadError } from "@/components/ui/state-card";
 import { RoomCalendar } from "@/components/meeting/room-calendar";
 import { getMeetingWeek } from "@/lib/data/rooms";
 import { isRoomManager, guardExecutive } from "@/lib/data/session";
@@ -25,13 +26,13 @@ export default async function MeetingRoomsPage({
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="font-display text-3xl font-bold tracking-tight">
+        <h1 className="font-display text-3xl font-medium tracking-tight">
           ขอใช้ห้องประชุม
         </h1>
         {isRoomManager(data.viewer?.role) && (
           <Link
             href="/meeting-rooms/manage"
-            className="text-sm text-primary underline-offset-4 hover:underline"
+            className="inline-flex min-h-11 items-center text-sm text-primary underline-offset-4 hover:underline"
           >
             จัดการห้อง
           </Link>
@@ -46,15 +47,19 @@ export default async function MeetingRoomsPage({
           {sp.error}
         </p>
       )}
-      <RoomCalendar
-        rooms={data.rooms}
-        bookings={data.bookings}
-        weekStart={weekStart}
-        roomId={roomId}
-        userId={data.userId}
-        isStaff={isRoomManager(data.viewer?.role)}
-        live={data.source === "supabase"}
-      />
+      {data.failed ? (
+        <LoadError what="ตารางห้องประชุม" retryHref="/meeting-rooms" />
+      ) : (
+        <RoomCalendar
+          rooms={data.rooms}
+          bookings={data.bookings}
+          weekStart={weekStart}
+          roomId={roomId}
+          userId={data.userId}
+          isStaff={isRoomManager(data.viewer?.role)}
+          live={data.source === "supabase"}
+        />
+      )}
     </>
   );
 }

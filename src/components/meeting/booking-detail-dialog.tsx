@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { createMemoFromReservation, decideReservation } from "@/app/(dashboard)/meeting-rooms/actions";
-import { Badge } from "@/components/ui/badge";
+import { BookingMark } from "@/components/meeting/booking-mark";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Booking, RoomInfo } from "@/lib/data/rooms";
@@ -23,13 +23,14 @@ export function BookingDetailDialog({ booking, room, mine, isStaff, onClose }: {
                 {room?.name} · {formatDayLong(bangkokYmd(new Date(booking.start_time)))}
               </DialogDescription>
             </DialogHeader>
-            <dl className="space-y-2 text-sm">
+            <dl className="space-y-2">
               <div className="flex items-center gap-2">
                 <dt className="text-muted-foreground">สถานะ</dt>
                 <dd>
-                  <Badge className={pending ? "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300" : "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300"}>
-                    {pending ? "รออนุมัติ" : "จองแล้ว"}
-                  </Badge>
+                  <span className="flex flex-wrap gap-2">
+                    <BookingMark kind={pending ? "pending" : "booked"} />
+                    {mine && <BookingMark kind="mine" />}
+                  </span>
                 </dd>
               </div>
               <div className="flex gap-2"><dt className="text-muted-foreground">เวลา</dt><dd>{formatInstantHm(booking.start_time)}-{formatInstantHm(booking.end_time)} น.</dd></div>
@@ -41,24 +42,25 @@ export function BookingDetailDialog({ booking, room, mine, isStaff, onClose }: {
             {pending && (mine || isStaff) && (
               <form action={createMemoFromReservation}>
                 <input type="hidden" name="reservation_id" value={booking.id} />
-                <Button type="submit" variant="outline" className="w-full">ร่างบันทึกข้อความเสนอ ผอ. (PDF/Word)</Button>
+                <Button type="submit" variant={isStaff ? "outline" : "default"} className="h-11 w-full">ร่างบันทึกข้อความเสนอ ผอ. (PDF/Word)</Button>
               </form>
             )}
             {pending && isStaff && (
-              <div className="grid grid-cols-2 gap-2">
-                {(["approved", "rejected"] as const).map((decision) => (
-                  <form key={decision} action={decideReservation} onSubmit={onClose}>
-                    <input type="hidden" name="id" value={booking.id} />
-                    <input type="hidden" name="decision" value={decision} />
-                    <Button type="submit" variant={decision === "approved" ? "default" : "destructive"} className="w-full">
-                      {decision === "approved" ? "อนุมัติ" : "ไม่อนุมัติ"}
-                    </Button>
-                  </form>
-                ))}
+              <div className="space-y-3">
+                <form action={decideReservation} onSubmit={onClose}>
+                  <input type="hidden" name="id" value={booking.id} />
+                  <input type="hidden" name="decision" value="approved" />
+                  <Button type="submit" className="h-11 w-full">อนุมัติ</Button>
+                </form>
+                <form action={decideReservation} onSubmit={onClose} className="border-t border-border pt-3">
+                  <input type="hidden" name="id" value={booking.id} />
+                  <input type="hidden" name="decision" value="rejected" />
+                  <Button type="submit" variant="destructive" className="h-11 w-full">ไม่อนุมัติ</Button>
+                </form>
               </div>
             )}
             {!pending && isStaff && (
-              <div className="space-y-2">
+              <div className="space-y-2 border-t border-border pt-3">
                 {confirming ? (
                   <>
                     <p className="text-sm text-destructive">ยืนยันเปลี่ยนการจองนี้เป็น “ไม่อนุมัติ” ช่วงเวลานี้จะว่างให้คนอื่นจองได้</p>

@@ -1,11 +1,11 @@
 "use client";
 
-import { CircleCheck, Clock, Lock, Plus } from "lucide-react";
+import { ChevronRight, Plus } from "lucide-react";
 
+import { BookingMark } from "@/components/meeting/booking-mark";
 import type { Booking } from "@/lib/data/rooms";
 import { DAY_END, DAY_START, segmentOn, STEP } from "@/lib/meeting";
 import { formatHm } from "@/lib/time";
-import { cn } from "@/lib/utils";
 
 type Item =
   | { kind: "booking"; booking: Booking; start: number; end: number }
@@ -53,35 +53,30 @@ interface Props {
   onOpen: (id: string) => void;
 }
 
-/** Phone view of one room on one day: big cards, free gaps are tappable. */
+/** Phone view of one room on one day: quiet rows, free gaps and bookings open on tap. */
 export function DayQueue({ items, userId, onBook, onOpen }: Props) {
   if (items.length === 0) {
     return (
-      <p className="rounded-xl border border-dashed border-border bg-card/60 p-8 text-center text-muted-foreground">
+      <p className="rounded-xl border border-dashed border-border p-8 text-center text-muted-foreground">
         วันนี้เลยเวลาจองแล้ว ลองเลือกวันอื่น
       </p>
     );
   }
+  const row =
+    "flex min-h-16 w-full cursor-pointer items-center gap-3 px-4 py-3 text-left outline-none transition-colors hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring/50";
   return (
-    <ul className="space-y-2">
+    <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border">
       {items.map((it) =>
         it.kind === "free" ? (
           <li key={`f${it.start}`}>
-            <button
-              type="button"
-              onClick={() => onBook(it.start)}
-              className="flex min-h-16 w-full cursor-pointer items-center justify-between gap-3 rounded-xl border border-dashed border-emerald-600/60 bg-emerald-500/10 px-4 py-3 text-left active:bg-emerald-500/20"
-            >
-              <span>
+            <button type="button" onClick={() => onBook(it.start)} className={row}>
+              <span className="min-w-0 flex-1 leading-snug">
                 <span className="block text-base font-semibold tabular-nums">
                   {formatHm(it.start)}-{formatHm(it.end)} น.
                 </span>
-                <span className="flex items-center gap-1 text-sm font-medium text-emerald-800 dark:text-emerald-300">
-                  <CircleCheck className="size-4" aria-hidden />
-                  ว่าง จองได้
-                </span>
+                <BookingMark kind="free" className="mt-1 bg-transparent px-0" />
               </span>
-              <span className="flex h-11 items-center gap-1 rounded-full bg-cta px-5 text-sm font-semibold text-cta-foreground">
+              <span className="inline-flex min-h-11 items-center gap-1 rounded-lg border border-primary px-4 text-sm font-medium text-primary">
                 <Plus className="size-4" aria-hidden />
                 จอง
               </span>
@@ -89,47 +84,27 @@ export function DayQueue({ items, userId, onBook, onOpen }: Props) {
           </li>
         ) : (
           <li key={it.booking.id}>
-            <button
-              type="button"
-              onClick={() => onOpen(it.booking.id)}
-              className={cn(
-                "flex min-h-16 w-full flex-col items-start justify-center gap-0.5 rounded-xl border px-4 py-3 text-left",
-                it.booking.status === "pending"
-                  ? "border-dashed border-amber-500 bg-amber-500/10"
-                  : "border-border bg-card",
-                userId !== null &&
-                  it.booking.applicant_id === userId &&
-                  "ring-2 ring-primary",
-              )}
-            >
-              <span className="flex w-full items-center justify-between gap-2">
-                <span className="text-base font-semibold tabular-nums">
+            <button type="button" onClick={() => onOpen(it.booking.id)} className={row}>
+              <span className="min-w-0 flex-1 leading-snug">
+                <span className="block text-base font-semibold tabular-nums">
                   {formatHm(it.start)}-{formatHm(it.end)} น.
                 </span>
-                <span
-                  className={cn(
-                    "flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium",
-                    it.booking.status === "pending"
-                      ? "bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-300"
-                      : "bg-primary/10 text-primary",
+                <span className="block">{it.booking.purpose}</span>
+                {it.booking.applicant_name && (
+                  <span className="block text-sm text-muted-foreground">
+                    {it.booking.applicant_name}
+                  </span>
+                )}
+                <span className="mt-1.5 flex flex-wrap gap-2">
+                  <BookingMark
+                    kind={it.booking.status === "pending" ? "pending" : "booked"}
+                  />
+                  {userId !== null && it.booking.applicant_id === userId && (
+                    <BookingMark kind="mine" />
                   )}
-                >
-                  {it.booking.status === "pending" ? (
-                    <Clock className="size-3" aria-hidden />
-                  ) : (
-                    <Lock className="size-3" aria-hidden />
-                  )}
-                  {it.booking.status === "pending" ? "รออนุมัติ" : "จองแล้ว"}
                 </span>
               </span>
-              <span className="text-sm">{it.booking.purpose}</span>
-              <span className="text-xs text-muted-foreground">
-                {userId !== null && it.booking.applicant_id === userId ? (
-                  <b className="font-semibold text-primary">ของฉัน</b>
-                ) : (
-                  it.booking.applicant_name
-                )}
-              </span>
+              <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />
             </button>
           </li>
         ),
