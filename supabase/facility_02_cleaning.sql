@@ -71,11 +71,14 @@ CREATE TABLE IF NOT EXISTS public.school_off_days (
 -- At most one confirmation per class per day; the first advisor to confirm wins.
 -- Written only by confirm_cleaning() (there is no insert/update/delete policy).
 -- confirmed_by is kept as history: deleting the teacher's account clears it instead of blocking.
+-- confirmed_by_name is the confirmer's name copied at confirm time, so a co-advisor can see
+-- "ยืนยันแล้วโดย <ชื่อ>" without being allowed to read other teachers' profiles.
 CREATE TABLE IF NOT EXISTS public.cleaning_confirmations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   classroom_id UUID NOT NULL REFERENCES public.classrooms(id) ON DELETE CASCADE,
   day DATE NOT NULL,
   confirmed_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  confirmed_by_name TEXT NOT NULL,
   confirmed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   is_late BOOLEAN NOT NULL,
   photo_paths TEXT[] NOT NULL DEFAULT '{}' CHECK (cardinality(photo_paths) <= 4),
@@ -145,6 +148,7 @@ DECLARE
   v_photos TEXT[] := COALESCE(p_photos, '{}');
   v_path TEXT;
   v_id UUID;
+  v_name TEXT;
 BEGIN
   -- Same message whether the class does not exist, is inactive or belongs to someone else,
   -- so guessing ids reveals nothing.
@@ -182,8 +186,11 @@ BEGIN
     END IF;
   END LOOP;
 
-  INSERT INTO public.cleaning_confirmations (classroom_id, day, confirmed_by, is_late, photo_paths)
-  VALUES (p_classroom, p_day, v_uid, p_day < v_today, v_photos)
+  -- The caller's name, read here (SECURITY DEFINER) so advisors never need access to profiles.
+  SELECT p.full_name INTO v_name FROM public.profiles p WHERE p.id = v_uid;
+
+  INSERT INTO public.cleaning_confirmations (classroom_id, day, confirmed_by, confirmed_by_name, is_late, photo_paths)
+  VALUES (p_classroom, p_day, v_uid, v_name, p_day < v_today, v_photos)
   ON CONFLICT (classroom_id, day) DO NOTHING
   RETURNING id INTO v_id;
 
@@ -230,14 +237,11 @@ CREATE POLICY "cleaning photos: delete own or admin" ON storage.objects FOR DELE
 --      ค้างในระบบ ให้เทียบข้อความหลังคำว่า ERROR กับ "ผลที่ควรได้" ของชุดนั้น
 --      - ชุดที่ทดสอบว่าระบบต้องปฏิเสธ: ข้อความ error คือคำปฏิเสธจากระบบ
 --      - ชุดที่ทดสอบว่าทำได้: ข้อความขึ้นต้นด้วย "ผลทดสอบ:" ตามด้วยค่าที่วัดได้
---   5) ถ้าชุด A, C, I ขึ้น "คุณไม่ได้เป็นครูที่ปรึกษาของห้องนี้" หรือค่าเป็น 0 ผิดคาด ให้ตรวจว่า
+--   5) ถ้าชุด A, C, I, K ขึ้น "คุณไม่ได้เป็นครูที่ปรึกษาของห้องนี้" หรือค่าเป็น 0 ผิดคาด ให้ตรวจว่า
 --      อีเมลที่แก้ตรงกับบัญชีจริงทุกตัวอักษร
---   6) ถ้าผลแปลก เช่น ชุด C ได้ rooms_seen=1 ทั้งที่ใช้บัญชีครูธรรมดา หรือมีคำเตือน
---      "SET LOCAL can only be used in transaction blocks" ให้เพิ่มบรรทัด begin; เป็นบรรทัดแรกของชุด
---      กด Run แล้วเมื่ออ่านผลเสร็จ ให้รันคำสั่ง rollback; อีกครั้งเพื่อยกเลิกข้อมูลทดสอบ
 --
 -- ทุกชุดเริ่มด้วยการสร้างห้องทดสอบ 'ห้องทดสอบ' (ภาค TEST) และตั้ง "วันทดสอบ" = วันจันทร์-ศุกร์
--- ล่าสุดที่ไม่เกินวันนี้ตามเวลาไทย ถ้าวันนั้นถูกตั้งเป็นวันหยุดไว้ ชุด A, G, H, I จะขึ้น error
+-- ล่าสุดที่ไม่เกินวันนี้ตามเวลาไทย ถ้าวันนั้นถูกตั้งเป็นวันหยุดไว้ ชุด A, G, H, I, K จะขึ้น error
 -- เรื่องวันหยุดแทน ซึ่งไม่ใช่ความผิดของระบบ ให้รันใหม่ในวันเรียนปกติ
 --
 -- ========== ชุด A: ครูที่ปรึกษายืนยัน แล้วกดซ้ำ ==========
@@ -370,7 +374,7 @@ CREATE POLICY "cleaning photos: delete own or admin" ON storage.objects FOR DELE
 --   (select cardinality(photo_paths) from public.cleaning_confirmations where classroom_id = current_setting('test.classroom')::uuid); end $$;
 --
 -- ========== ชุด J: head ทำได้เท่า staff (ตั้ง head ชั่วคราว ถูกยกเลิกเองเมื่อจบชุด) ==========
--- ผลที่ควรได้: ERROR: ผลทดสอบ: is_staff=t (t = จริง), is_admin=f (f = ไม่จริง), tickets_seen=N, all_tickets=N, rooms_seen=1
+-- ผลที่ควรได้: ERROR: ผลทดสอบ: is_staff=t, is_admin=f, tickets_seen=N, all_tickets=N, rooms_seen=1
 --   (N สองตัวต้องเท่ากัน = head เห็นเรื่องแจ้งซ่อมทุกเรื่อง ไม่ใช่แค่ของตัวเอง)
 -- insert into public.classrooms (term, name, zone) values ('TEST', 'ห้องทดสอบ', 'เขตทดสอบ');
 -- insert into public.classroom_advisors (classroom_id, user_id)
@@ -387,6 +391,30 @@ CREATE POLICY "cleaning photos: delete own or admin" ON storage.objects FOR DELE
 --   public.current_role_is('staff'), public.current_role_is('super_admin'),
 --   (select count(*) from public.repair_tickets), current_setting('test.all_tickets'),
 --   (select count(*) from public.classrooms where term = 'TEST'); end $$;
+--
+-- ========== ชุด K: ครูที่ปรึกษาคนที่สองเห็นชื่อคนที่ยืนยันแล้ว (ใช้ ครูคนอื่น เป็นครูที่ปรึกษาร่วมเฉพาะชุดนี้) ==========
+-- ผลที่ควรได้: ERROR: ผลทดสอบ: first_try=confirmed, co_advisor_try=already, confirmed_by_name=<ชื่อของครูทดสอบ>, row_count=1, profile_rows_seen=0
+--   (profile_rows_seen=0 = ครูคนที่สองเห็นชื่อจากการยืนยัน โดยไม่ได้สิทธิ์อ่านข้อมูลบัญชีของครูคนแรก)
+-- insert into public.classrooms (term, name, zone) values ('TEST', 'ห้องทดสอบ', 'เขตทดสอบ');
+-- insert into public.classroom_advisors (classroom_id, user_id)
+--   select c.id, p.id from public.classrooms c, public.profiles p
+--   where c.term = 'TEST' and c.name = 'ห้องทดสอบ' and p.email = 'ครูทดสอบ@lrp.ac.th';
+-- select set_config('test.classroom', (select id::text from public.classrooms where term = 'TEST' and name = 'ห้องทดสอบ'), true);
+-- select set_config('test.day', (select (d - case extract(isodow from d)::int when 6 then 1 when 7 then 2 else 0 end)::text
+--   from (select (now() at time zone 'Asia/Bangkok')::date as d) t), true);
+-- insert into public.classroom_advisors (classroom_id, user_id)
+--   select current_setting('test.classroom')::uuid, p.id from public.profiles p where p.email = 'ครูคนอื่น@lrp.ac.th';
+-- select set_config('test.other', (select id::text from public.profiles where email = 'ครูคนอื่น@lrp.ac.th'), true);
+-- select set_config('request.jwt.claims', json_build_object('sub', (select id from public.profiles where email = 'ครูทดสอบ@lrp.ac.th'), 'role', 'authenticated')::text, true);
+-- set local role authenticated;
+-- select set_config('test.r1', public.confirm_cleaning(current_setting('test.classroom')::uuid, current_setting('test.day')::date, '{}'), true);
+-- select set_config('request.jwt.claims', json_build_object('sub', current_setting('test.other'), 'role', 'authenticated')::text, true);
+-- select set_config('test.r2', public.confirm_cleaning(current_setting('test.classroom')::uuid, current_setting('test.day')::date, '{}'), true);
+-- do $$ begin raise exception 'ผลทดสอบ: first_try=%, co_advisor_try=%, confirmed_by_name=%, row_count=%, profile_rows_seen=%',
+--   current_setting('test.r1'), current_setting('test.r2'),
+--   (select confirmed_by_name from public.cleaning_confirmations where classroom_id = current_setting('test.classroom')::uuid),
+--   (select count(*) from public.cleaning_confirmations where classroom_id = current_setting('test.classroom')::uuid),
+--   (select count(*) from public.profiles where email = 'ครูทดสอบ@lrp.ac.th'); end $$;
 --
 -- กรณีที่ทดสอบใน SQL Editor ไม่ได้: ครูที่ปรึกษาสองคนกดพร้อมกันในวินาทีเดียวกัน
 -- ฐานข้อมูลรับประกันด้วย unique (classroom_id, day) + ON CONFLICT DO NOTHING:
