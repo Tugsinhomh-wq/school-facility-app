@@ -7,7 +7,7 @@ import { TicketTable } from "@/components/tickets/ticket-table";
 import { Button } from "@/components/ui/button";
 import { getTicketList, PAGE_SIZE, parseFilters } from "@/lib/data/tickets";
 
-import { guardExecutive } from "@/lib/data/session";
+import { guardExecutive, isStaffRole } from "@/lib/data/session";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -25,8 +25,7 @@ export default async function TicketsPage({
   const trashed =
     Number(Array.isArray(sp.trashed) ? sp.trashed[0] : sp.trashed) || 0;
   const list = await getTicketList(filters);
-  const isStaff =
-    list.viewer?.role === "staff" || list.viewer?.role === "super_admin";
+  const isStaff = isStaffRole(list.viewer?.role);
   const isAdmin = list.viewer?.role === "super_admin";
   const pages = Math.max(1, Math.ceil(list.total / PAGE_SIZE));
 

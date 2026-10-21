@@ -27,6 +27,7 @@ export interface UserItem {
 const ROLE_ORDER: UserRole[] = [
   "user",
   "staff",
+  "head",
   "room_staff",
   "executive",
   "super_admin",

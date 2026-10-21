@@ -112,7 +112,7 @@ export const notifyStaffNewTicket = (t: {
 }) =>
   later(() =>
     toRoles(
-      ["staff", "super_admin"],
+      ["staff", "head", "super_admin"],
       {
         title:
           t.urgency === "emergency" ? "🚨 แจ้งซ่อมฉุกเฉิน" : "แจ้งซ่อมใหม่",
@@ -155,7 +155,7 @@ export const notifyRoomManagersRequest = (r: {
 }) =>
   later(() =>
     toRoles(
-      ["staff", "super_admin", "room_staff"],
+      ["staff", "head", "super_admin", "room_staff"],
       {
         title: "คำขอจองห้องรออนุมัติ",
         body: `${r.room} · ${r.purpose}`,

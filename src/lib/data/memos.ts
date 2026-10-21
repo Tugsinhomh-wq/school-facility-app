@@ -1,5 +1,5 @@
 import type { Viewer } from "@/lib/data/dashboard";
-import { getSession } from "@/lib/data/session";
+import { getSession, isRoomManager } from "@/lib/data/session";
 import { MOCK_MEMOS, MOCK_TICKETS } from "@/lib/mock-data";
 import type { Memorandum } from "@/types/database";
 import type { TicketRow } from "@/types/tickets";
@@ -14,9 +14,7 @@ const hasSupabase = () =>
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   );
 export const isStaff = (viewer: Viewer | null) =>
-  viewer?.role === "staff" ||
-  viewer?.role === "super_admin" ||
-  viewer?.role === "room_staff";
+  isRoomManager(viewer?.role);
 
 const MOCK_AUTHOR = {
   full_name: "นายสมชาย รักงาน",

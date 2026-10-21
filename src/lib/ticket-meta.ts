@@ -37,10 +37,11 @@ export const APPROVAL_LABEL: Record<ApprovalStatus, string> = {
 
 export const ROLE_LABEL: Record<UserRole, string> = {
   super_admin: "ผู้ดูแลระบบ",
-  staff: "เจ้าหน้าที่",
+  head: "หัวหน้ากลุ่มงาน",
+  staff: "เจ้าหน้าที่งาน",
   room_staff: "เจ้าหน้าที่ห้องประชุม",
   executive: "ผู้บริหาร",
-  user: "ผู้ใช้งาน",
+  user: "ผู้ใช้ทั่วไป",
 };
 
 export function formatBaht(value: number) {

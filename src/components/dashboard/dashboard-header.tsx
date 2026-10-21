@@ -3,6 +3,7 @@ import Image from "next/image";
 import { RaysCanvas } from "@/components/dashboard/rays-canvas";
 import { NumberTicker } from "@/components/ui/number-ticker";
 import type { DashboardBase } from "@/lib/data/dashboard";
+import { isStaffRole } from "@/lib/data/session";
 
 const SCHOOL_NAME = "โรงเรียนละหานทรายรัชดาภิเษก";
 
@@ -15,7 +16,7 @@ export function DashboardHeader({ base }: { base: DashboardBase }) {
     { label: "ห้องประชุมวันนี้", value: base.roomsInUseToday, hot: false },
   ];
 
-  const staff = base.viewer?.role === "staff" || base.viewer?.role === "super_admin";
+  const staff = isStaffRole(base.viewer?.role);
 
   return (
     <>
