@@ -7,7 +7,7 @@ import type { ApprovalStatus, TicketStatus, UrgencyLevel } from "@/types/databas
 
 type PillTone = (typeof TONE)[keyof typeof TONE];
 
-function Pill({ tone, label, className }: { tone: PillTone; label: string; className?: string }) {
+export function Pill({ tone, label, className }: { tone: PillTone; label: string; className?: string }) {
   return (
     <span
       className={cn(
