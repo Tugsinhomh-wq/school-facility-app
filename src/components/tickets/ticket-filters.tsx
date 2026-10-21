@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import type { TicketFilters } from "@/types/tickets";
 
 const selectClass =
-  "h-9 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30 dark:[&>option]:bg-card";
+  "h-11 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 /** Status chips are plain links; the rest is a GET form, so every filter state is a shareable URL. */
 export function TicketFiltersBar({
@@ -43,7 +43,7 @@ export function TicketFiltersBar({
     <div className="space-y-3">
       <nav
         aria-label="กรองตามสถานะ"
-        className="-mx-4 flex w-[calc(100%+2rem)] gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:w-auto sm:flex-wrap sm:px-0"
+        className="-mx-4 flex w-[calc(100%+2rem)] gap-1 overflow-x-auto px-4 sm:mx-0 sm:w-auto sm:flex-wrap sm:px-0"
       >
         {chips.map(([value, label]) => {
           const active = filters.status === value;
@@ -53,10 +53,10 @@ export function TicketFiltersBar({
               href={statusHref(value)}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "shrink-0 rounded-full border px-4 py-2 text-sm transition-colors sm:py-1",
+                "inline-flex min-h-11 shrink-0 items-center rounded-full px-4 text-sm outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50",
                 active
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-card/80 hover:bg-muted",
+                  ? "bg-sidebar-accent font-semibold text-primary"
+                  : "text-muted-foreground hover:bg-muted",
               )}
             >
               {label}
@@ -89,9 +89,9 @@ export function TicketFiltersBar({
         </div>
         <details
           open={Boolean(filters.building || filters.urgency)}
-          className="rounded-xl border border-border bg-card/70 p-3"
+          className="rounded-lg border border-border px-3"
         >
-          <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-medium">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-medium">
             <SlidersHorizontal className="size-4" aria-hidden />
             ตัวกรอง
             {(filters.building || filters.urgency) && (
@@ -100,7 +100,7 @@ export function TicketFiltersBar({
               </span>
             )}
           </summary>
-          <div className="mt-3 grid gap-2">
+          <div className="grid gap-2 pb-3">
             <select
               name="building"
               defaultValue={filters.building ?? ""}
@@ -158,7 +158,7 @@ export function TicketFiltersBar({
           defaultValue={filters.q}
           placeholder="ค้นหาหัวข้อหรือเลขที่งาน"
           aria-label="ค้นหา"
-          className="w-full sm:w-64"
+          className="h-11 w-full sm:w-64"
         />
         <select
           name="building"
@@ -186,10 +186,11 @@ export function TicketFiltersBar({
             </option>
           ))}
         </select>
-        <Button type="submit">ค้นหา</Button>
+        <Button type="submit" className="h-11 px-4">ค้นหา</Button>
         {(filters.q || filters.building || filters.urgency) && (
           <Button
             variant="ghost"
+            className="h-11 px-3"
             nativeButton={false}
             render={<Link href={clearHref} />}
           >

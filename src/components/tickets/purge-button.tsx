@@ -21,9 +21,8 @@ export function PurgeButton({
       <input type="hidden" name="ids" value={id} />
       <Button
         type="submit"
-        size="sm"
         variant="outline"
-        className="text-destructive"
+        className="h-11 px-4 text-destructive"
       >
         ลบถาวร
       </Button>

@@ -42,9 +42,9 @@ export function BulkTrashBar() {
         )
           e.preventDefault();
       }}
-      className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card/85 px-3 py-2"
+      className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2"
     >
-      <Button type="button" variant="ghost" size="sm" onClick={toggleAll}>
+      <Button type="button" variant="ghost" className="h-11 px-3" onClick={toggleAll}>
         เลือก/ล้างทั้งหมดในหน้านี้
       </Button>
       <span className="text-sm text-muted-foreground" aria-live="polite">
@@ -52,10 +52,9 @@ export function BulkTrashBar() {
       </span>
       <Button
         type="submit"
-        size="sm"
         variant="outline"
         disabled={count === 0}
-        className="ml-auto text-destructive"
+        className="ml-auto h-11 px-4 text-destructive disabled:border-dashed disabled:text-muted-foreground disabled:opacity-100"
       >
         <Trash2 aria-hidden />
         ย้ายไปถังขยะ

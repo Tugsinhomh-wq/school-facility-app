@@ -24,13 +24,13 @@ export type ActionRow = {
   todo: number;
 };
 
-const TONE: Record<Tone, { icon: LucideIcon; className: string }> = {
+export const TONE: Record<Tone, { icon: LucideIcon; className: string }> = {
   ok: { icon: Check, className: "text-emerald-800" },
   alert: { icon: AlertCircle, className: "text-red-700" },
   wait: { icon: Clock, className: "text-amber-800" },
   quiet: { icon: Clock, className: "text-muted-foreground" },
 };
-const TICKET_TONE: Record<TicketStatus, Tone> = { pending: "wait", in_progress: "wait", completed: "ok", cancelled: "quiet" };
+export const TICKET_TONE: Record<TicketStatus, Tone> = { pending: "wait", in_progress: "wait", completed: "ok", cancelled: "quiet" };
 const APPROVAL_TONE: Record<ApprovalStatus, Tone> = { pending: "wait", approved: "ok", rejected: "alert", revision_requested: "alert" };
 /** getPendingReservations reads at most this many; a full page may mean more. */
 const PENDING_PAGE = 8;

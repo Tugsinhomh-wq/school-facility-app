@@ -63,7 +63,7 @@ export function SimilarTickets({
 
   if (chosen) {
     return (
-      <div className="rounded-xl border border-primary/40 bg-primary/5 p-3 text-sm">
+      <div className="rounded-xl border border-primary/30 bg-muted/50 p-3 text-sm">
         <input type="hidden" name={nameId} value={chosen.id} />
         <p className="font-medium">รวมกับงาน {chosen.ticket_number}</p>
         <p className="text-muted-foreground">
@@ -73,7 +73,7 @@ export function SimilarTickets({
         <button
           type="button"
           onClick={() => setJoined(null)}
-          className="mt-1 text-primary underline underline-offset-4"
+          className="mt-1 inline-flex min-h-11 items-center text-primary underline underline-offset-4"
         >
           ไม่รวม ส่งเป็นงานใหม่
         </button>
@@ -87,7 +87,7 @@ export function SimilarTickets({
     <div
       role="region"
       aria-label="งานที่คล้ายกัน"
-      className="space-y-2 rounded-xl border border-amber-500/50 bg-amber-500/10 p-3 text-sm"
+      className="space-y-2 rounded-xl border border-border bg-muted/50 p-3 text-sm"
     >
       <p className="font-medium">
         มีคนแจ้งเรื่องคล้ายกันในอาคารนี้แล้ว ใช่เรื่องเดียวกันไหม
@@ -96,7 +96,7 @@ export function SimilarTickets({
         {matches.slice(0, 3).map((t) => (
           <li
             key={t.id}
-            className="rounded-lg border border-border bg-background/70 p-2.5"
+            className="rounded-lg border border-border bg-background p-2.5"
           >
             <p className="font-medium">{t.title}</p>
             <p className="text-xs text-muted-foreground">
@@ -113,7 +113,7 @@ export function SimilarTickets({
                 type="button"
                 onClick={() => setJoined(t.id)}
                 className={cn(
-                  "min-h-10 rounded-lg bg-primary px-2 text-sm font-medium text-primary-foreground",
+                  "min-h-11 rounded-lg bg-primary px-2 text-sm font-medium text-primary-foreground",
                 )}
               >
                 เจอเหมือนกัน รวมกับงานนี้
@@ -121,7 +121,7 @@ export function SimilarTickets({
               <button
                 type="button"
                 onClick={() => setDismissed((d) => new Set(d).add(t.id))}
-                className="min-h-10 rounded-lg border border-input px-2 text-sm"
+                className="min-h-11 rounded-lg border border-input px-2 text-sm"
               >
                 ไม่ใช่ ส่งใหม่
               </button>

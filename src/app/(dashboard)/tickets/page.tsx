@@ -42,7 +42,7 @@ export default async function TicketsPage({
 
   return (
     <>
-      <h1 className="font-display text-3xl font-bold tracking-tight">
+      <h1 className="font-display text-3xl font-medium tracking-tight">
         {isStaff || !list.viewer ? "รายการแจ้งซ่อม" : "งานที่ฉันแจ้ง"}
       </h1>
       <p className="mt-1 text-muted-foreground">
@@ -52,7 +52,7 @@ export default async function TicketsPage({
       {trashed > 0 && (
         <p
           role="status"
-          className="mt-4 rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm"
+          className="mt-4 rounded-lg border border-border bg-muted/50 p-3 text-sm"
         >
           ย้าย {trashed} งานไปถังขยะแล้ว{" "}
           <Link href="/trash" className="underline">
@@ -71,7 +71,7 @@ export default async function TicketsPage({
         </p>
       )}
 
-      <div className="mt-6 space-y-4">
+      <div className="mt-5 space-y-4">
         {list.failed ? (
           <LoadError what="รายการแจ้งซ่อม" retryHref="/tickets" />
         ) : (
@@ -101,6 +101,7 @@ export default async function TicketsPage({
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
+                    className="h-11 px-4"
                     nativeButton={false}
                     disabled={filters.page <= 1}
                     render={
@@ -114,6 +115,7 @@ export default async function TicketsPage({
                   </Button>
                   <Button
                     variant="outline"
+                    className="h-11 px-4"
                     nativeButton={false}
                     disabled={filters.page >= pages}
                     render={
