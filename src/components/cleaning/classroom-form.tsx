@@ -7,7 +7,7 @@ import { saveClassroom, type SetupResult } from "@/app/(dashboard)/cleaning/mana
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { SetupRoom } from "@/lib/data/cleaning";
+import type { SetupRoom } from "@/lib/data/cleaning-setup";
 import { cn } from "@/lib/utils";
 
 export const field = "h-11 text-base";

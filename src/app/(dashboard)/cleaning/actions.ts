@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { getConfirmationPhotos } from "@/lib/data/cleaning";
+import { getConfirmationPhotos } from "@/lib/data/cleaning-officer";
 import { getAuth } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { bangkokYmd, formatDayLong, isYmd } from "@/lib/time";
