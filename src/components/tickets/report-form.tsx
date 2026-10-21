@@ -66,7 +66,7 @@ const FIELD_LABEL: Record<FieldName, string> = {
 };
 
 const selectClass =
-  "h-12 w-full rounded-lg border border-input bg-card px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40 aria-invalid:border-destructive dark:bg-input/30";
+  "h-12 w-full rounded-lg border border-input bg-card px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40 aria-invalid:border-destructive";
 
 function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
@@ -116,7 +116,7 @@ export function ReportForm({
     return (
       <div className="space-y-4 py-4 text-center" role="status">
         <CheckCircle2
-          className="mx-auto size-12 text-emerald-600"
+          className="mx-auto size-12 text-emerald-800"
           aria-hidden
         />
         <p className="text-lg font-semibold">{state.message}</p>
@@ -313,7 +313,7 @@ export function ReportForm({
                 "h-12 cursor-pointer rounded-lg border text-base font-medium transition-colors",
                 urgency === u.value
                   ? u.value === "emergency"
-                    ? "border-red-700 bg-red-700 text-white"
+                    ? "border-red-700 bg-red-50 text-red-800"
                     : "border-primary bg-primary text-primary-foreground"
                   : "border-input bg-card text-muted-foreground hover:bg-muted",
               )}
@@ -329,7 +329,6 @@ export function ReportForm({
 
       <Button
         type="submit"
-        variant="cta"
         disabled={pending || busy}
         className="h-14 w-full text-base"
       >
