@@ -16,7 +16,7 @@ import type {
 
 export const dynamic = "force-dynamic";
 export const metadata = {
-  title: "ความคิดเห็น | ระบบแจ้งซ่อม โรงเรียนละหานทรายรัชดาภิเษก",
+  title: "ความคิดเห็น | สำนักงานออนไลน์ โรงเรียนละหานทรายรัชดาภิเษก",
 };
 
 const KIND_LABEL: Record<FeedbackKind, string> = {

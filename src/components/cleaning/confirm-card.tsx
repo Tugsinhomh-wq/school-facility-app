@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, ImageIcon } from "lucide-react";
+import { AlertCircle, Check, CheckCircle2, ImageIcon, Minus } from "lucide-react";
 import { useActionState, useState } from "react";
 
 import {
@@ -14,27 +14,15 @@ import type { ClassroomRow } from "@/lib/data/cleaning";
 import { formatDayShort } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
-const PILL: Record<string, { label: string; className: string }> = {
-  confirmed: {
-    label: "ยืนยันแล้ว",
-    className:
-      "bg-emerald-600 text-white dark:bg-emerald-500 dark:text-emerald-950",
-  },
-  late: {
-    label: "ยืนยันแล้ว",
-    className:
-      "bg-emerald-600 text-white dark:bg-emerald-500 dark:text-emerald-950",
-  },
-  pending: {
-    label: "ยังไม่ยืนยัน",
-    className:
-      "bg-amber-100 text-amber-900 ring-1 ring-amber-500/60 dark:bg-amber-500/20 dark:text-amber-200",
-  },
-  off: { label: "วันหยุด", className: "bg-muted text-muted-foreground" },
+const PILL: Record<string, { label: string; icon: typeof Check; className: string }> = {
+  confirmed: { label: "ยืนยันแล้ว", icon: Check, className: "bg-emerald-50 text-emerald-800" },
+  late: { label: "ยืนยันแล้ว", icon: Check, className: "bg-emerald-50 text-emerald-800" },
+  pending: { label: "ยังไม่ยืนยัน", icon: AlertCircle, className: "bg-red-50 text-red-700" },
+  off: { label: "วันหยุด", icon: Minus, className: "bg-muted text-muted-foreground" },
 };
 
 /**
- * One classroom: its zone, today's status and a single gold button. A past day nobody confirmed
+ * One classroom: its zone, today's status and a single navy button. A past day nobody confirmed
  * can be picked in the week strip to confirm it late. Photos are optional.
  */
 export function ConfirmCard({
@@ -71,35 +59,40 @@ export function ConfirmCard({
   const done = todayStatus.confirmation;
 
   return (
-    <section
-      aria-labelledby={`zone-${classroom.id}`}
-      className="space-y-4 rounded-2xl border border-border bg-card p-4 shadow-sm"
-    >
-      <header className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-sm text-muted-foreground">
-            ห้อง {classroom.name}
-            {classroom.building && ` · ${classroom.building}`}
-          </p>
-          <h2
-            id={`zone-${classroom.id}`}
-            className="text-lg leading-snug font-semibold break-words"
-          >
-            {classroom.zone}
-          </h2>
-        </div>
+    <section aria-labelledby={`zone-${classroom.id}`} className="space-y-5">
+      <header>
+        <p className="text-sm text-muted-foreground">เขตทำความสะอาด</p>
+        <h2
+          id={`zone-${classroom.id}`}
+          className="font-display text-2xl font-medium break-words"
+        >
+          {classroom.name}
+          {classroom.building && (
+            <span className="text-base font-normal text-muted-foreground">
+              {" "}
+              · {classroom.building}
+            </span>
+          )}
+        </h2>
+      </header>
+      <p className="rounded-xl border border-border p-4 font-semibold leading-snug break-words">
+        {classroom.zone}
+      </p>
+      <div className="flex min-h-11 items-center justify-between gap-3">
+        <span>วันนี้</span>
         <span
           className={cn(
-            "shrink-0 rounded-full px-3 py-1 text-sm font-semibold",
+            "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-semibold",
             pill.className,
           )}
         >
+          <pill.icon className="size-4" aria-hidden />
           {pill.label}
         </span>
-      </header>
+      </div>
 
       {done && (
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-emerald-800 dark:text-emerald-300">
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-emerald-800">
           <CheckCircle2 className="size-4" aria-hidden />
           วันนี้ยืนยันแล้วโดย {done.byName}
           {done.photos > 0 && (
@@ -141,17 +134,10 @@ export function ConfirmCard({
               ยืนยันย้อนหลังของ {formatDayShort(late)}
             </p>
           )}
-          <ImagePicker
-            bucket="cleaning-photos"
-            fieldName="photo_paths"
-            label="รูปเขต (ไม่บังคับ)"
-            onBusyChange={setBusy}
-          />
           <Button
             type="submit"
-            variant="cta"
             disabled={pending || busy}
-            className="h-14 w-full text-base whitespace-normal"
+            className="h-14 w-full text-base font-semibold whitespace-normal"
           >
             {pending
               ? "กำลังบันทึก..."
@@ -159,8 +145,15 @@ export function ConfirmCard({
                 ? "กำลังอัปโหลดรูป..."
                 : late
                   ? "ยืนยันย้อนหลัง"
-                  : "ยืนยันว่านักเรียนทำความสะอาดแล้ว"}
+                  : "ยืนยันว่าทำความสะอาดแล้ว"}
           </Button>
+          <ImagePicker
+            bucket="cleaning-photos"
+            fieldName="photo_paths"
+            label="รูปเขต (ไม่บังคับ)"
+            quiet
+            onBusyChange={setBusy}
+          />
           {late && (
             <Button
               type="button"

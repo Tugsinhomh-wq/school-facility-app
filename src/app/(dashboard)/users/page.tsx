@@ -9,7 +9,7 @@ import type { UserRole } from "@/types/database";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
-  title: "จัดการผู้ใช้ | ระบบแจ้งซ่อม โรงเรียนละหานทรายรัชดาภิเษก",
+  title: "จัดการผู้ใช้ | สำนักงานออนไลน์ โรงเรียนละหานทรายรัชดาภิเษก",
 };
 
 const ROLES = Object.keys(ROLE_LABEL) as UserRole[];

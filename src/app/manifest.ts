@@ -2,13 +2,13 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "ระบบแจ้งซ่อม โรงเรียนละหานทรายรัชดาภิเษก",
-    short_name: "แจ้งซ่อม",
+    name: "สำนักงานออนไลน์ โรงเรียนละหานทรายรัชดาภิเษก",
+    short_name: "สำนักงานออนไลน์",
     description: "แจ้งซ่อมอาคารสถานที่และขอใช้ห้องประชุม",
     lang: "th",
     start_url: "/",
     display: "standalone",
-    background_color: "#070b2a",
+    background_color: "#ffffff",
     theme_color: "#131f78",
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },

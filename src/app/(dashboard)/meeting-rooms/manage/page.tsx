@@ -11,7 +11,7 @@ import { isRoomManager, guardExecutive } from "@/lib/data/session";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
-  title: "จัดการห้องประชุม | ระบบแจ้งซ่อม โรงเรียนละหานทรายรัชดาภิเษก",
+  title: "จัดการห้องประชุม | สำนักงานออนไลน์ โรงเรียนละหานทรายรัชดาภิเษก",
 };
 
 export default async function ManageRoomsPage() {

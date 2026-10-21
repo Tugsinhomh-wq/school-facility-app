@@ -7,7 +7,7 @@ import { resolvePeriod } from "@/lib/summary-period";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
-  title: "สรุปภาพรวม | ระบบแจ้งซ่อม โรงเรียนละหานทรายรัชดาภิเษก",
+  title: "สรุปภาพรวม | สำนักงานออนไลน์ โรงเรียนละหานทรายรัชดาภิเษก",
 };
 
 export default async function SummaryPage({

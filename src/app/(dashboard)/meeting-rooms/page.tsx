@@ -7,7 +7,7 @@ import { bangkokYmd, isYmd, mondayOf } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
-  title: "ขอใช้ห้องประชุม | ระบบแจ้งซ่อม โรงเรียนละหานทรายรัชดาภิเษก",
+  title: "ขอใช้ห้องประชุม | สำนักงานออนไลน์ โรงเรียนละหานทรายรัชดาภิเษก",
 };
 
 export default async function MeetingRoomsPage({

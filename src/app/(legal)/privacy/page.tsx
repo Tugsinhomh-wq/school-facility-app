@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "นโยบายความเป็นส่วนตัว | ระบบแจ้งซ่อม โรงเรียนละหานทรายรัชดาภิเษก",
+  title: "นโยบายความเป็นส่วนตัว | สำนักงานออนไลน์ โรงเรียนละหานทรายรัชดาภิเษก",
 };
 
 // Revise this date whenever the text changes; sign-up stores the version the user accepted.

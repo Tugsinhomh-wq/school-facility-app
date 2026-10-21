@@ -11,7 +11,7 @@ import { guardExecutive, isStaffRole } from "@/lib/data/session";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
-  title: "รายการแจ้งซ่อม | ระบบแจ้งซ่อม โรงเรียนละหานทรายรัชดาภิเษก",
+  title: "รายการแจ้งซ่อม | สำนักงานออนไลน์ โรงเรียนละหานทรายรัชดาภิเษก",
 };
 
 export default async function TicketsPage({

@@ -22,6 +22,7 @@ export function ImagePicker({
   label = "รูปประกอบ (ไม่บังคับ)",
   fieldName = "image_paths",
   maxImages = MAX_IMAGES,
+  quiet = false,
 }: {
   onBusyChange?: (busy: boolean) => void;
   camera?: boolean;
@@ -29,6 +30,8 @@ export function ImagePicker({
   label?: string;
   fieldName?: string;
   maxImages?: number;
+  /** Text-only look: a "แนบรูป" button, and the label and count appear only once a photo is added. */
+  quiet?: boolean;
 }) {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [uploading, setUploading] = useState(0);
@@ -88,12 +91,14 @@ export function ImagePicker({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium">{label}</span>
-        <span className="text-xs text-muted-foreground">
-          {photos.length}/{maxImages} รูป
-        </span>
-      </div>
+      {(!quiet || photos.length > 0) && (
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">{label}</span>
+          <span className="text-xs text-muted-foreground">
+            {photos.length}/{maxImages} รูป
+          </span>
+        </div>
+      )}
       <div className="flex flex-wrap gap-2">
         {photos.map((p) => (
           <div
@@ -140,7 +145,17 @@ export function ImagePicker({
             ถ่ายรูป
           </button>
         )}
-        {!full && (
+        {!full && quiet && (
+          <button
+            type="button"
+            onClick={() => input.current?.click()}
+            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg text-base font-medium text-primary outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            <Camera className="size-5" aria-hidden />
+            แนบรูป
+          </button>
+        )}
+        {!full && !quiet && (
           <button
             type="button"
             onClick={() => input.current?.click()}

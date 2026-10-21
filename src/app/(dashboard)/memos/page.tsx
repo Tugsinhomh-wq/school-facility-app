@@ -20,7 +20,7 @@ import { guardExecutive, isRoomManager } from "@/lib/data/session";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
-  title: "บันทึกข้อความ | ระบบแจ้งซ่อม โรงเรียนละหานทรายรัชดาภิเษก",
+  title: "บันทึกข้อความ | สำนักงานออนไลน์ โรงเรียนละหานทรายรัชดาภิเษก",
 };
 
 export default async function MemosPage({
