@@ -54,11 +54,9 @@ export async function getMemoList(): Promise<MemoList> {
     failed: true,
   });
   if (!hasSupabase()) return mock();
-  let signedIn = false;
   try {
     const s = await getSession();
     if (!s) return mock();
-    signedIn = true;
     if (!isRoomManager(s.viewer?.role))
       return {
         source: "supabase",
@@ -101,7 +99,7 @@ export async function getMemoList(): Promise<MemoList> {
       ),
     };
   } catch {
-    return signedIn ? failed() : mock();
+    return failed();
   }
 }
 
@@ -121,23 +119,22 @@ export async function getMemo(id: string): Promise<MemoDetail> {
   });
   const failed = (): MemoDetail => ({ source: "supabase", viewer: null, memo: null, failed: true });
   if (!hasSupabase()) return mock();
-  let signedIn = false;
   try {
     const s = await getSession();
     if (!s) return mock();
-    signedIn = true;
     const { data, error } = await s.supabase
       .from("memorandums")
       .select("*, author:profiles(full_name, position)")
       .eq("id", id)
       .maybeSingle();
-    if (error) return failed();
+    // 22P02: the id is not a UUID, so there is no such memo (404), not a load failure.
+    if (error && error.code !== "22P02") return failed();
     return {
       source: "supabase",
       viewer: s.viewer,
-      memo: (data as unknown as MemoRecord | null) ?? null,
+      memo: error ? null : ((data as unknown as MemoRecord | null) ?? null),
     };
   } catch {
-    return signedIn ? failed() : mock();
+    return failed();
   }
 }

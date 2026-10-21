@@ -96,7 +96,10 @@ export default async function MemosPage({
                             <time dateTime={m.created_at}>
                               {formatDateTh(m.created_at)}
                             </time>{" "}
-                            · {ORIGIN_LABEL[m.origin_module]}
+                            ·{" "}
+                            <span className="whitespace-nowrap">
+                              {ORIGIN_LABEL[m.origin_module]}
+                            </span>
                           </span>
                           <ApprovalPill
                             status={m.final_status}
@@ -135,7 +138,7 @@ export default async function MemosPage({
                           <td className="px-4 py-4">
                             <Link
                               href={`/memos/${m.id}`}
-                              className="font-semibold underline-offset-4 hover:underline focus-visible:underline"
+                              className={`flex min-h-11 items-center font-semibold underline-offset-4 hover:underline ${focusRing}`}
                             >
                               {m.subject}
                             </Link>
