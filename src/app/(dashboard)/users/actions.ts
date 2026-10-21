@@ -11,6 +11,7 @@ export type UserResult = { ok: boolean; message: string } | null;
 const ROLES: UserRole[] = [
   "user",
   "staff",
+  "head",
   "room_staff",
   "executive",
   "super_admin",

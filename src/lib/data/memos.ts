@@ -1,5 +1,5 @@
 import type { Viewer } from "@/lib/data/dashboard";
-import { getSession } from "@/lib/data/session";
+import { getSession, isRoomManager } from "@/lib/data/session";
 import { MOCK_MEMOS, MOCK_TICKETS } from "@/lib/mock-data";
 import type { Memorandum } from "@/types/database";
 import type { TicketRow } from "@/types/tickets";
@@ -13,10 +13,6 @@ const hasSupabase = () =>
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   );
-export const isStaff = (viewer: Viewer | null) =>
-  viewer?.role === "staff" ||
-  viewer?.role === "super_admin" ||
-  viewer?.role === "room_staff";
 
 const MOCK_AUTHOR = {
   full_name: "นายสมชาย รักงาน",
@@ -52,7 +48,7 @@ export async function getMemoList(): Promise<MemoList> {
   try {
     const s = await getSession();
     if (!s) return mock();
-    if (!isStaff(s.viewer))
+    if (!isRoomManager(s.viewer?.role))
       return {
         source: "supabase",
         viewer: s.viewer,

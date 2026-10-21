@@ -22,3 +22,23 @@ pip install -r scripts/requirements.txt
 - ตั้ง `CRON_SECRET` (สตริงสุ่มยาว ๆ เช่น `openssl rand -hex 32`) และ `SUPABASE_SECRET_KEY` บนเซิร์ฟเวอร์ ถ้าไม่ตั้ง `CRON_SECRET` endpoint จะตอบ 503 และไม่ทำงาน
 - เรียกด้วยหัว `Authorization: Bearer <CRON_SECRET>` ตัวเลือก `?dryRun=1` ดูรายการที่จะลบโดยไม่ลบ, `?minAgeMinutes=N` เปลี่ยนช่วงปลอดภัย (ค่าเริ่มต้น 1440)
 - `vercel.json` ตั้ง Vercel Cron ให้รันทุกวัน 03:00 เวลาไทย (Vercel ส่ง `CRON_SECRET` ให้เอง) ถ้าไม่ได้ใช้ Vercel ให้ตั้งตัวจับเวลาอื่นเรียก URL เดียวกัน เช่น GitHub Actions หรือ cron บนเซิร์ฟเวอร์
+
+## โมดูลงานอาคารสถานที่
+
+**แผนที่เมนู:** แจ้งซ่อม, จองห้อง/ห้องประชุม, บันทึกข้อความ, เขตทำความสะอาด (ครูที่ปรึกษายืนยันพื้นที่รับผิดชอบรายวัน เจ้าหน้าที่ดูช่องว่างที่ยังไม่ยืนยัน), ตั้งค่า/นำเข้าข้อมูล (ห้องเรียน ครูที่ปรึกษา วันหยุด)
+
+**บทบาท:**
+- `super_admin` ผู้ดูแลระบบ
+- `head` หัวหน้ากลุ่มงาน
+- `staff` เจ้าหน้าที่งาน
+- `room_staff` เจ้าหน้าที่ห้องประชุม
+- `executive` ผู้บริหาร
+- `user` ผู้ใช้ทั่วไป
+
+**ลำดับรัน SQL ใน Supabase SQL Editor:**
+1. `supabase/facility_01_head_role.sql` รันแยกเดี่ยว ๆ ก่อน (เพิ่มค่า role `head` ต้อง commit ก่อนใช้)
+2. `supabase/facility_02_cleaning.sql`
+3. ชุดตรวจสอบของไฟล์ 02 (check sets)
+4. `supabase/facility_99_reset_old_data.sql` รันเฉพาะตอนสลับขึ้นระบบจริง หลังสำรองข้อมูลด้วย `/api/cron/backup` แล้ว (ลบเฉพาะแถวข้อมูลเก่า)
+
+**Vercel env ที่ไม่ต้องใช้แล้ว (ลบได้):** `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (ถอด Web Push ออกแล้ว)

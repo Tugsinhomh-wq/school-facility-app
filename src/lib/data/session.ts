@@ -10,9 +10,12 @@ export const hasSupabase = () =>
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   );
+/** Repair staff, department heads (head = staff in every check) and admins. */
 export const isStaffRole = (role?: UserRole | null) =>
-  role === "staff" || role === "super_admin";
-/** Anyone who can decide on room requests: repair staff, admins and the meeting-room officer. */
+  role === "staff" || role === "head" || role === "super_admin";
+/** Facility officers: can see every classroom and its cleaning confirmations. Same set as isStaffRole. */
+export const isFacilityOfficer = (role?: UserRole | null) => isStaffRole(role);
+/** Anyone who can decide on room requests: repair staff, heads, admins and the meeting-room officer. */
 export const isRoomManager = (role?: UserRole | null) =>
   isStaffRole(role) || role === "room_staff";
 

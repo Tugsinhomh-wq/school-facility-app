@@ -1,6 +1,12 @@
 // Mirrors supabase/schema.sql. Keep the two in sync.
 
-export type UserRole = "super_admin" | "staff" | "room_staff" | "executive" | "user";
+export type UserRole =
+  | "super_admin"
+  | "head"
+  | "staff"
+  | "room_staff"
+  | "executive"
+  | "user";
 export type TicketStatus = "pending" | "in_progress" | "completed" | "cancelled";
 export type UrgencyLevel = "low" | "medium" | "high" | "emergency";
 export type ApprovalMode = "paper_hybrid" | "digital_multistage";
@@ -117,4 +123,39 @@ export interface Feedback {
   user_agent: string | null;
   status: FeedbackStatus;
   created_at: string;
+}
+
+/** A class for one term, with its cleaning zone. */
+export interface Classroom {
+  id: string;
+  term: string;
+  name: string;
+  building_id: string | null;
+  zone: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface ClassroomAdvisor {
+  classroom_id: string;
+  user_id: string;
+}
+
+export interface SchoolOffDay {
+  /** YYYY-MM-DD */
+  day: string;
+  reason: string | null;
+}
+
+export interface CleaningConfirmation {
+  id: string;
+  classroom_id: string;
+  /** YYYY-MM-DD */
+  day: string;
+  confirmed_by: string | null;
+  /** The confirmer's name copied at confirm time. */
+  confirmed_by_name: string;
+  confirmed_at: string;
+  is_late: boolean;
+  photo_paths: string[];
 }

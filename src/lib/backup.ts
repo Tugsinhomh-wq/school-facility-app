@@ -16,7 +16,17 @@ export const BACKUP_TABLES = [
   "approval_records",
   "environment_inspections",
   "feedback",
+  "classrooms",
+  "classroom_advisors",
+  "school_off_days",
+  "cleaning_confirmations",
 ] as const;
+
+/** Stable paging order for tables whose key is not a single `id` column. */
+const ORDER_BY: Record<string, string[]> = {
+  classroom_advisors: ["classroom_id", "user_id"],
+  school_off_days: ["day"],
+};
 
 const PAGE = 1000;
 const MAGIC = Buffer.from("LRPBK1");
@@ -27,11 +37,9 @@ export async function dumpTables(supabase: SupabaseClient) {
     const rows: unknown[] = [];
     for (let from = 0; ; from += PAGE) {
       // A stable order keeps pages from skipping or repeating rows while people use the system.
-      const { data, error } = await supabase
-        .from(table)
-        .select("*")
-        .order("id")
-        .range(from, from + PAGE - 1);
+      let query = supabase.from(table).select("*");
+      for (const col of ORDER_BY[table] ?? ["id"]) query = query.order(col);
+      const { data, error } = await query.range(from, from + PAGE - 1);
       if (error) throw new Error(`backup: ${table}: ${error.message}`);
       rows.push(...data);
       if (data.length < PAGE) break;

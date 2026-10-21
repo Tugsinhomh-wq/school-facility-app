@@ -19,7 +19,7 @@ import {
   URGENCY_LABEL,
 } from "@/lib/ticket-meta";
 
-import { guardExecutive } from "@/lib/data/session";
+import { guardExecutive, isStaffRole } from "@/lib/data/session";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +48,7 @@ export default async function TicketDetailPage({
   const { ticket, viewer, imageUrls, afterImageUrls } =
     await getTicketDetail(id);
   if (!ticket) notFound();
-  const isStaff = viewer?.role === "staff" || viewer?.role === "super_admin";
+  const isStaff = isStaffRole(viewer?.role);
   const dupCtx = isStaff ? await getDuplicateContext(ticket) : null;
 
   return (
