@@ -1,6 +1,12 @@
 "use client";
 
-import { MessageSquarePlus } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Check,
+  ChevronRight,
+  MessageSquarePlus,
+} from "lucide-react";
 import { useActionState, useState } from "react";
 
 import {
@@ -36,7 +42,7 @@ function readLastPage() {
   }
 }
 
-function FeedbackForm() {
+function FeedbackForm({ onClose }: { onClose: () => void }) {
   const [kind, setKind] = useState<string>("problem");
   const [busy, setBusy] = useState(false);
   // Read once when the sheet opens: the form is mounted only while it is open.
@@ -48,9 +54,21 @@ function FeedbackForm() {
 
   if (state?.ok)
     return (
-      <p className="py-6 text-center text-base font-medium">
-        🙏 {state.message}
-      </p>
+      <div
+        role="status"
+        className="flex flex-col items-center gap-3 py-4 text-center"
+      >
+        <CheckCircle2 className="size-10 text-emerald-700" aria-hidden />
+        <p className="font-medium">{state.message}</p>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11 w-full"
+          onClick={onClose}
+        >
+          ปิด
+        </Button>
+      </div>
     );
 
   return (
@@ -70,12 +88,13 @@ function FeedbackForm() {
             aria-checked={kind === k.value}
             onClick={() => setKind(k.value)}
             className={cn(
-              "h-11 rounded-lg border text-sm font-medium transition-colors",
+              "flex h-11 items-center justify-center gap-1 rounded-lg border text-sm font-medium transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
               kind === k.value
                 ? "border-primary bg-primary text-primary-foreground"
-                : "border-input text-muted-foreground",
+                : "border-input text-muted-foreground hover:bg-muted/60",
             )}
           >
+            {kind === k.value && <Check className="size-4" aria-hidden />}
             {k.label}
           </button>
         ))}
@@ -94,7 +113,8 @@ function FeedbackForm() {
       </div>
       <ImagePicker
         bucket="feedback-images"
-        label="แนบรูปหน้าจอ (ไม่บังคับ)"
+        label="รูปหน้าจอที่แนบ"
+        quiet
         onBusyChange={setBusy}
       />
       {lastPage && (
@@ -104,7 +124,11 @@ function FeedbackForm() {
         </p>
       )}
       {state && !state.ok && (
-        <p role="alert" className="text-sm text-destructive">
+        <p
+          role="alert"
+          className="flex items-start gap-2 text-sm font-medium text-destructive"
+        >
+          <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
           {state.message}
         </p>
       )}
@@ -132,14 +156,15 @@ export function FeedbackButton() {
       <Button
         type="button"
         variant="outline"
-        className="h-12 w-full text-base"
+        className="h-14 w-full justify-start gap-3 px-4 text-base"
         onClick={() => {
           setFormKey((k) => k + 1);
           setOpen(true);
         }}
       >
         <MessageSquarePlus aria-hidden />
-        ส่งความคิดเห็นถึงผู้พัฒนา
+        <span className="flex-1 text-left">ส่งความคิดเห็นถึงผู้พัฒนา</span>
+        <ChevronRight className="text-muted-foreground" aria-hidden />
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="top-auto bottom-0 max-h-[92dvh] max-w-full translate-y-0 overflow-y-auto rounded-b-none rounded-t-2xl pb-[calc(1rem+env(safe-area-inset-bottom))] sm:top-1/2 sm:bottom-auto sm:max-w-md sm:-translate-y-1/2 sm:rounded-2xl">
@@ -149,7 +174,7 @@ export function FeedbackButton() {
               บอกปัญหาหรือสิ่งที่อยากให้ปรับปรุงระบบนี้
             </DialogDescription>
           </DialogHeader>
-          <FeedbackForm key={formKey} />
+          <FeedbackForm key={formKey} onClose={() => setOpen(false)} />
         </DialogContent>
       </Dialog>
     </>
