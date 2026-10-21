@@ -71,6 +71,7 @@ export function UserRow({ user, isSelf }: { user: UserItem; isSelf: boolean }) {
           <span className="hidden md:block">
             <ActivePill active={user.is_active} />
           </span>
+          <span className="sr-only">แก้ไขผู้ใช้</span>
           <ChevronRight
             className="size-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-90"
             aria-hidden
