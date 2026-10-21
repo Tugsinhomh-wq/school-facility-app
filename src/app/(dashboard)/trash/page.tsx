@@ -69,7 +69,9 @@ function TrashRow({ r }: { r: ReturnType<typeof withDaysLeft>[number] }) {
       <details className="group">
         <summary className="flex min-h-16 cursor-pointer list-none items-center gap-3 px-4 py-3.5 transition-colors outline-none hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring/50 md:grid md:grid-cols-[minmax(0,1fr)_19rem_10rem_1.25rem] [&::-webkit-details-marker]:hidden">
           <span className="min-w-0 flex-1 leading-snug md:flex-none">
-            <span className="block truncate font-semibold">{r.title}</span>
+            <span className="line-clamp-2 font-semibold group-open:line-clamp-none">
+              {r.title}
+            </span>
             <span className="mt-0.5 block truncate text-sm text-muted-foreground">
               {r.ticket_number}
               {r.reporter_name ? ` · แจ้งโดย ${r.reporter_name}` : ""}
@@ -77,6 +79,11 @@ function TrashRow({ r }: { r: ReturnType<typeof withDaysLeft>[number] }) {
             <span className="mt-0.5 block truncate text-sm text-muted-foreground md:hidden">
               {deleted}
             </span>
+            {r.memo_count > 0 && (
+              <span className="mt-0.5 block text-sm text-muted-foreground">
+                มีบันทึกข้อความที่เชื่อมอยู่
+              </span>
+            )}
             <span className="mt-1.5 block md:hidden">{pill}</span>
           </span>
           <span className="hidden min-w-0 truncate text-sm text-muted-foreground md:block">
