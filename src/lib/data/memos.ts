@@ -27,6 +27,8 @@ export interface MemoList {
   memos: MemoRecord[];
   /** Open repair tickets that do not have a memo yet. */
   candidates: TicketRow[];
+  /** Signed in, but loading failed: show an error with a retry instead of sample data. */
+  failed?: boolean;
 }
 
 export async function getMemoList(): Promise<MemoList> {
@@ -44,10 +46,19 @@ export async function getMemoList(): Promise<MemoList> {
       ).map((t) => ({ ...t, reporter: { full_name: "ครู ตัวอย่าง" } })),
     };
   };
+  const failed = (): MemoList => ({
+    source: "supabase",
+    viewer: null,
+    memos: [],
+    candidates: [],
+    failed: true,
+  });
   if (!hasSupabase()) return mock();
+  let signedIn = false;
   try {
     const s = await getSession();
     if (!s) return mock();
+    signedIn = true;
     if (!isRoomManager(s.viewer?.role))
       return {
         source: "supabase",
@@ -75,7 +86,7 @@ export async function getMemoList(): Promise<MemoList> {
             .limit(50)
         : Promise.resolve({ data: [], error: null }),
     ]);
-    if (memos.error || tickets.error) return mock();
+    if (memos.error || tickets.error) return failed();
     const used = new Set(
       (memos.data ?? [])
         .filter((m) => m.origin_module === "repair")
@@ -90,7 +101,7 @@ export async function getMemoList(): Promise<MemoList> {
       ),
     };
   } catch {
-    return mock();
+    return signedIn ? failed() : mock();
   }
 }
 
@@ -98,6 +109,8 @@ export interface MemoDetail {
   source: "supabase" | "mock";
   viewer: Viewer | null;
   memo: MemoRecord | null;
+  /** Signed in, but loading failed: show an error with a retry instead of "not found". */
+  failed?: boolean;
 }
 
 export async function getMemo(id: string): Promise<MemoDetail> {
@@ -106,21 +119,25 @@ export async function getMemo(id: string): Promise<MemoDetail> {
     viewer: null,
     memo: mockMemos().find((m) => m.id === id) ?? null,
   });
+  const failed = (): MemoDetail => ({ source: "supabase", viewer: null, memo: null, failed: true });
   if (!hasSupabase()) return mock();
+  let signedIn = false;
   try {
     const s = await getSession();
     if (!s) return mock();
+    signedIn = true;
     const { data, error } = await s.supabase
       .from("memorandums")
       .select("*, author:profiles(full_name, position)")
       .eq("id", id)
       .maybeSingle();
+    if (error) return failed();
     return {
       source: "supabase",
       viewer: s.viewer,
-      memo: error ? null : ((data as unknown as MemoRecord | null) ?? null),
+      memo: (data as unknown as MemoRecord | null) ?? null,
     };
   } catch {
-    return mock();
+    return signedIn ? failed() : mock();
   }
 }
