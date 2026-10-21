@@ -1,9 +1,10 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
+import { LoadError } from "@/components/ui/state-card";
 import type { SummaryData } from "@/lib/data/summary";
 import { MONTHS_SHORT } from "@/lib/summary-period";
 import { formatInstantHm } from "@/lib/time";
@@ -30,55 +31,50 @@ const nf = new Intl.NumberFormat("en-US");
 const num = (n: number | null | undefined, digits = 0) =>
   n == null ? "–" : nf.format(Number(n.toFixed(digits)));
 
-function Card({
+function Section({
   title,
   hint,
   children,
-  className,
 }: {
   title: string;
   hint?: string;
   children: ReactNode;
-  className?: string;
 }) {
   return (
-    <section
-      className={cn(
-        "rounded-xl border border-border bg-card/85 p-4 backdrop-blur-sm sm:p-5",
-        className,
-      )}
-    >
-      <h2 className="font-display text-base font-semibold">{title}</h2>
+    <section className="border-t border-border pt-6">
+      <h2 className="text-sm font-medium text-muted-foreground">{title}</h2>
       {hint && <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>}
       <div className="mt-3">{children}</div>
     </section>
   );
 }
 
-function Tile({
+/** One quiet figure per row: label (and a small note) left, value right. */
+function Row({
   label,
   value,
   sub,
-  tone,
+  alert,
 }: {
   label: string;
   value: string;
   sub?: ReactNode;
-  tone?: "alert" | "good";
+  alert?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card/85 p-4 backdrop-blur-sm">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p
+    <div className="flex min-h-14 items-center justify-between gap-4 py-2.5">
+      <div className="min-w-0">
+        <dt>{label}</dt>
+        {sub && <dd className="text-sm text-muted-foreground">{sub}</dd>}
+      </div>
+      <dd
         className={cn(
-          "mt-1 font-display text-3xl font-bold leading-none tabular-nums",
-          tone === "alert" && "text-destructive",
-          tone === "good" && "text-emerald-600 dark:text-emerald-400",
+          "shrink-0 text-xl font-medium tabular-nums",
+          alert && "text-destructive",
         )}
       >
         {value}
-      </p>
-      {sub && <p className="mt-1.5 text-xs text-muted-foreground">{sub}</p>}
+      </dd>
     </div>
   );
 }
@@ -118,7 +114,7 @@ function HBars({
               {r.extra && <span className="ml-1.5 text-xs">({r.extra})</span>}
             </span>
           </div>
-          <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
+          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
             <div
               className="h-full rounded-full bg-primary"
               style={{ width: `${Math.max((r.value / max) * 100, 2)}%` }}
@@ -156,7 +152,7 @@ function Columns({
             title={`${i.label}: ${i.value}${overlayLabel && i.overlay != null ? ` · ${overlayLabel} ${i.overlay}` : ""}`}
           >
             <div
-              className="w-full rounded-t bg-primary/35"
+              className="w-full rounded-t bg-primary/25"
               style={{
                 height: `${i.value ? Math.max((i.value / max) * 100, 4) : 0}%`,
               }}
@@ -171,7 +167,7 @@ function Columns({
           </div>
         ))}
       </div>
-      <div className="mt-1 flex gap-[3px] text-[10px] text-muted-foreground">
+      <div className="mt-1 flex gap-[3px] text-xs text-muted-foreground">
         {items.map((i, idx) => (
           <span key={i.key} className="min-w-0 flex-1 text-center tabular-nums">
             {dense && idx % 5 !== 0 ? "" : i.label}
@@ -180,7 +176,7 @@ function Columns({
       </div>
       <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1.5">
-          <span className="size-2.5 rounded-sm bg-primary/35" aria-hidden />
+          <span className="size-2.5 rounded-sm bg-primary/25" aria-hidden />
           {label}
         </span>
         {overlayLabel && (
@@ -243,25 +239,27 @@ export function SummaryView({
   const href = (kind: string, key?: string) =>
     `/summary?p=${kind}${key ? `&k=${key}` : ""}`;
 
+  const ticketsOpen = data
+    ? data.today.open_pending + data.today.open_in_progress
+    : 0;
+
   return (
-    <>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight">
-            สรุปภาพรวม
-          </h1>
-          <p className="mt-1 text-muted-foreground">
-            งานแจ้งซ่อมและการใช้ห้องประชุม แสดงเฉพาะตัวเลขรวม
-          </p>
-        </div>
+    <div className="mx-auto max-w-[760px] space-y-6">
+      <div>
+        <h1 className="font-display text-3xl font-medium tracking-tight">
+          สรุปภาพรวม
+        </h1>
+        <p className="mt-1 text-muted-foreground">
+          งานแจ้งซ่อมและการใช้ห้องประชุม แสดงเฉพาะตัวเลขรวม
+        </p>
         <p
-          className="flex items-center gap-2 text-xs text-muted-foreground"
+          className="mt-2 flex items-center gap-2 text-xs text-muted-foreground"
           aria-live="polite"
         >
           <span
             className={cn(
               "size-2 rounded-full",
-              stale ? "bg-amber-500" : "animate-pulse bg-emerald-500",
+              stale ? "bg-amber-500" : "bg-emerald-500",
             )}
             aria-hidden
           />
@@ -274,55 +272,54 @@ export function SummaryView({
       </div>
 
       {!data ? (
-        <p
-          role="alert"
-          className="mt-8 rounded-xl border border-dashed border-border bg-card/60 p-10 text-center text-muted-foreground"
-        >
-          โหลดข้อมูลสรุปไม่สำเร็จ ลองรีเฟรชหน้านี้ หรือแจ้งผู้ดูแลระบบ
-        </p>
+        <LoadError what="ข้อมูลสรุป" retryHref="/summary" />
       ) : (
         <>
-          <h2 className="mt-8 mb-3 font-display text-lg font-semibold">
-            ตอนนี้
-          </h2>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-            <Tile
-              label="งานซ่อมค้าง"
-              value={num(data.today.open_pending + data.today.open_in_progress)}
-              sub={`รอรับเรื่อง ${data.today.open_pending} · กำลังซ่อม ${data.today.open_in_progress}`}
-            />
-            <Tile
-              label="ฉุกเฉิน (ยังไม่เสร็จ)"
-              value={num(data.today.open_emergency)}
-              tone={data.today.open_emergency ? "alert" : "good"}
-              sub={
-                data.today.open_emergency
-                  ? "ควรติดตามเป็นพิเศษ"
-                  : "ไม่มีงานฉุกเฉินค้าง"
-              }
-            />
-            <Tile
-              label="วันนี้ แจ้งใหม่ / ปิดงาน"
-              value={`${data.today.new_today} / ${data.today.done_today}`}
-            />
-            <Tile
-              label="ห้องประชุมใช้งานอยู่"
-              value={`${data.today.rooms_busy_now}/${data.today.rooms_total}`}
-              sub={`ประชุมวันนี้ ${data.today.meetings_today} รายการ`}
-            />
-            <Tile
-              label="คำขอรออนุมัติ"
-              value={num(data.today.reservations_pending)}
-            />
-          </div>
+          <p className="text-lg">
+            ตอนนี้มีงานซ่อมค้าง{" "}
+            <strong className="font-medium">{num(ticketsOpen)} งาน</strong>
+            {data.today.open_emergency > 0 ? (
+              <span className="text-destructive">
+                {" "}
+                · ฉุกเฉิน {data.today.open_emergency} งาน ควรติดตามเป็นพิเศษ
+              </span>
+            ) : (
+              <span className="text-muted-foreground">
+                {" "}
+                · ไม่มีงานฉุกเฉินค้าง
+              </span>
+            )}
+          </p>
 
-          <div className="mt-8 mb-3 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="font-display text-lg font-semibold">แนวโน้ม</h2>
-            <div className="flex flex-wrap items-center gap-2">
+          <Section title="ตอนนี้">
+            <dl className="divide-y divide-border">
+              <Row
+                label="งานซ่อมค้าง"
+                value={num(ticketsOpen)}
+                sub={`รอรับเรื่อง ${data.today.open_pending} · กำลังซ่อม ${data.today.open_in_progress}`}
+              />
+              <Row
+                label="วันนี้ แจ้งใหม่ / ปิดงาน"
+                value={`${data.today.new_today} / ${data.today.done_today}`}
+              />
+              <Row
+                label="ห้องประชุมใช้งานอยู่"
+                value={`${data.today.rooms_busy_now}/${data.today.rooms_total}`}
+                sub={`ประชุมวันนี้ ${data.today.meetings_today} รายการ`}
+              />
+              <Row
+                label="คำขอรออนุมัติ"
+                value={num(data.today.reservations_pending)}
+              />
+            </dl>
+          </Section>
+
+          <Section title="แนวโน้ม">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div
                 role="tablist"
                 aria-label="ช่วงเวลา"
-                className="inline-flex rounded-lg border border-border bg-card/85 p-0.5 text-sm"
+                className="inline-flex rounded-lg bg-muted p-1 text-sm"
               >
                 {(["month", "term"] as const).map((k) => (
                   <Link
@@ -331,9 +328,9 @@ export function SummaryView({
                     role="tab"
                     aria-selected={period.kind === k}
                     className={cn(
-                      "rounded-md px-3 py-1.5 font-medium",
+                      "flex min-h-11 items-center rounded-md px-4 font-medium",
                       period.kind === k
-                        ? "bg-primary text-primary-foreground"
+                        ? "bg-background shadow-sm"
                         : "text-muted-foreground hover:text-foreground",
                     )}
                   >
@@ -345,164 +342,160 @@ export function SummaryView({
                 <Link
                   href={href(period.kind, period.prevKey)}
                   aria-label="ช่วงก่อนหน้า"
-                  className="flex size-9 items-center justify-center rounded-lg border border-border hover:bg-muted"
+                  className="flex size-11 items-center justify-center rounded-lg hover:bg-muted"
                 >
-                  <ChevronLeft className="size-4" aria-hidden />
+                  <ChevronLeft className="size-5" aria-hidden />
                 </Link>
-                <span className="min-w-36 text-center text-sm font-medium">
+                <span className="min-w-32 text-center text-sm font-medium">
                   {period.label}
                 </span>
                 {period.hasNext ? (
                   <Link
                     href={href(period.kind, period.nextKey)}
                     aria-label="ช่วงถัดไป"
-                    className="flex size-9 items-center justify-center rounded-lg border border-border hover:bg-muted"
+                    className="flex size-11 items-center justify-center rounded-lg hover:bg-muted"
                   >
-                    <ChevronRight className="size-4" aria-hidden />
+                    <ChevronRight className="size-5" aria-hidden />
                   </Link>
                 ) : (
                   <span
                     aria-hidden
-                    className="flex size-9 items-center justify-center rounded-lg border border-border opacity-30"
+                    className="flex size-11 items-center justify-center opacity-30"
                   >
-                    <ChevronRight className="size-4" />
+                    <ChevronRight className="size-5" />
                   </span>
                 )}
               </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
-            <Tile
-              label="งานแจ้งซ่อม"
-              value={num(data.repairs.total)}
-              sub={
-                <Delta
-                  now={data.repairs.total}
-                  prev={data.repairs.total_prev}
-                />
-              }
-            />
-            <Tile
-              label="ซ่อมเสร็จ"
-              value={num(data.repairs.completed)}
-              sub={
-                data.repairs.total
-                  ? `${Math.round((data.repairs.completed / data.repairs.total) * 100)}% ของงานทั้งหมด`
-                  : undefined
-              }
-            />
-            <Tile label="ยังค้าง" value={num(data.repairs.open)} />
-            <Tile
-              label="เวลาซ่อมเฉลี่ย"
-              value={
-                data.repairs.avg_hours == null
-                  ? "–"
-                  : data.repairs.avg_hours >= 48
-                    ? `${num(data.repairs.avg_hours / 24, 1)} วัน`
-                    : `${num(data.repairs.avg_hours, 1)} ชม.`
-              }
-              sub="นับจากแจ้งถึงเสร็จ"
-            />
-            <Tile
-              label="เสร็จตามกำหนด"
-              value={
-                data.repairs.on_time_pct == null
-                  ? "–"
-                  : `${data.repairs.on_time_pct}%`
-              }
-              sub="ฉุกเฉิน 1 วัน · เร่งด่วน 3 · ปานกลาง 7 · ทั่วไป 14"
-            />
-            <Tile
-              label="การจองห้อง"
-              value={num(data.rooms.total)}
-              sub={
-                <Delta now={data.rooms.total} prev={data.rooms.total_prev} />
-              }
-            />
-            <Tile
-              label="ชั่วโมงใช้ห้อง"
-              value={num(data.rooms.hours, 1)}
-              sub={`อนุมัติ ${data.rooms.approved} · ปฏิเสธ ${data.rooms.rejected} · รอ ${data.rooms.pending}`}
-            />
-          </div>
+            <dl className="mt-2 divide-y divide-border">
+              <Row
+                label="งานแจ้งซ่อม"
+                value={num(data.repairs.total)}
+                sub={
+                  <Delta
+                    now={data.repairs.total}
+                    prev={data.repairs.total_prev}
+                  />
+                }
+              />
+              <Row
+                label="ซ่อมเสร็จ"
+                value={num(data.repairs.completed)}
+                sub={
+                  data.repairs.total
+                    ? `${Math.round((data.repairs.completed / data.repairs.total) * 100)}% ของงานทั้งหมด`
+                    : undefined
+                }
+              />
+              <Row label="ยังค้าง" value={num(data.repairs.open)} />
+              <Row
+                label="เวลาซ่อมเฉลี่ย"
+                value={
+                  data.repairs.avg_hours == null
+                    ? "–"
+                    : data.repairs.avg_hours >= 48
+                      ? `${num(data.repairs.avg_hours / 24, 1)} วัน`
+                      : `${num(data.repairs.avg_hours, 1)} ชม.`
+                }
+                sub="นับจากแจ้งถึงเสร็จ"
+              />
+              <Row
+                label="เสร็จตามกำหนด"
+                value={
+                  data.repairs.on_time_pct == null
+                    ? "–"
+                    : `${data.repairs.on_time_pct}%`
+                }
+                sub="ฉุกเฉิน 1 วัน · เร่งด่วน 3 · ปานกลาง 7 · ทั่วไป 14"
+              />
+              <Row
+                label="การจองห้อง"
+                value={num(data.rooms.total)}
+                sub={
+                  <Delta now={data.rooms.total} prev={data.rooms.total_prev} />
+                }
+              />
+              <Row
+                label="ชั่วโมงใช้ห้อง"
+                value={num(data.rooms.hours, 1)}
+                sub={`อนุมัติ ${data.rooms.approved} · ปฏิเสธ ${data.rooms.rejected} · รอ ${data.rooms.pending}`}
+              />
+            </dl>
+          </Section>
 
-          <div className="mt-4 grid gap-4 lg:grid-cols-2">
-            <Card
-              title="งานแจ้งซ่อมตามช่วงเวลา"
-              hint={period.bucket === "day" ? "รายวัน" : "รายเดือน"}
-            >
-              <Columns
-                label="แจ้งใหม่"
-                overlayLabel="ปิดงานแล้ว"
-                items={data.trend.map((t) => ({
-                  key: t.bucket,
-                  label: bucketLabel(t.bucket, period.bucket),
-                  value: t.tickets,
-                  overlay: t.completed,
-                }))}
-              />
-            </Card>
-            <Card title="การจองห้องประชุมตามช่วงเวลา" hint="เฉพาะที่อนุมัติ">
-              <Columns
-                label="การจอง"
-                items={data.trend.map((t) => ({
-                  key: t.bucket,
-                  label: bucketLabel(t.bucket, period.bucket),
-                  value: t.reservations,
-                }))}
-              />
-            </Card>
-          </div>
+          <Section
+            title="งานแจ้งซ่อมตามช่วงเวลา"
+            hint={period.bucket === "day" ? "รายวัน" : "รายเดือน"}
+          >
+            <Columns
+              label="แจ้งใหม่"
+              overlayLabel="ปิดงานแล้ว"
+              items={data.trend.map((t) => ({
+                key: t.bucket,
+                label: bucketLabel(t.bucket, period.bucket),
+                value: t.tickets,
+                overlay: t.completed,
+              }))}
+            />
+          </Section>
+          <Section title="การจองห้องประชุมตามช่วงเวลา" hint="เฉพาะที่อนุมัติ">
+            <Columns
+              label="การจอง"
+              items={data.trend.map((t) => ({
+                key: t.bucket,
+                label: bucketLabel(t.bucket, period.bucket),
+                value: t.reservations,
+              }))}
+            />
+          </Section>
 
-          <h2 className="mt-8 mb-3 font-display text-lg font-semibold">
-            จุดเสียบ่อยและความเสี่ยง
-          </h2>
-          <div className="grid gap-4 lg:grid-cols-3">
-            <Card title="อาคาร/สถานที่ที่แจ้งซ่อมมากที่สุด">
-              <HBars
-                rows={data.repairs.by_building.map((b) => ({
-                  label: b.name,
-                  value: b.total,
-                  extra: b.open ? `ค้าง ${b.open}` : undefined,
-                }))}
-                unit="งาน"
-                empty="ไม่มีงานแจ้งซ่อมในช่วงนี้"
-              />
-            </Card>
-            <Card
-              title="จุดที่แจ้งซ้ำ"
-              hint="ห้องเดียวกันแจ้งตั้งแต่ 2 ครั้งขึ้นไป"
-            >
-              {data.repairs.repeat_spots.length ? (
-                <ul className="space-y-2 text-sm">
-                  {data.repairs.repeat_spots.map((s) => (
-                    <li
-                      key={`${s.building}-${s.place}`}
-                      className="flex items-baseline justify-between gap-3"
-                    >
-                      <span className="min-w-0 truncate">
-                        {s.building} · {s.place}
-                      </span>
-                      <span className="shrink-0 tabular-nums text-muted-foreground">
-                        {s.reports} ครั้ง
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  ไม่มีจุดที่แจ้งซ้ำในช่วงนี้
-                </p>
-              )}
-            </Card>
-            <Card title="งานค้างนานที่สุด" hint="5 งานแรกที่ยังไม่เสร็จ">
-              {data.today.oldest_open.length ? (
-                <ul className="space-y-2 text-sm">
-                  {data.today.oldest_open.map((o, i) => (
+          <Section title="อาคาร/สถานที่ที่แจ้งซ่อมมากที่สุด">
+            <HBars
+              rows={data.repairs.by_building.map((b) => ({
+                label: b.name,
+                value: b.total,
+                extra: b.open ? `ค้าง ${b.open}` : undefined,
+              }))}
+              unit="งาน"
+              empty="ไม่มีงานแจ้งซ่อมในช่วงนี้"
+            />
+          </Section>
+          <Section
+            title="จุดที่แจ้งซ้ำ"
+            hint="ห้องเดียวกันแจ้งตั้งแต่ 2 ครั้งขึ้นไป"
+          >
+            {data.repairs.repeat_spots.length ? (
+              <ul className="divide-y divide-border">
+                {data.repairs.repeat_spots.map((s) => (
+                  <li
+                    key={`${s.building}-${s.place}`}
+                    className="flex min-h-11 items-center justify-between gap-3 py-2"
+                  >
+                    <span className="min-w-0 truncate">
+                      {s.building} · {s.place}
+                    </span>
+                    <span className="shrink-0 tabular-nums text-muted-foreground">
+                      {s.reports} ครั้ง
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                ไม่มีจุดที่แจ้งซ้ำในช่วงนี้
+              </p>
+            )}
+          </Section>
+          <Section title="งานค้างนานที่สุด" hint="5 งานแรกที่ยังไม่เสร็จ">
+            {data.today.oldest_open.length ? (
+              <ul className="divide-y divide-border">
+                {data.today.oldest_open.map((o, i) => {
+                  const hot = o.urgency === "emergency" || o.urgency === "high";
+                  return (
                     <li
                       key={i}
-                      className="flex items-baseline justify-between gap-3"
+                      className="flex min-h-11 items-center justify-between gap-3 py-2"
                     >
                       <span className="min-w-0 truncate">
                         {o.building}
@@ -510,27 +503,30 @@ export function SummaryView({
                       </span>
                       <span
                         className={cn(
-                          "shrink-0 tabular-nums",
-                          o.urgency === "emergency" || o.urgency === "high"
+                          "inline-flex shrink-0 items-center gap-1 tabular-nums",
+                          hot
                             ? "font-medium text-destructive"
                             : "text-muted-foreground",
                         )}
                       >
+                        {hot && (
+                          <AlertTriangle className="size-4" aria-hidden />
+                        )}
                         {URGENCY[o.urgency]} · {o.age_days} วัน
                       </span>
                     </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-muted-foreground">ไม่มีงานค้าง</p>
-              )}
-            </Card>
-          </div>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground">ไม่มีงานค้าง</p>
+            )}
+          </Section>
 
-          <h2 className="mt-8 mb-3 font-display text-lg font-semibold">
-            การใช้ห้องประชุม
-          </h2>
-          <Card title="ชั่วโมงใช้งานแยกตามห้อง" hint="เฉพาะการจองที่อนุมัติ">
+          <Section
+            title="ชั่วโมงใช้ห้องประชุมแยกตามห้อง"
+            hint="เฉพาะการจองที่อนุมัติ"
+          >
             <HBars
               rows={data.rooms.by_room.map((r) => ({
                 label: r.name,
@@ -540,13 +536,13 @@ export function SummaryView({
               unit="ชม."
               empty="ไม่มีการจองที่อนุมัติในช่วงนี้"
             />
-          </Card>
-          <p className="mt-6 text-xs text-muted-foreground">
+          </Section>
+          <p className="text-xs text-muted-foreground">
             งานซ้ำที่ถูกรวมแล้วนับเป็นงานเดียว เทียบกับช่วงก่อนหน้าที่ยาวเท่ากัน
             ตัวเลขอัปเดตทุก {REFRESH_MS / 1000} วินาทีขณะเปิดหน้านี้
           </p>
         </>
       )}
-    </>
+    </div>
   );
 }
