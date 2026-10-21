@@ -21,7 +21,7 @@ export function TrashButton({ id }: { id: string }) {
       className="mt-4 border-t border-border pt-4"
     >
       <input type="hidden" name="ids" value={id} />
-      <Button type="submit" variant="ghost" className="w-full text-destructive">
+      <Button type="submit" variant="ghost" className="h-11 w-full text-destructive">
         <Trash2 aria-hidden />
         ย้ายไปถังขยะ
       </Button>

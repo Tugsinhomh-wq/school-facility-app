@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import type { TicketRow } from "@/types/tickets";
 
 const selectClass =
-  "h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30 dark:[&>option]:bg-card";
+  "h-11 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 /** Staff: merge a repeat report into the main ticket, see who else reported it, or split it out. */
 export function MergePanel({
@@ -61,7 +61,7 @@ export function MergePanel({
             type="submit"
             variant="outline"
             disabled={pending}
-            className="w-full"
+            className="h-11 w-full"
           >
             แยกออกจากงานหลัก
           </Button>
@@ -92,7 +92,7 @@ export function MergePanel({
             type="submit"
             variant="outline"
             disabled={pending}
-            className="w-full"
+            className="h-11 w-full"
           >
             รวมเป็นรายงานซ้ำ
           </Button>
@@ -111,7 +111,7 @@ export function MergePanel({
           className={cn(
             "text-sm",
             state.ok
-              ? "text-emerald-600 dark:text-emerald-400"
+              ? "text-emerald-800"
               : "text-destructive",
           )}
         >

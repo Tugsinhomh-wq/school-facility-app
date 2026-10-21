@@ -42,7 +42,7 @@ export function BulkTrashBar() {
         )
           e.preventDefault();
       }}
-      className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card/85 px-3 py-2"
+      className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2"
     >
       <Button type="button" variant="ghost" size="sm" onClick={toggleAll}>
         เลือก/ล้างทั้งหมดในหน้านี้

@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import type { TicketRow } from "@/types/tickets";
 
 const selectClass =
-  "h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30 dark:[&>option]:bg-card";
+  "h-11 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 export function TicketManageForm({ ticket }: { ticket: TicketRow }) {
   const [state, action, pending] = useActionState<UpdateResult, FormData>(
@@ -48,6 +48,7 @@ export function TicketManageForm({ ticket }: { ticket: TicketRow }) {
         <Label htmlFor="estimated_cost">ค่าใช้จ่ายประมาณการ (บาท)</Label>
         <Input
           id="estimated_cost"
+          className="h-11"
           name="estimated_cost"
           inputMode="decimal"
           defaultValue={Number(ticket.estimated_cost) || ""}
@@ -84,14 +85,14 @@ export function TicketManageForm({ ticket }: { ticket: TicketRow }) {
           className={cn(
             "text-sm",
             state.ok
-              ? "text-emerald-600 dark:text-emerald-400"
+              ? "text-emerald-800"
               : "text-destructive",
           )}
         >
           {state.message}
         </p>
       )}
-      <Button type="submit" disabled={pending || busy} className="w-full">
+      <Button type="submit" disabled={pending || busy} className="h-11 w-full text-base">
         {pending
           ? "กำลังบันทึก..."
           : busy
