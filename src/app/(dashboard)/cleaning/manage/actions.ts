@@ -228,7 +228,8 @@ export async function importClassrooms(_prev: SetupResult, formData: FormData): 
 
 /**
  * Start a new term from an old one: copy its active classrooms and their advisors. Rooms whose
- * name is already in the new term are skipped, so running it twice adds nothing.
+ * name is already in the new term are not created again; if such a room has no advisors (an
+ * earlier run failed half way) they are copied in, so running it again repairs it.
  */
 export async function rolloverTerm(_prev: SetupResult, formData: FormData): Promise<SetupResult> {
   const from = field(formData, "from_term");
@@ -245,7 +246,7 @@ export async function rolloverTerm(_prev: SetupResult, formData: FormData): Prom
       .select("name, building_id, zone, advisors:classroom_advisors(user_id)")
       .eq("term", from)
       .eq("is_active", true),
-    db.from("classrooms").select("name").eq("term", to),
+    db.from("classrooms").select("id, name, advisors:classroom_advisors(user_id)").eq("term", to),
   ]);
   if (source.error || target.error) return { ok: false, message: "โหลดข้อมูลภาคเรียนไม่สำเร็จ ลองใหม่อีกครั้ง" };
   const rooms = source.data as {
@@ -255,25 +256,33 @@ export async function rolloverTerm(_prev: SetupResult, formData: FormData): Prom
     advisors: { user_id: string }[] | null;
   }[];
   if (rooms.length === 0) return { ok: false, message: `ไม่พบห้องที่ใช้งานในภาคเรียน ${from}` };
-  const present = new Set((target.data as { name: string }[]).map((r) => r.name));
+  const existing = target.data as { id: string; name: string; advisors: unknown[] | null }[];
+  const present = new Set(existing.map((r) => r.name));
   const missing = rooms.filter((r) => !present.has(r.name));
-  if (missing.length === 0)
+  const bare = existing.filter((r) => (r.advisors ?? []).length === 0);
+  if (missing.length === 0 && bare.length === 0)
     return { ok: true, message: `ภาคเรียน ${to} มีครบทุกห้องแล้ว (ข้าม ${rooms.length} ห้อง)` };
 
   // ignoreDuplicates: a room added meanwhile (or a double submit) is skipped, not duplicated.
-  const { data: created, error } = await db
-    .from("classrooms")
-    .upsert(
-      missing.map((r) => ({ term: to, name: r.name, building_id: r.building_id, zone: r.zone })),
-      { onConflict: "term,name", ignoreDuplicates: true },
-    )
-    .select("id, name");
+  const { data: created, error } =
+    missing.length === 0
+      ? { data: [], error: null }
+      : await db
+          .from("classrooms")
+          .upsert(
+            missing.map((r) => ({ term: to, name: r.name, building_id: r.building_id, zone: r.zone })),
+            { onConflict: "term,name", ignoreDuplicates: true },
+          )
+          .select("id, name");
   if (error || !created) return { ok: false, message: "คัดลอกไม่สำเร็จ ยังไม่ได้บันทึกข้อมูลใด ลองใหม่อีกครั้ง" };
 
-  const advisorsOf = new Map(missing.map((r) => [r.name, (r.advisors ?? []).map((a) => a.user_id)]));
+  const advisorsOf = new Map(rooms.map((r) => [r.name, (r.advisors ?? []).map((a) => a.user_id)]));
   const advisorsOk = await setAdvisors(
     db,
-    (created as { id: string; name: string }[]).map((r) => ({ classroomId: r.id, ids: advisorsOf.get(r.name) ?? [] })),
+    [...(created as { id: string; name: string }[]), ...bare].map((r) => ({
+      classroomId: r.id,
+      ids: advisorsOf.get(r.name) ?? [],
+    })),
   );
   revalidate();
   const skipped = rooms.length - created.length;

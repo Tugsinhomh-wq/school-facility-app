@@ -8,7 +8,7 @@ import {
   createSummaryMemo,
 } from "@/app/(dashboard)/memos/actions";
 import { recentPeriods } from "@/lib/summary-period";
-import { getMemoList, isStaff } from "@/lib/data/memos";
+import { getMemoList } from "@/lib/data/memos";
 import {
   APPROVAL_LABEL,
   formatDateTh,
@@ -16,7 +16,7 @@ import {
   URGENCY_LABEL,
 } from "@/lib/ticket-meta";
 
-import { guardExecutive } from "@/lib/data/session";
+import { guardExecutive, isRoomManager } from "@/lib/data/session";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -31,7 +31,7 @@ export default async function MemosPage({
   await guardExecutive();
   const { error } = await searchParams;
   const list = await getMemoList();
-  const allowed = !list.viewer || isStaff(list.viewer);
+  const allowed = !list.viewer || isRoomManager(list.viewer.role);
 
   return (
     <>

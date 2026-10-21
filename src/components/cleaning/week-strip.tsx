@@ -59,13 +59,15 @@ export function WeekStrip({
   days,
   selected,
   onSelect,
+  label = "สถานะรายวันของสัปดาห์นี้",
 }: {
   days: WeekDay[];
   selected?: string | null;
   onSelect?: (ymd: string) => void;
+  label?: string;
 }) {
   return (
-    <ol className="grid grid-cols-5 gap-1.5" aria-label="สถานะรายวันของสัปดาห์นี้">
+    <ol className="grid grid-cols-5 gap-1.5" aria-label={label}>
       {days.map((d) => {
         const look = LOOK[d.state];
         const Icon = look.icon;

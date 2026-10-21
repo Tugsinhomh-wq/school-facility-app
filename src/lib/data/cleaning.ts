@@ -97,13 +97,14 @@ export async function getMyClassrooms(): Promise<{
     if (mine.error) return { rows: [], failed: true };
     const ids = mine.data.map((r) => r.classroom_id as string);
     if (ids.length === 0) return { rows: [] };
-    const { data, error } = await s.supabase
-      .from("classrooms")
-      .select(CLASSROOM_SELECT)
-      .in("id", ids)
-      .eq("is_active", true);
-    if (error) return { rows: [], failed: true };
-    return { rows: toRows(data) };
+    // The latest term is global, as for officers: after a rollover, old-term rooms drop out. RLS
+    // shows a teacher only their own rooms, so the term comes from a SECURITY DEFINER function.
+    const [mineRows, term] = await Promise.all([
+      s.supabase.from("classrooms").select(CLASSROOM_SELECT).in("id", ids).eq("is_active", true),
+      s.supabase.rpc("latest_classroom_term"),
+    ]);
+    if (mineRows.error || term.error) return { rows: [], failed: true };
+    return { rows: toRows((mineRows.data as RawClassroom[]).filter((r) => r.term === term.data)) };
   } catch {
     return { rows: [], failed: true };
   }

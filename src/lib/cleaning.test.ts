@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { compareRoomNames, dayState, overviewOrder, weekGrid, weekTally, type Confirmation } from "./cleaning.ts";
+import { compareRoomNames, dayState, lateReachable, overviewOrder, weekGrid, weekTally, type Confirmation } from "./cleaning.ts";
 
 const today = "2026-10-21"; // Wednesday
 const none = new Set<string>();
@@ -60,4 +60,13 @@ test("week tally counts confirmed and late out of due days; pending, off and fut
   const states = ["confirmed", "late", "missed", "pending", "off"] as const;
   assert.deepEqual(weekTally(states.map((state) => ({ state }))), { done: 2, due: 3 });
   assert.deepEqual(weekTally([{ state: "future" }, { state: "off" }]), { done: 0, due: 0 });
+});
+
+test("lateReachable keeps missed days of last week within 7 days of today", () => {
+  const lastMonday = "2026-10-12";
+  const lastWeek = weekGrid({ monday: lastMonday, today, offDays: new Set(["2026-10-15"]), confirmations: new Map([["2026-10-13", ok]]) });
+  // Wednesday 21st: Mon 12th and Tue 13th (confirmed) are too old / done, 14th and 16th are reachable, 15th is a holiday.
+  assert.deepEqual(lateReachable(lastWeek, today).map((d) => d.ymd), ["2026-10-14", "2026-10-16"]);
+  // Monday 19th: the whole of last week is within 7 days except nothing older than the 12th.
+  assert.deepEqual(lateReachable(lastWeek, "2026-10-19").map((d) => d.ymd), ["2026-10-12", "2026-10-14", "2026-10-16"]);
 });

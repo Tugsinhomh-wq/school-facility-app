@@ -42,12 +42,15 @@ export function ConfirmCard({
   today,
   todayStatus,
   days,
+  earlier,
 }: {
   classroom: ClassroomRow;
   /** Bangkok date, computed on the server. */
   today: string;
   todayStatus: WeekDay;
   days: WeekDay[];
+  /** Missed days of last week that are still within the 7-day late window. */
+  earlier: WeekDay[];
 }) {
   const [state, action, pending] = useActionState<
     ConfirmResult | null,
@@ -58,11 +61,12 @@ export function ConfirmCard({
 
   // A picked day drops out by itself once it is confirmed (the page re-renders with fresh data).
   const late =
-    selected && days.find((d) => d.ymd === selected)?.state === "missed"
+    selected &&
+    [...earlier, ...days].find((d) => d.ymd === selected)?.state === "missed"
       ? selected
       : null;
   const target = late ?? (todayStatus.state === "pending" ? today : null);
-  const hasMissed = days.some((d) => d.state === "missed");
+  const hasMissed = earlier.length > 0 || days.some((d) => d.state === "missed");
   const pill = PILL[todayStatus.state] ?? PILL.off;
   const done = todayStatus.confirmation;
 
@@ -171,6 +175,22 @@ export function ConfirmCard({
       )}
 
       <div className="space-y-1.5">
+        {earlier.length > 0 && (
+          <>
+            <p className="text-xs font-medium text-muted-foreground">
+              สัปดาห์ที่แล้ว
+            </p>
+            <WeekStrip
+              days={earlier}
+              selected={late}
+              onSelect={setSelected}
+              label="วันของสัปดาห์ที่แล้วที่ยังยืนยันย้อนหลังได้"
+            />
+            <p className="text-xs font-medium text-muted-foreground">
+              สัปดาห์นี้
+            </p>
+          </>
+        )}
         <WeekStrip days={days} selected={late} onSelect={setSelected} />
         {hasMissed && !late && (
           <p className="text-xs text-muted-foreground">

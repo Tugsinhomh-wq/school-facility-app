@@ -173,7 +173,7 @@ BEGIN
     RAISE EXCEPTION 'วันเสาร์-อาทิตย์ไม่ต้องยืนยัน' USING ERRCODE = 'P0001';
   END IF;
   IF EXISTS (SELECT 1 FROM public.school_off_days o WHERE o.day = p_day) THEN
-    RAISE EXCEPTION 'วันนี้เป็นวันหยุดหรือปิดเรียน ไม่ต้องยืนยัน' USING ERRCODE = 'P0001';
+    RAISE EXCEPTION 'วันที่เลือกเป็นวันหยุดหรือปิดเรียน ไม่ต้องยืนยัน' USING ERRCODE = 'P0001';
   END IF;
 
   IF cardinality(v_photos) > 4 THEN
@@ -199,6 +199,15 @@ BEGIN
   END IF;
   RETURN 'confirmed';
 END $$;
+-- The newest term with active classrooms, readable by any signed-in user (RLS shows a teacher only
+-- their own rooms, so the app cannot work this out itself). Old-term rooms drop out after a rollover.
+CREATE OR REPLACE FUNCTION public.latest_classroom_term()
+RETURNS TEXT LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
+  SELECT max(term) FROM public.classrooms WHERE is_active;
+$$;
+REVOKE EXECUTE ON FUNCTION public.latest_classroom_term() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.latest_classroom_term() TO authenticated;
+
 REVOKE EXECUTE ON FUNCTION public.confirm_cleaning(UUID, DATE, TEXT[]) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.confirm_cleaning(UUID, DATE, TEXT[]) TO authenticated;
 

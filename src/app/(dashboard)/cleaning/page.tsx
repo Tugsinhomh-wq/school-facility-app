@@ -11,14 +11,14 @@ import {
 } from "@/components/cleaning/officer-overview";
 import type { RoomToday } from "@/components/cleaning/room-grid";
 import { EmptyState, LoadError } from "@/components/ui/state-card";
-import { dayState, weekGrid } from "@/lib/cleaning";
+import { dayState, lateReachable, weekGrid } from "@/lib/cleaning";
 import {
   getAllClassrooms,
   getMyClassrooms,
   getWeek,
 } from "@/lib/data/cleaning";
 import { getSession, guardExecutive, isFacilityOfficer } from "@/lib/data/session";
-import { bangkokYmd, formatDayLong, isYmd, mondayOf } from "@/lib/time";
+import { addDays, bangkokYmd, formatDayLong, isYmd, mondayOf } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -94,11 +94,14 @@ async function TeacherView({
     );
 
   const monday = mondayOf(today);
-  const week = await getWeek(
-    mine.rows.map((r) => r.id),
-    monday,
-  );
-  if (week.failed) return <LoadError what="สถานะการยืนยัน" retryHref={retryHref} />;
+  const ids = mine.rows.map((r) => r.id);
+  // Last week too: the RPC accepts a day up to 7 days back, which can fall in the previous week.
+  const lastMonday = addDays(monday, -7);
+  const [week, prev] = await Promise.all([
+    getWeek(ids, monday),
+    getWeek(ids, lastMonday),
+  ]);
+  if (week.failed || prev.failed) return <LoadError what="สถานะการยืนยัน" retryHref={retryHref} />;
 
   return (
     <div className="grid max-w-xl gap-4">
@@ -110,6 +113,15 @@ async function TeacherView({
           offDays: week.offDays,
           confirmations,
         });
+        const earlier = lateReachable(
+          weekGrid({
+            monday: lastMonday,
+            today,
+            offDays: prev.offDays,
+            confirmations: prev.confirmations.get(room.id) ?? new Map(),
+          }),
+          today,
+        );
         const confirmation = confirmations.get(today) ?? null;
         const todayStatus = {
           ymd: today,
@@ -123,6 +135,7 @@ async function TeacherView({
             today={today}
             todayStatus={todayStatus}
             days={days}
+            earlier={earlier}
           />
         );
       })}

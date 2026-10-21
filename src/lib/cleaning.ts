@@ -30,6 +30,13 @@ export function weekGrid<C extends Confirmation>({ monday, today, offDays, confi
   });
 }
 
+/**
+ * Last week's days a teacher can still confirm late: missed, and within 7 calendar days of today
+ * (the limit of the `confirm_cleaning` RPC). `lastWeek` is that week's Mon-Fri grid.
+ */
+export const lateReachable = <D extends { ymd: string; state: DayState }>(lastWeek: D[], today: string) =>
+  lastWeek.filter((d) => d.state === "missed" && d.ymd >= addDays(today, -7));
+
 /** "ม.3/2" before "ม.3/10": compare numbers inside room names by value, not by character. */
 export const compareRoomNames = (a: string, b: string) =>
   a.localeCompare(b, "th", { numeric: true });

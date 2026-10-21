@@ -13,8 +13,6 @@ const hasSupabase = () =>
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   );
-export const isStaff = (viewer: Viewer | null) =>
-  isRoomManager(viewer?.role);
 
 const MOCK_AUTHOR = {
   full_name: "นายสมชาย รักงาน",
@@ -50,7 +48,7 @@ export async function getMemoList(): Promise<MemoList> {
   try {
     const s = await getSession();
     if (!s) return mock();
-    if (!isStaff(s.viewer))
+    if (!isRoomManager(s.viewer?.role))
       return {
         source: "supabase",
         viewer: s.viewer,
