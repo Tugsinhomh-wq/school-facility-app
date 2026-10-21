@@ -1,7 +1,6 @@
 import Image from "next/image";
 
 import { LoginForm } from "@/components/auth/login-form";
-import { GridPattern } from "@/components/ui/grid-pattern";
 
 export const metadata = {
   title: "เข้าสู่ระบบ | สำนักงานออนไลน์ โรงเรียนละหานทรายรัชดาภิเษก",
@@ -15,13 +14,8 @@ export default async function LoginPage({
   const { error } = await searchParams;
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10">
-      <GridPattern
-        width={32}
-        height={32}
-        className="stroke-primary/10 fill-primary/5 [mask-image:radial-gradient(ellipse_at_center,white,transparent_75%)]"
-      />
-      <main className="relative w-full max-w-sm">
+    <div className="flex min-h-screen items-center justify-center px-4 py-10">
+      <main className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center text-center">
           <Image
             src="/logo.png"
@@ -29,16 +23,16 @@ export default async function LoginPage({
             width={640}
             height={1016}
             priority
-            className="h-28 w-auto drop-shadow-[0_8px_24px_rgba(0,0,0,.3)]"
+            className="h-24 w-auto"
           />
-          <h1 className="font-display mt-4 text-2xl font-bold leading-tight">
+          <h1 className="font-display mt-4 text-2xl font-medium leading-tight">
             สำนักงานออนไลน์
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             โรงเรียนละหานทรายรัชดาภิเษก
           </p>
         </div>
-        <div className="rounded-xl border border-border bg-card/90 p-6 backdrop-blur-sm">
+        <div className="border-t border-border pt-6">
           <LoginForm
             googleEnabled={process.env.NEXT_PUBLIC_GOOGLE_LOGIN === "1"}
             initialError={
@@ -52,11 +46,17 @@ export default async function LoginPage({
             }
           />
         </div>
-        <p className="mt-4 flex justify-center gap-4 text-xs text-muted-foreground">
-          <a href="/privacy" className="hover:text-foreground">
+        <p className="mt-6 flex justify-center gap-2 text-sm text-muted-foreground">
+          <a
+            href="/privacy"
+            className="flex min-h-11 items-center px-2 hover:text-foreground"
+          >
             นโยบายความเป็นส่วนตัว
           </a>
-          <a href="/terms" className="hover:text-foreground">
+          <a
+            href="/terms"
+            className="flex min-h-11 items-center px-2 hover:text-foreground"
+          >
             เงื่อนไขการใช้งาน
           </a>
         </p>

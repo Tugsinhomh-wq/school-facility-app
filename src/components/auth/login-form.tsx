@@ -46,7 +46,7 @@ export function LoginForm({
               type="submit"
               variant="outline"
               size="lg"
-              className="w-full"
+              className="h-11 w-full"
             >
               <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
                 <path
@@ -107,9 +107,9 @@ export function LoginForm({
             aria-selected={mode === value}
             onClick={() => setMode(value)}
             className={cn(
-              "rounded-md py-1.5 font-medium transition-colors",
+              "min-h-11 rounded-md font-medium transition-colors",
               mode === value
-                ? "bg-card text-foreground shadow-sm"
+                ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
@@ -127,6 +127,7 @@ export function LoginForm({
           <div className="space-y-1.5">
             <Label htmlFor="full_name">ชื่อ-นามสกุล</Label>
             <Input
+              className="h-11 text-base"
               id="full_name"
               name="full_name"
               autoComplete="name"
@@ -138,6 +139,7 @@ export function LoginForm({
         <div className="space-y-1.5">
           <Label htmlFor="email">อีเมล</Label>
           <Input
+            className="h-11 text-base"
             id="email"
             name="email"
             type="email"
@@ -149,6 +151,7 @@ export function LoginForm({
         <div className="space-y-1.5">
           <Label htmlFor="password">รหัสผ่าน</Label>
           <Input
+            className="h-11 text-base"
             id="password"
             name="password"
             type="password"
@@ -164,12 +167,12 @@ export function LoginForm({
         </div>
 
         {!isSignIn && (
-          <label className="flex items-start gap-2 text-sm">
+          <label className="flex min-h-11 items-start gap-2 text-sm">
             <input
               type="checkbox"
               name="accept"
               required
-              className="mt-1 size-4 shrink-0"
+              className="mt-0.5 size-5 shrink-0 accent-[var(--primary)]"
             />
             <span>
               ฉันยอมรับ{" "}
@@ -189,16 +192,19 @@ export function LoginForm({
             role={state?.ok ? "status" : "alert"}
             className={cn(
               "text-sm",
-              state?.ok
-                ? "text-emerald-600 dark:text-emerald-400"
-                : "text-destructive",
+              state?.ok ? "text-emerald-700" : "text-destructive",
             )}
           >
             {message}
           </p>
         )}
 
-        <Button type="submit" size="lg" disabled={pending} className="w-full">
+        <Button
+          type="submit"
+          size="lg"
+          disabled={pending}
+          className="h-11 w-full"
+        >
           {pending
             ? "กำลังดำเนินการ..."
             : isSignIn
