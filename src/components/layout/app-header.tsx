@@ -6,21 +6,20 @@ import { UserMenu } from "@/components/dashboard/user-menu";
 import { SiteNav, type NavItem } from "@/components/layout/site-nav";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import type { Viewer } from "@/lib/data/dashboard";
+import { visibleModules } from "@/lib/modules";
 
-/** The navigation bar shared by every page. Memos are for staff, the summary for executives and the administrator. */
+/** The navigation bar shared by every page. Modules come from the registry; memos are for staff, the summary for executives and the administrator. */
 export function AppHeader({ viewer }: { viewer: Viewer | null }) {
+  const role = viewer?.role ?? null;
   const summary: NavItem = { href: "/summary", label: "สรุปภาพรวม" };
   const items: NavItem[] =
-    viewer?.role === "executive"
+    role === "executive"
       ? [summary, { href: "/account", label: "บัญชีของฉัน" }] // executives: the summary page and their own account
       : [
           { href: "/", label: "แดชบอร์ด" },
-          { href: "/tickets", label: "รายการแจ้งซ่อม" },
-          { href: "/meeting-rooms", label: "ขอใช้ห้องประชุม" },
-          ...(!viewer || viewer.role !== "user"
-            ? [{ href: "/memos", label: "บันทึกข้อความ" }]
-            : []),
-          ...(viewer?.role === "super_admin"
+          ...visibleModules(role).map(({ href, label, soon }) => ({ href, label, soon })),
+          ...(role !== "user" ? [{ href: "/memos", label: "บันทึกข้อความ" }] : []),
+          ...(role === "super_admin"
             ? [
                 summary,
                 { href: "/feedback", label: "ความคิดเห็น" },

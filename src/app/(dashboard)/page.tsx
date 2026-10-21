@@ -4,6 +4,7 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DashboardTabs } from "@/components/dashboard/dashboard-tabs";
 import { DocumentHub } from "@/components/dashboard/document-hub";
 import { LiveRoomStatus } from "@/components/dashboard/live-room-status";
+import { ModuleMenu } from "@/components/dashboard/module-menu";
 import { MeetingTicker } from "@/components/dashboard/meeting-ticker";
 import { QuickReportCard } from "@/components/dashboard/quick-report-card";
 import { LoadError } from "@/components/ui/state-card";
@@ -114,6 +115,7 @@ export default async function DashboardPage({
         <MeetingTicker meetings={base.todayMeetings} />
       </div>
       <DashboardHeader base={base} />
+      <ModuleMenu role={base.viewer?.role ?? null} />
       <DashboardTabs active={tab} />
       {tab === "rooms" ? <Rooms base={base} /> : <Repairs base={base} />}
     </>
