@@ -1,13 +1,13 @@
 import { AlertCircle, TriangleAlert } from "lucide-react";
 
-import { TICKET_TONE, TONE } from "@/components/dashboard/home-actions";
-import { STATUS_LABEL, URGENCY_LABEL } from "@/lib/ticket-meta";
+import { APPROVAL_TONE, TICKET_TONE, TONE } from "@/components/dashboard/home-actions";
+import { APPROVAL_LABEL, STATUS_LABEL, URGENCY_LABEL } from "@/lib/ticket-meta";
 import { cn } from "@/lib/utils";
-import type { TicketStatus, UrgencyLevel } from "@/types/database";
+import type { ApprovalStatus, TicketStatus, UrgencyLevel } from "@/types/database";
 
-/** Status as icon + word + colour on a light wash, the same tones as the home rows. */
-export function StatusPill({ status, className }: { status: TicketStatus; className?: string }) {
-  const tone = TONE[TICKET_TONE[status]];
+type PillTone = (typeof TONE)[keyof typeof TONE];
+
+function Pill({ tone, label, className }: { tone: PillTone; label: string; className?: string }) {
   return (
     <span
       className={cn(
@@ -17,9 +17,19 @@ export function StatusPill({ status, className }: { status: TicketStatus; classN
       )}
     >
       <tone.icon className="size-4" aria-hidden />
-      {STATUS_LABEL[status]}
+      {label}
     </span>
   );
+}
+
+/** Status as icon + word + colour on a light wash, the same tones as the home rows. */
+export function StatusPill({ status, className }: { status: TicketStatus; className?: string }) {
+  return <Pill tone={TONE[TICKET_TONE[status]]} label={STATUS_LABEL[status]} className={className} />;
+}
+
+/** A memo's approval state, the same pill. */
+export function ApprovalPill({ status, className }: { status: ApprovalStatus; className?: string }) {
+  return <Pill tone={TONE[APPROVAL_TONE[status]]} label={APPROVAL_LABEL[status]} className={className} />;
 }
 
 /** High and emergency get a restrained icon + coloured word; the rest is plain grey text. */

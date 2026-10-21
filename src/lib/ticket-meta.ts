@@ -21,13 +21,6 @@ export const URGENCY_LABEL: Record<UrgencyLevel, string> = {
   emergency: "ฉุกเฉิน",
 };
 
-export const URGENCY_CLASS: Record<UrgencyLevel, string> = {
-  low: "bg-slate-100 text-slate-700 dark:bg-slate-500/20 dark:text-slate-300",
-  medium: "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300",
-  high: "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300",
-  emergency: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300",
-};
-
 export const APPROVAL_LABEL: Record<ApprovalStatus, string> = {
   pending: "รอพิจารณา",
   approved: "อนุมัติแล้ว",
