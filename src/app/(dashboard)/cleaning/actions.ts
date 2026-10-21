@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { getConfirmationPhotos } from "@/lib/data/cleaning";
 import { getAuth } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { bangkokYmd, formatDayLong, isYmd } from "@/lib/time";
@@ -96,4 +97,13 @@ export async function confirmCleaning(
         ? `บันทึกการยืนยันย้อนหลังของ${formatDayLong(day)}แล้ว`
         : `บันทึกการยืนยันของ${formatDayLong(day)}แล้ว ขอบคุณที่ยืนยัน`,
   };
+}
+
+/** Officer overview: signed URLs for one confirmation's photos, fetched only when the officer opens them. */
+export async function loadCleaningPhotos(
+  classroomId: string,
+  day: string,
+): Promise<{ urls: string[] } | { failed: true }> {
+  if (!UUID.test(classroomId) || !isYmd(day)) return { failed: true };
+  return getConfirmationPhotos(classroomId, day);
 }

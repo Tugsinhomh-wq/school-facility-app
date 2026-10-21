@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { dayState, weekGrid, type Confirmation } from "./cleaning.ts";
+import { compareRoomNames, dayState, overviewOrder, weekGrid, weekTally, type Confirmation } from "./cleaning.ts";
 
 const today = "2026-10-21"; // Wednesday
 const none = new Set<string>();
@@ -41,4 +41,23 @@ test("weekGrid returns Mon-Fri", () => {
   assert.deepEqual(grid.map((g) => g.state), ["missed", "confirmed", "pending", "future", "future"]);
   assert.equal(grid[1].confirmation, ok);
   assert.equal(grid[0].confirmation, null);
+});
+
+test("room names sort by number, not by character", () => {
+  assert.deepEqual(["ม.3/10", "ม.3/2", "ม.1/1"].sort(compareRoomNames), ["ม.1/1", "ม.3/2", "ม.3/10"]);
+});
+
+test("overview puts missing rooms first, each group by name", () => {
+  const rows = [{ name: "ม.1/2" }, { name: "ม.3/10" }, { name: "ม.1/1" }, { name: "ม.3/2" }];
+  const missing = new Set(["ม.3/10", "ม.3/2"]);
+  assert.deepEqual(
+    overviewOrder(rows, (r) => missing.has(r.name), (r) => r.name).map((r) => r.name),
+    ["ม.3/2", "ม.3/10", "ม.1/1", "ม.1/2"],
+  );
+});
+
+test("week tally counts confirmed and late out of due days; pending, off and future are not due", () => {
+  const states = ["confirmed", "late", "missed", "pending", "off"] as const;
+  assert.deepEqual(weekTally(states.map((state) => ({ state }))), { done: 2, due: 3 });
+  assert.deepEqual(weekTally([{ state: "future" }, { state: "off" }]), { done: 0, due: 0 });
 });

@@ -1,5 +1,6 @@
 import { BentoGrid } from "@/components/ui/bento-grid";
 import { BuildingMatrix } from "@/components/dashboard/building-matrix";
+import { CleaningToday } from "@/components/dashboard/cleaning-today";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DashboardTabs } from "@/components/dashboard/dashboard-tabs";
 import { DocumentHub } from "@/components/dashboard/document-hub";
@@ -15,6 +16,7 @@ import {
   PendingReservations,
   TodayMeetings,
 } from "@/components/dashboard/reservation-cards";
+import { getMyToday, getTodayCounts } from "@/lib/data/cleaning";
 import {
   getDashboardBase,
   getRepairsData,
@@ -107,7 +109,11 @@ export default async function DashboardPage({
 }) {
   await guardExecutive();
   const tab = parseTab((await searchParams).tab);
-  const base = await getDashboardBase();
+  const [base, cleaningCounts, myCleaning] = await Promise.all([
+    getDashboardBase(),
+    getTodayCounts(),
+    getMyToday(),
+  ]);
 
   return (
     <>
@@ -116,6 +122,7 @@ export default async function DashboardPage({
       </div>
       <DashboardHeader base={base} />
       <ModuleMenu role={base.viewer?.role ?? null} />
+      <CleaningToday counts={cleaningCounts} mine={myCleaning} />
       <DashboardTabs active={tab} />
       {tab === "rooms" ? <Rooms base={base} /> : <Repairs base={base} />}
     </>

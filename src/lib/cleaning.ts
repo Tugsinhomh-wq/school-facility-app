@@ -29,3 +29,29 @@ export function weekGrid<C extends Confirmation>({ monday, today, offDays, confi
     return { ymd, state: dayState({ ymd, today, offDays, confirmation }), confirmation };
   });
 }
+
+/** "ม.3/2" before "ม.3/10": compare numbers inside room names by value, not by character. */
+export const compareRoomNames = (a: string, b: string) =>
+  a.localeCompare(b, "th", { numeric: true });
+
+/** The officer overview order: rooms still missing today's confirmation first, then by name. */
+export function overviewOrder<T>(rows: T[], isMissing: (row: T) => boolean, nameOf: (row: T) => string) {
+  return [...rows].sort(
+    (a, b) => Number(isMissing(b)) - Number(isMissing(a)) || compareRoomNames(nameOf(a), nameOf(b)),
+  );
+}
+
+/**
+ * A room's week total: confirmed days out of the days that were due. Today counts as due only once
+ * it is confirmed (until the day ends it is "pending", not missed); off and future days never count.
+ */
+export function weekTally(days: { state: DayState }[]) {
+  let done = 0;
+  let due = 0;
+  for (const { state } of days) {
+    const confirmed = state === "confirmed" || state === "late";
+    if (confirmed) done++;
+    if (confirmed || state === "missed") due++;
+  }
+  return { done, due };
+}
