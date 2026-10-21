@@ -16,12 +16,12 @@ export function dayState({ ymd, today, offDays, confirmation }: {
   return ymd === today ? "pending" : "missed";
 }
 
-/** Mon-Fri of the week starting at `monday`. */
-export function weekGrid({ monday, today, offDays, confirmations }: {
+/** Mon-Fri of the week starting at `monday`. Extra fields on the confirmations are passed through. */
+export function weekGrid<C extends Confirmation>({ monday, today, offDays, confirmations }: {
   monday: string;
   today: string;
   offDays: ReadonlySet<string>;
-  confirmations: ReadonlyMap<string, Confirmation>;
+  confirmations: ReadonlyMap<string, C>;
 }) {
   return Array.from({ length: 5 }, (_, i) => {
     const ymd = addDays(monday, i);
