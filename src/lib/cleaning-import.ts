@@ -3,6 +3,8 @@
 // profiles happens in the upload action.
 
 export type ParsedClassroom = {
+  /** 1-based spreadsheet row, for errors found later (unknown email or building). */
+  row: number;
   name: string;
   building: string | null;
   advisorEmails: string[];
@@ -15,6 +17,8 @@ const COL_NAME = "ห้อง";
 const COL_BUILDING = "อาคาร";
 const COL_EMAIL = "อีเมลครูที่ปรึกษา";
 const COL_ZONE = "เขต";
+/** The template's header row, in column order. */
+export const HEADERS = [COL_NAME, COL_BUILDING, COL_EMAIL, COL_ZONE];
 
 const THAI_DIGITS = "๐๑๒๓๔๕๖๗๘๙";
 const EMAIL_RE = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
@@ -96,7 +100,7 @@ export function parseClassroomRows(rows: string[][]): { ok: ParsedClassroom[]; e
       for (const message of problems) errors.push({ row, message });
       continue;
     }
-    ok.push({ name, building: building || null, advisorEmails, zone });
+    ok.push({ row, name, building: building || null, advisorEmails, zone });
   }
 
   return { ok, errors };

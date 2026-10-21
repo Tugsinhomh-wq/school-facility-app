@@ -42,7 +42,7 @@ test("columns in any order, extra spaces collapsed and trimmed", () => {
   ]);
   assert.deepEqual(r.errors, []);
   assert.deepEqual(r.ok, [
-    { name: "ม.1/1", building: "อาคาร 2", advisorEmails: ["a@lrp.ac.th"], zone: "สนามหญ้า หน้า" },
+    { row: 2, name: "ม.1/1", building: "อาคาร 2", advisorEmails: ["a@lrp.ac.th"], zone: "สนามหญ้า หน้า" },
   ]);
 });
 

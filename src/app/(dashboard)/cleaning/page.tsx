@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ConfirmCard } from "@/components/cleaning/confirm-card";
 import {
   cleaningHref,
+  ManageLink,
   MyRoomsLink,
   OfficerOverview,
   type Filters,
@@ -171,7 +172,11 @@ async function OfficerView({ today, params }: { today: string; params: Params })
         <EmptyState
           title="ยังไม่มีห้องเรียนในภาคเรียนนี้"
           hint="เพิ่มห้องเรียน ครูที่ปรึกษา และเขตทำความสะอาดก่อน แล้วหน้านี้จะแสดงสถานะทุกห้อง"
-        />
+        >
+          <div className="mt-2">
+            <ManageLink />
+          </div>
+        </EmptyState>
       </div>
     );
 

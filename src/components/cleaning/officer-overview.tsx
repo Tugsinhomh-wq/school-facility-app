@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, DoorOpen } from "lucide-react";
+import { ChevronLeft, ChevronRight, DoorOpen, Settings } from "lucide-react";
 import Link from "next/link";
 
 import { RoomGrid, type RoomToday } from "@/components/cleaning/room-grid";
@@ -20,7 +20,7 @@ export function cleaningHref(f: Filters, hash = "") {
   return `/cleaning${s ? `?${s}` : ""}${hash}`;
 }
 
-const chip = (active: boolean) =>
+export const chip = (active: boolean) =>
   cn(
     "inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 text-sm transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 sm:min-h-9",
     active
@@ -37,6 +37,19 @@ export function MyRoomsLink() {
     >
       <DoorOpen className="size-4" aria-hidden />
       ห้องของฉัน
+    </Link>
+  );
+}
+
+/** Classrooms, advisors, zones, import, rollover and off days. */
+export function ManageLink() {
+  return (
+    <Link
+      href="/cleaning/manage"
+      className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-sm font-medium hover:bg-muted"
+    >
+      <Settings className="size-4" aria-hidden />
+      ตั้งค่าห้องและเขต
     </Link>
   );
 }
@@ -103,7 +116,10 @@ export function OfficerOverview({
               )
             )}
           </div>
-          {myRooms}
+          <div className="flex flex-wrap gap-2">
+            {myRooms}
+            <ManageLink />
+          </div>
         </div>
 
         <nav
