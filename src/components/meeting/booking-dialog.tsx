@@ -150,7 +150,7 @@ export function BookingDialog({ open, onClose, rooms, bookings, defaults }: { op
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent className="max-h-[92vh] overflow-y-auto">
-        <DialogHeader className="pr-10">
+        <DialogHeader>
           <DialogTitle>ขอใช้ห้องประชุม</DialogTitle>
           <DialogDescription>{defaults ? formatDayLong(defaults.ymd) : ""}</DialogDescription>
         </DialogHeader>

@@ -6,7 +6,6 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-gold: oklch(0.83 0.145 78);
   --color-navy: oklch(0.34 0.17 266);
   --color-background: var(--background);
   --color-foreground: var(--foreground);

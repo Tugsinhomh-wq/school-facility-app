@@ -17,7 +17,7 @@ export function BookingDetailDialog({ booking, room, mine, isStaff, onClose }: {
       <DialogContent>
         {booking && (
           <>
-            <DialogHeader className="pr-10">
+            <DialogHeader>
               <DialogTitle>{booking.purpose}</DialogTitle>
               <DialogDescription>
                 {room?.name} · {formatDayLong(bangkokYmd(new Date(booking.start_time)))}

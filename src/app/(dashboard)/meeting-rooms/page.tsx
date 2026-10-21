@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { LoadError } from "@/components/ui/state-card";
 import { RoomCalendar } from "@/components/meeting/room-calendar";
 import { getMeetingWeek } from "@/lib/data/rooms";
 import { isRoomManager, guardExecutive } from "@/lib/data/session";
@@ -46,15 +47,19 @@ export default async function MeetingRoomsPage({
           {sp.error}
         </p>
       )}
-      <RoomCalendar
-        rooms={data.rooms}
-        bookings={data.bookings}
-        weekStart={weekStart}
-        roomId={roomId}
-        userId={data.userId}
-        isStaff={isRoomManager(data.viewer?.role)}
-        live={data.source === "supabase"}
-      />
+      {data.failed ? (
+        <LoadError what="ตารางห้องประชุม" retryHref="/meeting-rooms" />
+      ) : (
+        <RoomCalendar
+          rooms={data.rooms}
+          bookings={data.bookings}
+          weekStart={weekStart}
+          roomId={roomId}
+          userId={data.userId}
+          isStaff={isRoomManager(data.viewer?.role)}
+          live={data.source === "supabase"}
+        />
+      )}
     </>
   );
 }

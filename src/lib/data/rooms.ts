@@ -35,6 +35,8 @@ export interface MeetingWeek {
   userId: string | null;
   rooms: RoomInfo[];
   bookings: Booking[];
+  /** Signed in, but loading failed: show an error with a retry instead of sample data. */
+  failed?: boolean;
 }
 
 const ROOM_SELECT =
@@ -77,9 +79,12 @@ export async function getMeetingWeek(weekStart: string): Promise<MeetingWeek> {
     ),
   });
 
+  const failed = (): MeetingWeek => ({ source: "supabase", viewer: null, userId: null, rooms: [], bookings: [], failed: true });
+  let signedIn = false;
   try {
     const s = await getSession();
     if (!s) return mock();
+    signedIn = true;
     const [rooms, bookings] = await Promise.all([
       s.supabase
         .from("rooms")
@@ -96,8 +101,9 @@ export async function getMeetingWeek(weekStart: string): Promise<MeetingWeek> {
         .lt("start_time", to)
         .order("start_time"),
     ]);
-    // Before the meeting-room SQL has been run these queries fail; show the demo instead of an error page.
-    if (rooms.error || bookings.error) return mock();
+    if (rooms.error || bookings.error) {
+      return failed();
+    }
     return {
       source: "supabase",
       viewer: s.viewer,
@@ -115,7 +121,7 @@ export async function getMeetingWeek(weekStart: string): Promise<MeetingWeek> {
       })),
     };
   } catch {
-    return mock();
+    return signedIn ? failed() : mock();
   }
 }
 
