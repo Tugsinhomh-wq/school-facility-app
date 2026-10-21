@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 
-import { notifyStaffNewTicket } from "@/lib/push";
 import { createClient } from "@/lib/supabase/server";
 import type { UrgencyLevel } from "@/types/database";
 import { getAuth } from "@/lib/supabase/auth";
@@ -86,22 +85,6 @@ export async function createRepairTicket(
         message: "รวมกับงานนั้นไม่ได้ อาจปิดงานไปแล้ว ลองส่งเป็นงานใหม่",
       };
     return { ok: false, message: `บันทึกไม่สำเร็จ: ${error.message}` };
-  }
-
-  // A report merged into an open ticket does not need a second alert for staff.
-  if (created && !duplicateOf) {
-    const { data: building } = await supabase
-      .from("buildings")
-      .select("name")
-      .eq("id", buildingId)
-      .maybeSingle();
-    notifyStaffNewTicket({
-      id: created.id,
-      title,
-      place: [building?.name, locationDetail].filter(Boolean).join(" "),
-      urgency,
-      reporterId: auth.user.id,
-    });
   }
 
   revalidatePath("/");

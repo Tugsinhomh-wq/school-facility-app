@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { hasSupabase, getSession } from "@/lib/data/session";
-import { notifyReporterStatus } from "@/lib/push";
 import { purgeTickets } from "@/lib/trash";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -53,12 +52,6 @@ export async function updateTicket(
   if (!auth.user)
     return { ok: false, message: "เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่" };
 
-  const { data: before } = await supabase
-    .from("repair_tickets")
-    .select("reporter_id, status, title")
-    .eq("id", id)
-    .maybeSingle();
-
   // After photos were uploaded by the browser into the staff member's own folder; accept only paths we would have made.
   const afterPaths = formData.getAll("after_image_paths").map(String);
   const ownPath = new RegExp(`^${auth.user.id}/[0-9a-f-]{36}\\.jpg$`);
@@ -92,19 +85,6 @@ export async function updateTicket(
     .select("id");
   if (error) return { ok: false, message: `บันทึกไม่สำเร็จ: ${error.message}` };
   if (!data?.length) return { ok: false, message: "ไม่มีสิทธิ์แก้ไขรายการนี้" };
-
-  if (
-    before &&
-    before.status !== status &&
-    before.reporter_id !== auth.user.id
-  ) {
-    notifyReporterStatus({
-      id,
-      title: before.title,
-      status,
-      reporterId: before.reporter_id,
-    });
-  }
 
   revalidatePath("/tickets");
   revalidatePath(`/tickets/${id}`);

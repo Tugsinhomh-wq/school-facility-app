@@ -3,7 +3,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { signOut } from "@/app/auth/actions";
-import { PushToggle } from "@/components/account/push-toggle";
 import { FeedbackButton } from "@/components/feedback/feedback-button";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -38,7 +37,6 @@ export default async function AccountPage() {
         <span>โหมดสว่าง / มืด</span>
         <ThemeToggle />
       </div>
-      <PushToggle />
       <FeedbackButton />
       {session.viewer.role === "super_admin" && (
         <nav

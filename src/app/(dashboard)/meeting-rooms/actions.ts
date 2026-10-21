@@ -6,7 +6,6 @@ import { redirect } from "next/navigation";
 import { draftFromReservation } from "@/lib/memo/draft";
 import { hasSupabase, isRoomManager } from "@/lib/data/session";
 import { MOCK_MEMOS } from "@/lib/mock-data";
-import { notifyApplicantDecision, notifyRoomManagersRequest } from "@/lib/push";
 import { createClient } from "@/lib/supabase/server";
 import { atBangkok, isYmd } from "@/lib/time";
 import { getAuth } from "@/lib/supabase/auth";
@@ -122,13 +121,6 @@ export async function createReservation(
   revalidatePath("/meeting-rooms");
   revalidatePath("/");
   const status = data.status === "pending" ? "pending" : "approved";
-  if (status === "pending")
-    notifyRoomManagersRequest({
-      id: data.id,
-      room: room.name,
-      purpose,
-      applicantId: auth.user.id,
-    });
   return {
     ok: true,
     reservationId: data.id,
@@ -153,30 +145,14 @@ export async function decideReservation(formData: FormData) {
   const supabase = await createClient();
   const { data: auth } = await getAuth(supabase);
   if (!auth.user) redirect("/login");
-  const { data: res } = await supabase
-    .from("facility_reservations")
-    .select("applicant_id, purpose, room:rooms(name)")
-    .eq("id", id)
-    .maybeSingle();
-  const { data: changed } = await supabase
+  await supabase
     .from("facility_reservations")
     .update({ status: decision })
     .eq("id", id)
     .in(
       "status",
       decision === "rejected" ? ["pending", "approved"] : ["pending"],
-    )
-    .select("id");
-  if (res && changed?.length && res.applicant_id !== auth.user.id) {
-    const room = Array.isArray(res.room) ? res.room[0] : res.room;
-    notifyApplicantDecision({
-      id,
-      room: room?.name ?? "ห้องประชุม",
-      purpose: res.purpose,
-      applicantId: res.applicant_id,
-      approved: decision === "approved",
-    });
-  }
+    );
   revalidatePath("/meeting-rooms");
   revalidatePath("/");
 }
