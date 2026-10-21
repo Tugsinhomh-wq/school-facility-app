@@ -6,6 +6,7 @@ import {
   type ClassroomRow,
 } from "@/lib/data/cleaning";
 import { getSession, isFacilityOfficer } from "@/lib/data/session";
+import type { ReportRoom } from "@/lib/cleaning-report";
 import { bangkokYmd, weekdayIndex } from "@/lib/time";
 
 /**
@@ -95,6 +96,56 @@ export async function getConfirmationPhotos(
       .createSignedUrls(paths, 3600);
     if (signed.error) return { failed: true };
     return { urls: signed.data.flatMap((u) => (u.signedUrl ? [u.signedUrl] : [])) };
+  } catch {
+    return { failed: true };
+  }
+}
+
+const PAGE = 1000;
+
+/**
+ * Inputs of the Excel summary for `from`..`to`: the latest term's active rooms, the days each was
+ * confirmed, and the school off days. Officers only; null = not an officer.
+ */
+export async function getReportData(
+  from: string,
+  to: string,
+): Promise<{ rooms: ReportRoom[]; offDays: Set<string> } | { failed: true } | null> {
+  try {
+    const s = await getSession();
+    if (!s || !isFacilityOfficer(s.viewer.role)) return null;
+    const { rows, failed } = await getAllClassrooms();
+    if (failed) return { failed: true };
+    const confirmed = new Map<string, Set<string>>();
+    // PostgREST returns at most 1000 rows a call; 72 rooms over a term is far more, so page through.
+    for (let at = 0; ; at += PAGE) {
+      const { data, error } = await s.supabase
+        .from("cleaning_confirmations")
+        .select("classroom_id, day")
+        .gte("day", from)
+        .lte("day", to)
+        .order("day")
+        .order("classroom_id")
+        .range(at, at + PAGE - 1);
+      if (error) return { failed: true };
+      for (const c of data as { classroom_id: string; day: string }[]) {
+        const days = confirmed.get(c.classroom_id) ?? new Set<string>();
+        days.add(c.day);
+        confirmed.set(c.classroom_id, days);
+      }
+      if (data.length < PAGE) break;
+    }
+    const off = await s.supabase.from("school_off_days").select("day").gte("day", from).lte("day", to);
+    if (off.error) return { failed: true };
+    return {
+      rooms: rows.map((r) => ({
+        name: r.name,
+        zone: r.zone,
+        advisors: r.advisors.map((a) => a.name).join(", "),
+        confirmed: confirmed.get(r.id) ?? new Set<string>(),
+      })),
+      offDays: new Set((off.data as { day: string }[]).map((o) => o.day)),
+    };
   } catch {
     return { failed: true };
   }
