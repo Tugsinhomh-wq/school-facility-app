@@ -5,6 +5,7 @@ import { Readable } from "node:stream";
 import ExcelJS from "exceljs";
 
 import { HEADERS } from "./cleaning-import.ts";
+import type { reportRows } from "./cleaning-report.ts";
 
 /**
  * First worksheet as display text, rows[i] = spreadsheet row i + 1 (so error row numbers match
@@ -32,5 +33,29 @@ export async function templateXlsx(): Promise<Buffer> {
   ws.addRow(HEADERS).font = { bold: true };
   ws.addRow(TEMPLATE_EXAMPLE);
   ws.columns.forEach((col, i) => (col.width = [12, 16, 40, 40][i]));
+  return Buffer.from(await wb.xlsx.writeBuffer());
+}
+
+export const REPORT_HEADERS = ["ห้อง", "เขต", "ครูที่ปรึกษา", "วันที่ต้องยืนยัน", "ยืนยันแล้ว", "ร้อยละ", "ยังไม่ยืนยัน"];
+/** Rooms below this share of confirmed days are shaded. */
+export const REPORT_WARN = 0.8;
+
+/** The cleaning summary: a title line, the headers, one row per room and a school-wide total row. */
+export async function reportXlsx(title: string, { rows, total }: ReturnType<typeof reportRows>): Promise<Buffer> {
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("สรุปเขตทำความสะอาด");
+  ws.addRow([title]).font = { bold: true, size: 14 };
+  ws.addRow(REPORT_HEADERS).font = { bold: true };
+  const add = (r: (string | number | null)[], pct: number | null) => {
+    const row = ws.addRow(r);
+    row.getCell(6).numFmt = "0%";
+    if (pct != null && pct < REPORT_WARN) {
+      row.eachCell((c) => (c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFDE2E2" } }));
+    }
+    return row;
+  };
+  for (const r of rows) add([r.name, r.zone, r.advisors, r.due, r.done, r.pct, r.missing], r.pct);
+  add(["รวมทั้งโรงเรียน", "", "", total.due, total.done, total.pct, total.missing], total.pct).font = { bold: true };
+  ws.columns.forEach((col, i) => (col.width = [18, 36, 32, 16, 12, 10, 14][i]));
   return Buffer.from(await wb.xlsx.writeBuffer());
 }

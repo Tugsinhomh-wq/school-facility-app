@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight, DoorOpen, Settings } from "lucide-react";
 import Link from "next/link";
 
+import { ReportForm } from "@/components/cleaning/report-form";
 import { RoomGrid, type RoomToday } from "@/components/cleaning/room-grid";
 import { WeeklyTable, type WeekRow } from "@/components/cleaning/weekly-table";
 import { EmptyState } from "@/components/ui/state-card";
@@ -220,6 +221,8 @@ export function OfficerOverview({
           รวม = วันที่ยืนยันแล้ว / วันที่ต้องยืนยัน (ไม่นับวันหยุด วันที่ยังไม่ถึง และวันนี้ถ้ายังไม่ยืนยัน)
         </p>
       </section>
+
+      <ReportForm today={today} />
     </div>
   );
 }
