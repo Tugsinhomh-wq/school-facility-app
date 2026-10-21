@@ -5,13 +5,12 @@ import { redirect } from "next/navigation";
 import { signOut } from "@/app/auth/actions";
 import { FeedbackButton } from "@/components/feedback/feedback-button";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { getSession } from "@/lib/data/session";
 import { ROLE_LABEL } from "@/lib/ticket-meta";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
-  title: "บัญชีของฉัน | ระบบแจ้งซ่อม โรงเรียนละหานทรายรัชดาภิเษก",
+  title: "บัญชีของฉัน | สำนักงานออนไลน์ โรงเรียนละหานทรายรัชดาภิเษก",
 };
 
 export default async function AccountPage() {
@@ -33,10 +32,6 @@ export default async function AccountPage() {
           <dd>{ROLE_LABEL[session.viewer.role]}</dd>
         </div>
       </dl>
-      <div className="flex items-center justify-between rounded-xl border border-border bg-card/85 p-5">
-        <span>โหมดสว่าง / มืด</span>
-        <ThemeToggle />
-      </div>
       <FeedbackButton />
       {session.viewer.role === "super_admin" && (
         <nav

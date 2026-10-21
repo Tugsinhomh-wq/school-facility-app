@@ -22,3 +22,15 @@ test("staff roles see the same modules", () => {
   for (const role of ["staff", "head", "room_staff", "super_admin"] as const)
     assert.equal(visibleModules(role).length, 5);
 });
+
+test("modules are grouped: facility work first, the unbuilt ones under other", () => {
+  const groups = (role: "user") =>
+    visibleModules(role).map((m) => `${m.id}:${m.group}`);
+  assert.deepEqual(groups("user"), [
+    "repair:facility",
+    "rooms:facility",
+    "cleaning:facility",
+    "census:other",
+    "control:other",
+  ]);
+});

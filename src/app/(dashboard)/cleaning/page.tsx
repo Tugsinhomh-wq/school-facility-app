@@ -22,7 +22,7 @@ import { addDays, bangkokYmd, formatDayLong, isYmd, mondayOf } from "@/lib/time"
 
 export const dynamic = "force-dynamic";
 export const metadata = {
-  title: "เขตทำความสะอาด | ระบบแจ้งซ่อม โรงเรียนละหานทรายรัชดาภิเษก",
+  title: "เขตทำความสะอาด | สำนักงานออนไลน์ โรงเรียนละหานทรายรัชดาภิเษก",
 };
 
 type Params = Record<string, string | string[] | undefined>;
@@ -45,17 +45,14 @@ export default async function CleaningPage({
 
   return (
     <>
-      <h1 className="font-display text-3xl font-bold tracking-tight">
-        เขตทำความสะอาด
-      </h1>
-      <p className="mt-1 mb-6 text-muted-foreground">
-        {formatDayLong(today)}
-        {!session && " (ข้อมูลตัวอย่าง)"}
-      </p>
       {officer && !mine ? (
-        <OfficerView today={today} params={params} />
+        <>
+          <PageTitle today={today} demo={!session} />
+          <OfficerView today={today} params={params} />
+        </>
       ) : (
         <>
+          <h1 className="sr-only">เขตทำความสะอาด</h1>
           {mine && (
             <Link
               href="/cleaning"
@@ -65,12 +62,31 @@ export default async function CleaningPage({
               ดูภาพรวมทุกห้อง
             </Link>
           )}
+          {!session && (
+            <p className="mb-4 text-sm text-muted-foreground">
+              {formatDayLong(today)} (ข้อมูลตัวอย่าง)
+            </p>
+          )}
           <TeacherView
             today={today}
             retryHref={mine ? "/cleaning?view=mine" : "/cleaning"}
           />
         </>
       )}
+    </>
+  );
+}
+
+function PageTitle({ today, demo }: { today: string; demo: boolean }) {
+  return (
+    <>
+      <h1 className="font-display text-3xl font-bold tracking-tight">
+        เขตทำความสะอาด
+      </h1>
+      <p className="mt-1 mb-6 text-muted-foreground">
+        {formatDayLong(today)}
+        {demo && " (ข้อมูลตัวอย่าง)"}
+      </p>
     </>
   );
 }
@@ -104,7 +120,7 @@ async function TeacherView({
   if (week.failed || prev.failed) return <LoadError what="สถานะการยืนยัน" retryHref={retryHref} />;
 
   return (
-    <div className="grid max-w-xl gap-4">
+    <div className="grid max-w-md gap-10">
       {mine.rows.map((room) => {
         const confirmations = week.confirmations.get(room.id) ?? new Map();
         const days = weekGrid({

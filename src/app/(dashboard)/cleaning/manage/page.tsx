@@ -13,7 +13,7 @@ import { guardExecutive } from "@/lib/data/session";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
-  title: "ตั้งค่าห้องและเขต | ระบบแจ้งซ่อม โรงเรียนละหานทรายรัชดาภิเษก",
+  title: "ตั้งค่าห้องและเขต | สำนักงานออนไลน์ โรงเรียนละหานทรายรัชดาภิเษก",
 };
 
 /** Facility officers: classrooms, advisors and zones per term, spreadsheet import, rollover, off days. */

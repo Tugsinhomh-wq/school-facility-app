@@ -2,10 +2,9 @@ import Image from "next/image";
 
 import { LoginForm } from "@/components/auth/login-form";
 import { GridPattern } from "@/components/ui/grid-pattern";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export const metadata = {
-  title: "เข้าสู่ระบบ | ระบบแจ้งซ่อม โรงเรียนละหานทรายรัชดาภิเษก",
+  title: "เข้าสู่ระบบ | สำนักงานออนไลน์ โรงเรียนละหานทรายรัชดาภิเษก",
 };
 
 export default async function LoginPage({
@@ -22,9 +21,6 @@ export default async function LoginPage({
         height={32}
         className="stroke-primary/10 fill-primary/5 [mask-image:radial-gradient(ellipse_at_center,white,transparent_75%)]"
       />
-      <div className="absolute right-4 top-4 z-10">
-        <ThemeToggle />
-      </div>
       <main className="relative w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center text-center">
           <Image
@@ -36,10 +32,10 @@ export default async function LoginPage({
             className="h-28 w-auto drop-shadow-[0_8px_24px_rgba(0,0,0,.3)]"
           />
           <h1 className="font-display mt-4 text-2xl font-bold leading-tight">
-            โรงเรียนละหานทรายรัชดาภิเษก
+            สำนักงานออนไลน์
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            ระบบแจ้งซ่อมอาคารสถานที่และสิ่งแวดล้อม
+            โรงเรียนละหานทรายรัชดาภิเษก
           </p>
         </div>
         <div className="rounded-xl border border-border bg-card/90 p-6 backdrop-blur-sm">

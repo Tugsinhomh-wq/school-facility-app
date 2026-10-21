@@ -2,55 +2,29 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { ComponentProps } from "react";
 
 import { cn } from "@/lib/utils";
 
-export interface NavItem {
-  /** Null for a module that is not built yet: it shows as a label, not a link. */
-  href: string | null;
-  label: string;
-  soon?: boolean;
-}
+/** True when `pathname` is the page `href` or one of its sub-pages ("/" matches only itself). */
+export const isActivePath = (pathname: string, href: string) =>
+  href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
 
-export function SiteNav({ items }: { items: NavItem[] }) {
-  const pathname = usePathname();
+/** One sidebar link: the current page is highlighted and announced with aria-current. */
+export function NavLink({ href, className, ...props }: ComponentProps<typeof Link> & { href: string }) {
+  const active = isActivePath(usePathname(), href);
   return (
-    <nav
-      aria-label="เมนูหลัก"
-      className="-mx-1 flex min-w-0 gap-1 overflow-x-auto px-1"
-    >
-      {items.map(({ href, label, soon }) => {
-        if (href === null)
-          return (
-            <span
-              key={label}
-              aria-disabled="true"
-              className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground/70"
-            >
-              {label}
-              {soon && <span className="rounded-full bg-muted px-1.5 text-[10px] leading-4">เร็วๆ นี้</span>}
-            </span>
-          );
-        const active =
-          href === "/"
-            ? pathname === "/"
-            : pathname === href || pathname.startsWith(`${href}/`);
-        return (
-          <Link
-            key={href}
-            href={href}
-            aria-current={active ? "page" : undefined}
-            className={cn(
-              "shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-              active
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground",
-            )}
-          >
-            {label}
-          </Link>
-        );
-      })}
-    </nav>
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50",
+        active
+          ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground"
+          : "text-foreground hover:bg-sidebar-accent/60",
+        className,
+      )}
+      {...props}
+    />
   );
 }

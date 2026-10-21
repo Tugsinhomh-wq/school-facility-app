@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_Thai, Prompt } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 
 // Body/UI: Noto Sans Thai (neutral, clear numerals). Headings: Prompt, a geometric Thai face
@@ -17,16 +16,16 @@ const prompt = Prompt({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#f6f7fb",
+  themeColor: "#ffffff",
   viewportFit: "cover",
 };
 
 export const metadata: Metadata = {
-  applicationName: "ระบบแจ้งซ่อม",
-  appleWebApp: { capable: true, title: "แจ้งซ่อม", statusBarStyle: "default" },
+  applicationName: "สำนักงานออนไลน์",
+  appleWebApp: { capable: true, title: "สำนักงานออนไลน์", statusBarStyle: "default" },
   icons: { apple: "/icons/apple-touch-icon.png" },
-  title: "ระบบแจ้งซ่อม โรงเรียนละหานทรายรัชดาภิเษก",
-  description: "ระบบแจ้งซ่อมอาคารสถานที่และสิ่งแวดล้อมโรงเรียน",
+  title: "สำนักงานออนไลน์ โรงเรียนละหานทรายรัชดาภิเษก",
+  description: "งานอาคารสถานที่ของกลุ่มงานบริหารทั่วไป: แจ้งซ่อม จองห้องประชุม เขตทำความสะอาด",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -37,10 +36,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${noto.variable} ${prompt.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        {/* Light is the default; apply a saved "dark" choice before first paint. */}
-        <Script id="theme-init" strategy="beforeInteractive">
-          {`try{if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark")}catch(e){}`}
-        </Script>
         {children}
       </body>
     </html>

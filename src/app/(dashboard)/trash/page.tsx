@@ -19,7 +19,7 @@ import type { TicketStatus, UrgencyLevel } from "@/types/database";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
-  title: "ถังขยะ | ระบบแจ้งซ่อม โรงเรียนละหานทรายรัชดาภิเษก",
+  title: "ถังขยะ | สำนักงานออนไลน์ โรงเรียนละหานทรายรัชดาภิเษก",
 };
 
 interface Trashed {

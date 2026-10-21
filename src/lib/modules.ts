@@ -1,59 +1,54 @@
 import type { UserRole } from "../types/database.ts";
 
-/** One work module of the general-administration group. The header, bottom bar and home page all list these. */
+/** One work module of the general-administration group. The sidebar, phone bar and home page all list these. */
 export type AppModule = {
   id: string;
   label: string;
-  /** Shorter label for the phone bottom bar. */
-  short?: string;
-  /** One line for the home menu. */
-  hint: string;
   /** Null for modules that are not built yet. */
   href: string | null;
   soon?: boolean;
   roles: UserRole[] | "all";
+  /** Menu section: the facility work the group runs today, or the other work still to come. */
+  group: "facility" | "other";
 };
 
 export const MODULES: AppModule[] = [
   {
     id: "repair",
     label: "แจ้งซ่อม",
-    short: "งานซ่อม",
-    hint: "แจ้งและติดตามงานซ่อมอาคารสถานที่",
     href: "/tickets",
     roles: "all",
+    group: "facility",
   },
   {
     id: "rooms",
     label: "จองห้องประชุม",
-    short: "ห้องประชุม",
-    hint: "ขอใช้ห้องและดูตารางการใช้งาน",
     href: "/meeting-rooms",
     roles: "all",
+    group: "facility",
   },
   {
     id: "cleaning",
     label: "เขตทำความสะอาด",
-    short: "เขตสะอาด",
-    hint: "ยืนยันการดูแลเขตรับผิดชอบรายวัน",
     href: "/cleaning",
     roles: "all",
+    group: "facility",
   },
   {
     id: "census",
     label: "สำมะโนผู้เรียน",
-    hint: "ข้อมูลจำนวนผู้เรียนรายห้อง",
     href: null,
     soon: true,
     roles: "all",
+    group: "other",
   },
   {
     id: "control",
     label: "ควบคุมภายใน",
-    hint: "รายงานการควบคุมภายในของกลุ่มงาน",
     href: null,
     soon: true,
     roles: "all",
+    group: "other",
   },
 ];
 
