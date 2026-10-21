@@ -3,7 +3,10 @@
 import { Download } from "lucide-react";
 import { useActionState, useState } from "react";
 
-import { importClassrooms, type SetupResult } from "@/app/(dashboard)/cleaning/manage/actions";
+import {
+  importClassrooms,
+  type SetupResult,
+} from "@/app/(dashboard)/cleaning/manage/actions";
 import { field, Result } from "@/components/cleaning/classroom-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +16,10 @@ const MAX_FILE = 1024 * 1024;
 
 /** Upload the classroom spreadsheet for a term; any bad row means nothing is saved. */
 export function ImportForm({ term }: { term: string | null }) {
-  const [state, action, pending] = useActionState<SetupResult, FormData>(importClassrooms, null);
+  const [state, action, pending] = useActionState<SetupResult, FormData>(
+    importClassrooms,
+    null,
+  );
   const [tooBig, setTooBig] = useState(false);
   return (
     <form
@@ -25,10 +31,11 @@ export function ImportForm({ term }: { term: string | null }) {
         setTooBig(big);
         if (big) e.preventDefault();
       }}
-      className="space-y-3 rounded-xl border border-border bg-card/85 p-4"
+      className="space-y-3"
     >
       <p className="text-sm text-muted-foreground">
-        คอลัมน์: ห้อง, อาคาร, อีเมลครูที่ปรึกษา, เขต — ห้องที่มีอยู่แล้วจะถูกแก้ตามไฟล์ ห้องที่ไม่มีในไฟล์คงไว้ตามเดิม
+        คอลัมน์: ห้อง, อาคาร, อีเมลครูที่ปรึกษา, เขต —
+        ห้องที่มีอยู่แล้วจะถูกแก้ตามไฟล์ ห้องที่ไม่มีในไฟล์คงไว้ตามเดิม
         ถ้าแถวใดผิด จะไม่บันทึกข้อมูลใดเลย
       </p>
       <a
@@ -42,10 +49,20 @@ export function ImportForm({ term }: { term: string | null }) {
       <div className="grid gap-3 sm:grid-cols-[10rem_minmax(0,1fr)]">
         <div className="space-y-1.5">
           <Label htmlFor="import-term">ภาคเรียน</Label>
-          <Input id="import-term" name="term" defaultValue={term ?? ""} required pattern="\d{4}/[1-3]" placeholder="เช่น 2569/1" className={field} />
+          <Input
+            id="import-term"
+            name="term"
+            defaultValue={term ?? ""}
+            required
+            pattern="\d{4}/[1-3]"
+            placeholder="เช่น 2569/1"
+            className={field}
+          />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="import-file">ไฟล์ .xlsx หรือ .csv (UTF-8) ไม่เกิน 1 MB</Label>
+          <Label htmlFor="import-file">
+            ไฟล์ .xlsx หรือ .csv (UTF-8) ไม่เกิน 1 MB
+          </Label>
           <Input
             id="import-file"
             name="file"
@@ -57,11 +74,17 @@ export function ImportForm({ term }: { term: string | null }) {
         </div>
       </div>
       {tooBig ? (
-        <p role="alert" className="text-sm text-destructive">ไฟล์ใหญ่เกิน 1 MB</p>
+        <p role="alert" className="text-sm text-destructive">
+          ไฟล์ใหญ่เกิน 1 MB
+        </p>
       ) : (
         <Result state={state} />
       )}
-      <Button type="submit" disabled={pending} className="h-11 w-full sm:w-auto">
+      <Button
+        type="submit"
+        disabled={pending}
+        className="h-11 w-full sm:w-auto"
+      >
         {pending ? "กำลังตรวจและนำเข้า..." : "นำเข้า"}
       </Button>
     </form>
