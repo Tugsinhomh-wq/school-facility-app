@@ -12,11 +12,9 @@ import {
 import type { RoomToday } from "@/components/cleaning/room-grid";
 import { EmptyState, LoadError } from "@/components/ui/state-card";
 import { dayState, lateReachable, weekGrid } from "@/lib/cleaning";
-import {
-  getAllClassrooms,
-  getMyClassrooms,
-  getWeek,
-} from "@/lib/data/cleaning";
+import { getWeek } from "@/lib/data/cleaning";
+import { getAllClassrooms } from "@/lib/data/cleaning-officer";
+import { getMyClassrooms } from "@/lib/data/cleaning-teacher";
 import { getSession, guardExecutive, isFacilityOfficer } from "@/lib/data/session";
 import { addDays, bangkokYmd, formatDayLong, isYmd, mondayOf } from "@/lib/time";
 

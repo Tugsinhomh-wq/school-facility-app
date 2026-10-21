@@ -8,7 +8,7 @@ import { chip } from "@/components/cleaning/officer-overview";
 import { OffDaysForm } from "@/components/cleaning/off-days-form";
 import { RolloverForm } from "@/components/cleaning/rollover-form";
 import { EmptyState, LoadError } from "@/components/ui/state-card";
-import { getCleaningSetup } from "@/lib/data/cleaning";
+import { getCleaningSetup } from "@/lib/data/cleaning-setup";
 import { guardExecutive } from "@/lib/data/session";
 
 export const dynamic = "force-dynamic";

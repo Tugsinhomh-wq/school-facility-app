@@ -1,7 +1,8 @@
 import { AlertCircle, Check, ChevronRight, Clock, DoorOpen, Sparkles, Wrench, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 
-import type { TodayCounts, getMyToday } from "@/lib/data/cleaning";
+import type { TodayCounts } from "@/lib/data/cleaning-officer";
+import type { getMyToday } from "@/lib/data/cleaning-teacher";
 import type { DashboardBase, RepairsData, RoomsData } from "@/lib/data/dashboard";
 import { isRoomManager, isStaffRole } from "@/lib/data/session";
 import { APPROVAL_LABEL, STATUS_LABEL } from "@/lib/ticket-meta";

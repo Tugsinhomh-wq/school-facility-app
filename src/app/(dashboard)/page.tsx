@@ -1,6 +1,7 @@
 import { ActionList, buildRows } from "@/components/dashboard/home-actions";
 import { LoadError } from "@/components/ui/state-card";
-import { getMyToday, getTodayCounts } from "@/lib/data/cleaning";
+import { getTodayCounts } from "@/lib/data/cleaning-officer";
+import { getMyToday } from "@/lib/data/cleaning-teacher";
 import { getDashboardBase, getRepairsData, getRoomsData } from "@/lib/data/dashboard";
 import { guardExecutive } from "@/lib/data/session";
 
