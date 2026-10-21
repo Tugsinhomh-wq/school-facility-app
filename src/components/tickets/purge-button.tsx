@@ -22,7 +22,7 @@ export function PurgeButton({
       <Button
         type="submit"
         variant="outline"
-        className="h-11 px-4 text-destructive"
+        className="h-11 border-destructive/40 px-4 text-destructive hover:bg-destructive/5"
       >
         ลบถาวร
       </Button>
