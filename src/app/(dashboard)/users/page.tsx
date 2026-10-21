@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { EmptyState, LoadError } from "@/components/ui/state-card";
 import { UserRow, type UserItem } from "@/components/users/user-row";
 import { getSession } from "@/lib/data/session";
 import { ROLE_LABEL } from "@/lib/ticket-meta";
@@ -41,11 +42,12 @@ export default async function UsersPage({
     <Link
       key={key}
       href={`/users?${new URLSearchParams({ ...(term ? { q: term } : {}), ...(key ? { role: key } : {}) })}`}
+      aria-current={role === key ? "true" : undefined}
       className={cn(
-        "rounded-full border px-3 py-1 text-sm",
+        "inline-flex min-h-11 items-center rounded-full border px-4 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
         role === key
-          ? "border-primary bg-primary text-primary-foreground"
-          : "border-input text-muted-foreground hover:text-foreground",
+          ? "border-primary bg-primary font-medium text-primary-foreground"
+          : "border-input text-muted-foreground hover:bg-muted/60 hover:text-foreground",
       )}
     >
       {label}
@@ -54,25 +56,25 @@ export default async function UsersPage({
 
   return (
     <>
-      <h1 className="font-display text-3xl font-bold tracking-tight">
+      <h1 className="font-display text-3xl font-medium tracking-tight">
         จัดการผู้ใช้
       </h1>
       <p className="mt-1 text-muted-foreground">
         เปลี่ยนบทบาท แก้ชื่อและตำแหน่ง หรือปิดบัญชี เห็นเฉพาะผู้ดูแลระบบ
       </p>
 
-      <form className="mt-6 flex flex-wrap gap-2" role="search">
+      <form className="mt-6 flex gap-2" role="search">
         <input
           name="q"
           defaultValue={term}
           placeholder="ค้นหาชื่อหรืออีเมล"
           aria-label="ค้นหา"
-          className="h-10 min-w-0 flex-1 rounded-lg border border-input bg-transparent px-3 text-sm sm:max-w-sm"
+          className="h-11 min-w-0 flex-1 rounded-lg border border-input bg-background px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 sm:max-w-sm sm:flex-none sm:basis-96"
         />
         {role && <input type="hidden" name="role" value={role} />}
         <button
           type="submit"
-          className="h-10 rounded-lg border border-input px-4 text-sm font-medium"
+          className="h-11 rounded-lg border border-input px-5 text-sm font-medium outline-none hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           ค้นหา
         </button>
@@ -83,19 +85,15 @@ export default async function UsersPage({
       </div>
 
       {error ? (
-        <p role="alert" className="mt-6 text-sm text-destructive">
-          โหลดไม่สำเร็จ ลองรีเฟรชหน้านี้
-        </p>
+        <LoadError what="รายชื่อผู้ใช้" retryHref="/users" className="mt-6" />
       ) : users.length === 0 ? (
-        <p className="mt-6 rounded-xl border border-dashed border-border bg-card/60 p-10 text-center text-muted-foreground">
-          ไม่พบผู้ใช้
-        </p>
+        <EmptyState title="ไม่พบผู้ใช้" className="mt-6 py-10" />
       ) : (
         <>
-          <p className="mt-4 text-sm text-muted-foreground">
+          <p className="mt-5 mb-2 text-sm text-muted-foreground">
             {users.length} บัญชี
           </p>
-          <ul className="mt-2 space-y-3">
+          <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border">
             {users.map((u) => (
               <UserRow key={u.id} user={u} isSelf={u.id === session.userId} />
             ))}
