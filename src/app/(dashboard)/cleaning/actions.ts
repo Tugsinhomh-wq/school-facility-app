@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { getAuth } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
-import { bangkokYmd, isYmd } from "@/lib/time";
+import { bangkokYmd, formatDayLong, isYmd } from "@/lib/time";
 
 export type ConfirmResult = { ok: boolean; message: string };
 
@@ -17,7 +17,8 @@ export async function confirmCleaning(
   formData: FormData,
 ): Promise<ConfirmResult> {
   const classroomId = String(formData.get("classroom_id") ?? "").trim();
-  // "Today" is the Bangkok day computed here on the server, never the browser's or UTC date.
+  // The form sends `day` only for a late (past-day) confirmation. Otherwise "today" is the Bangkok
+  // day at the moment of submitting, computed here: a tab left open overnight confirms the new day.
   const day = String(formData.get("day") ?? "").trim() || bangkokYmd(new Date());
   const photos = formData.getAll("photo_paths").map(String);
 
@@ -64,15 +65,21 @@ export async function confirmCleaning(
   revalidatePath("/");
 
   if (result === "already") {
-    // Another advisor got there first: this attempt's photos are attached to nothing, so drop them.
-    if (photos.length > 0)
-      await supabase.storage.from(BUCKET).remove(photos).catch(() => null);
-    const { data: row } = await supabase
+    const { data: row, error: readError } = await supabase
       .from("cleaning_confirmations")
-      .select("confirmed_by_name")
+      .select("confirmed_by_name, photo_paths")
       .eq("classroom_id", classroomId)
       .eq("day", day)
       .maybeSingle();
+    // Photos of this attempt that the stored row does not use are attached to nothing, so drop them.
+    // A retry of a request that already saved posts the row's own photos: those must stay.
+    // If the row cannot be read, keep everything (a leftover file is harmless, a lost one is not).
+    if (!readError && row) {
+      const kept = new Set<string>(row.photo_paths ?? []);
+      const orphans = photos.filter((p) => !kept.has(p));
+      if (orphans.length > 0)
+        await supabase.storage.from(BUCKET).remove(orphans).catch(() => null);
+    }
     return {
       ok: true,
       message: row?.confirmed_by_name
@@ -81,11 +88,12 @@ export async function confirmCleaning(
     };
   }
 
+  // Name the day actually saved: for a today confirmation it is the server's Bangkok day now.
   return {
     ok: true,
     message:
       day < bangkokYmd(new Date())
-        ? "บันทึกการยืนยันย้อนหลังแล้ว"
-        : "บันทึกแล้ว ขอบคุณที่ยืนยัน",
+        ? `บันทึกการยืนยันย้อนหลังของ${formatDayLong(day)}แล้ว`
+        : `บันทึกการยืนยันของ${formatDayLong(day)}แล้ว ขอบคุณที่ยืนยัน`,
   };
 }

@@ -130,7 +130,8 @@ export function ConfirmCard({
         // Keyed by day so switching days starts with an empty photo list.
         <form key={target} action={action} className="space-y-3">
           <input type="hidden" name="classroom_id" value={classroom.id} />
-          <input type="hidden" name="day" value={target} />
+          {/* Only a late confirmation names its day; for today the server uses its own Bangkok date. */}
+          {late && <input type="hidden" name="day" value={late} />}
           {late && (
             <p className="text-sm font-medium">
               ยืนยันย้อนหลังของ {formatDayShort(late)}

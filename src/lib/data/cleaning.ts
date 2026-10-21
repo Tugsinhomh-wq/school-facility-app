@@ -159,20 +159,27 @@ function demoWeek(monday: string): CleaningWeek {
   return week;
 }
 
-/** Today's progress across the latest term's active classrooms, for officers; null for everyone else or on error. */
-export async function getTodayCounts(): Promise<{
-  confirmed: number;
-  total: number;
-} | null> {
+/**
+ * Today's progress across the latest term's active classrooms. null = not an officer (show nothing);
+ * `{ failed: true }` = an officer whose data failed to load (show an error with retry).
+ */
+export type TodayCounts =
+  | { confirmed: number; total: number }
+  | { failed: true }
+  | null;
+
+export async function getTodayCounts(): Promise<TodayCounts> {
+  let officer = false;
   try {
     const s = await getSession();
     if (!s || !isFacilityOfficer(s.viewer.role)) return null;
+    officer = true;
     const today = bangkokYmd(new Date());
     const rooms = await s.supabase
       .from("classrooms")
       .select("id, term")
       .eq("is_active", true);
-    if (rooms.error) return null;
+    if (rooms.error) return { failed: true };
     const current = latestTerm(
       rooms.data as { id: string; term: string }[],
     ).map((r) => r.id);
@@ -182,9 +189,10 @@ export async function getTodayCounts(): Promise<{
       .select("id", { count: "exact", head: true })
       .eq("day", today)
       .in("classroom_id", current);
-    if (error) return null;
+    if (error) return { failed: true };
     return { confirmed: count ?? 0, total: current.length };
   } catch {
-    return null;
+    // Failing before the role is known means we cannot tell; show nothing rather than a false error.
+    return officer ? { failed: true } : null;
   }
 }
