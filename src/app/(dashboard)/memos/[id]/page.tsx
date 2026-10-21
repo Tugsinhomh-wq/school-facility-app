@@ -3,7 +3,9 @@ import { Sarabun } from "next/font/google";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { ApprovalPill } from "@/components/tickets/status-mark";
 import { Button } from "@/components/ui/button";
+import { LoadError } from "@/components/ui/state-card";
 import { MemoEditor } from "@/components/memos/memo-editor";
 import { getMemo } from "@/lib/data/memos";
 
@@ -21,26 +23,33 @@ export default async function MemoPage({
 }) {
   await guardExecutive();
   const { id } = await params;
-  const { memo } = await getMemo(id);
+  const { memo, failed } = await getMemo(id);
   // Row Level Security only returns memos the viewer wrote, or any memo for staff.
+  if (failed) return <LoadError what="บันทึกข้อความ" retryHref={`/memos/${id}`} />;
   if (!memo) notFound();
 
   return (
     <>
       <Link
         href="/memos"
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+        className="mb-3 inline-flex min-h-11 items-center gap-1.5 text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         <ArrowLeft className="size-4" aria-hidden />
         บันทึกข้อความ
       </Link>
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <h1 className="font-display text-3xl font-bold tracking-tight">
-          ร่างบันทึกข้อความ
-        </h1>
         <div>
-          <div className="flex gap-2">
+          <p className="text-sm text-muted-foreground">{memo.doc_ref_no}</p>
+          <h1 className="font-display mt-1 text-2xl font-medium leading-snug sm:text-3xl">
+            ร่างบันทึกข้อความ
+          </h1>
+          <ApprovalPill status={memo.final_status} className="mt-2" />
+        </div>
+        <div>
+          <div className="flex flex-wrap gap-2">
             <Button
+              variant="outline"
+              className="h-11 px-4"
               nativeButton={false}
               render={<a href={`/memos/${memo.id}/docx`} download />}
             >
@@ -48,13 +57,14 @@ export default async function MemoPage({
             </Button>
             <Button
               variant="outline"
+              className="h-11 px-4"
               nativeButton={false}
               render={<a href={`/memos/${memo.id}/pdf`} download />}
             >
               <Download aria-hidden /> Export PDF
             </Button>
           </div>
-          <p className="mt-1.5 text-xs text-muted-foreground sm:text-right">
+          <p className="mt-1.5 text-sm text-muted-foreground sm:text-right">
             ไฟล์ใช้ข้อความที่บันทึกล่าสุด กดบันทึกร่างก่อนส่งออก
           </p>
         </div>
