@@ -1,16 +1,10 @@
 import {
-  getLiveRooms,
   getMyReservations,
   mockMyReservations,
   type MyReservation,
   getPendingReservations,
-  getTodayMeetings,
-  mockLiveRooms,
   mockPendingReservations,
-  mockTodayMeetings,
-  type LiveRoom,
   type PendingReservation,
-  type TodayMeeting,
 } from "@/lib/data/rooms";
 import {
   getSession,
@@ -18,294 +12,155 @@ import {
   isRoomManager,
   isStaffRole,
 } from "@/lib/data/session";
-import { MOCK_BUILDINGS, MOCK_MEMOS, MOCK_TICKETS } from "@/lib/mock-data";
+import { MOCK_TICKETS } from "@/lib/mock-data";
 import type {
   Building,
-  Memorandum,
   RepairTicketWithLocation,
   TicketStatus,
-  UrgencyLevel,
   UserRole,
 } from "@/types/database";
 
 export type BuildingOption = Pick<Building, "id" | "name">;
-export type DashTab = "repairs" | "rooms";
 
 export interface Viewer {
   name: string;
   role: UserRole;
 }
 
-/** The fields the dashboard lists need; keeps the queries small. */
+/** The fields the home rows need; keeps the queries small. */
 export type TicketBrief = Pick<
   RepairTicketWithLocation,
-  | "id"
-  | "title"
-  | "urgency"
-  | "status"
-  | "created_at"
-  | "location_detail"
-  | "building"
-  | "room"
+  "id" | "title" | "urgency" | "status" | "created_at"
 >;
 
-/** Loaded for every tab: header numbers, the ray artwork and the ticker. */
+/** The repair numbers on the home page. */
 export interface DashboardBase {
   source: "supabase" | "mock";
   /** Signed in, but the data could not be loaded: show an error with a retry instead of made-up numbers. */
   failed?: boolean;
   viewer: Viewer | null;
-  stats: Record<
-    Extract<TicketStatus, "pending" | "in_progress" | "completed">,
-    number
-  > & { estimatedCost: number };
+  pending: number;
   emergencyOpen: number;
-  rays: { id: string; urgency: UrgencyLevel; status: TicketStatus }[];
-  byBuilding: { building: string; count: number }[];
-  todayMeetings: TodayMeeting[];
-  roomsInUseToday: number;
 }
 
 export interface RepairsData {
   failed?: boolean;
-  /** The viewer's latest requests (staff see everyone's). */
-  recent: TicketBrief[];
-  /** Staff: pending work, most urgent first. */
-  queue: TicketBrief[];
-  /** Staff: latest memos. */
-  documents: Memorandum[];
-  buildings: BuildingOption[];
+  /** The viewer's latest request. */
+  latest: TicketBrief | null;
+  /** Staff: the newest request waiting to be taken. */
+  newestPending: TicketBrief | null;
 }
 
 export interface RoomsData {
   failed?: boolean;
-  liveRooms: LiveRoom[];
   /** Staff: requests waiting for a decision. */
   pendingReservations: PendingReservation[];
   /** Everyone else: their own requests with status. */
   myReservations: MyReservation[];
 }
 
-type SummaryRow = {
-  id: string;
-  urgency: UrgencyLevel;
-  status: TicketStatus;
-  estimated_cost: number | string | null;
-  building: { name: string } | { name: string }[] | null;
-};
+type CountRow = { status: TicketStatus; urgency: string };
 
-const BRIEF_SELECT =
-  "id, title, urgency, status, created_at, location_detail, building:buildings(name), room:rooms(room_number, name)";
-const URGENCY_RANK: Record<UrgencyLevel, number> = {
-  emergency: 0,
-  high: 1,
-  medium: 2,
-  low: 3,
-};
-
-function summarize(rows: SummaryRow[]) {
-  const open = rows.filter((t) => t.status !== "cancelled");
-  const count = (s: TicketStatus) => rows.filter((t) => t.status === s).length;
-  const byName = open.reduce<Record<string, number>>((acc, t) => {
-    const b = Array.isArray(t.building) ? t.building[0] : t.building;
-    const name = b?.name ?? "ไม่ระบุอาคาร";
-    acc[name] = (acc[name] ?? 0) + 1;
-    return acc;
-  }, {});
-  return {
-    stats: {
-      pending: count("pending"),
-      in_progress: count("in_progress"),
-      completed: count("completed"),
-      estimatedCost: open.reduce(
-        (sum, t) => sum + Number(t.estimated_cost ?? 0),
-        0,
-      ),
-    },
-    emergencyOpen: open.filter(
-      (t) => t.urgency === "emergency" && t.status !== "completed",
-    ).length,
-    rays: open.map(({ id, urgency, status }) => ({ id, urgency, status })),
-    byBuilding: Object.entries(byName)
-      .map(([building, n]) => ({ building, count: n }))
-      .sort((a, b) => b.count - a.count),
-  };
-}
-
-const newest = <T extends { created_at: string }>(rows: T[], n: number) =>
-  [...rows]
-    .sort((a, b) => b.created_at.localeCompare(a.created_at))
-    .slice(0, n);
-
-// ---- demo data (no Supabase configured) ----
-const mockSummary = () =>
-  MOCK_TICKETS.map(({ id, urgency, status, estimated_cost, building }) => ({
-    id,
-    urgency,
-    status,
-    estimated_cost,
-    building,
-  }));
-
-function mockBase(): DashboardBase {
-  const meetings = mockTodayMeetings();
-  return {
-    source: "mock",
-    viewer: null,
-    ...summarize(mockSummary()),
-    todayMeetings: meetings,
-    roomsInUseToday: new Set(meetings.map((m) => m.room_id)).size,
-  };
-}
-
-const failedBase = (): DashboardBase => ({
-  source: "supabase",
-  viewer: null,
-  failed: true,
-  stats: { pending: 0, in_progress: 0, completed: 0, estimatedCost: 0 },
-  emergencyOpen: 0,
-  rays: [],
-  byBuilding: [],
-  todayMeetings: [],
-  roomsInUseToday: 0,
+const count = (rows: CountRow[]) => ({
+  pending: rows.filter((t) => t.status === "pending").length,
+  emergencyOpen: rows.filter(
+    (t) => t.urgency === "emergency" && t.status !== "completed" && t.status !== "cancelled",
+  ).length,
 });
 
-/** What every tab needs. One small tickets query plus today's meetings, run in parallel. */
+const BRIEF_SELECT = "id, title, urgency, status, created_at";
+
+const failedBase = (viewer: Viewer | null = null): DashboardBase => ({
+  source: "supabase",
+  viewer,
+  failed: true,
+  pending: 0,
+  emergencyOpen: 0,
+});
+
+/** The repair counts for the home page: one small tickets query. */
 export async function getDashboardBase(): Promise<DashboardBase> {
   try {
     const s = await getSession();
-    if (!s) return mockBase();
-    const [tickets, meetings] = await Promise.all([
-      s.supabase
-        .from("repair_tickets")
-        .select("id, urgency, status, estimated_cost, building:buildings(name)")
-        .is("duplicate_of", null)
-        .limit(1000),
-      getTodayMeetings(s.supabase),
-    ]);
-    if (tickets.error)
-      return {
-        ...mockBase(),
-        source: "supabase",
-        viewer: s.viewer,
-        failed: true,
-        stats: { pending: 0, in_progress: 0, completed: 0, estimatedCost: 0 },
-        emergencyOpen: 0,
-        rays: [],
-        byBuilding: [],
-        todayMeetings: [],
-        roomsInUseToday: 0,
-      };
+    if (!s) return { source: "mock", viewer: null, ...count(MOCK_TICKETS) };
+    const tickets = await s.supabase
+      .from("repair_tickets")
+      .select("status, urgency")
+      .is("duplicate_of", null)
+      .limit(1000);
+    if (tickets.error) return failedBase(s.viewer);
     return {
       source: "supabase",
       viewer: s.viewer,
-      ...summarize(tickets.data as unknown as SummaryRow[]),
-      todayMeetings: meetings,
-      roomsInUseToday: new Set(meetings.map((m) => m.room_id)).size,
+      ...count(tickets.data as CountRow[]),
     };
   } catch {
-    return hasSupabase() ? failedBase() : mockBase();
+    return hasSupabase()
+      ? failedBase()
+      : { source: "mock", viewer: null, ...count(MOCK_TICKETS) };
   }
 }
 
-const byUrgency = (a: TicketBrief, b: TicketBrief) =>
-  URGENCY_RANK[a.urgency] - URGENCY_RANK[b.urgency] ||
-  b.created_at.localeCompare(a.created_at);
-
 export async function getRepairsData(): Promise<RepairsData> {
+  const newestOf = (rows: TicketBrief[]) =>
+    [...rows].sort((a, b) => b.created_at.localeCompare(a.created_at))[0] ?? null;
   const mock = (): RepairsData => ({
-    recent: newest(MOCK_TICKETS, 5),
-    queue: MOCK_TICKETS.filter((t) => t.status === "pending")
-      .sort(byUrgency)
-      .slice(0, 5),
-    documents: newest(MOCK_MEMOS, 4),
-    buildings: MOCK_BUILDINGS,
+    latest: newestOf(MOCK_TICKETS),
+    newestPending: newestOf(MOCK_TICKETS.filter((t) => t.status === "pending")),
   });
   try {
     const s = await getSession();
     if (!s) return mock();
-    const staff = isStaffRole(s.viewer.role);
-    const [recent, pending, memos, buildings] = await Promise.all([
+    const [latest, pending] = await Promise.all([
       s.supabase
         .from("repair_tickets")
         .select(BRIEF_SELECT)
         .order("created_at", { ascending: false })
-        .limit(5),
-      staff
+        .limit(1),
+      isStaffRole(s.viewer.role)
         ? s.supabase
             .from("repair_tickets")
             .select(BRIEF_SELECT)
             .eq("status", "pending")
             .is("duplicate_of", null)
             .order("created_at", { ascending: false })
-            .limit(30)
+            .limit(1)
         : Promise.resolve({ data: [], error: null }),
-      staff
-        ? s.supabase
-            .from("memorandums")
-            .select("*")
-            .eq("origin_module", "repair")
-            .order("created_at", { ascending: false })
-            .limit(4)
-        : Promise.resolve({ data: [], error: null }),
-      s.supabase
-        .from("buildings")
-        .select("id, name")
-        .eq("is_active", true)
-        .order("name"),
     ]);
-    if (recent.error || pending.error || buildings.error)
-      return {
-        recent: [],
-        queue: [],
-        documents: [],
-        buildings: [],
-        failed: true,
-      };
+    if (latest.error || pending.error)
+      return { latest: null, newestPending: null, failed: true };
     return {
-      recent: recent.data as unknown as TicketBrief[],
-      // The query limited to the newest 30 pending; show the most urgent of them.
-      queue: [...(pending.data as unknown as TicketBrief[])]
-        .sort(byUrgency)
-        .slice(0, 5),
-      documents: (memos.data ?? []) as Memorandum[],
-      buildings: buildings.data as BuildingOption[],
+      latest: (latest.data as TicketBrief[])[0] ?? null,
+      newestPending: (pending.data as TicketBrief[])[0] ?? null,
     };
   } catch {
     return hasSupabase()
-      ? { recent: [], queue: [], documents: [], buildings: [], failed: true }
+      ? { latest: null, newestPending: null, failed: true }
       : mock();
   }
 }
 
 export async function getRoomsData(): Promise<RoomsData> {
   const mock = (): RoomsData => ({
-    liveRooms: mockLiveRooms(),
     pendingReservations: mockPendingReservations(),
     myReservations: mockMyReservations(),
   });
   try {
     const s = await getSession();
     if (!s) return mock();
-    const staff = isRoomManager(s.viewer.role);
-    const [liveRooms, pending, mine] = await Promise.all([
-      getLiveRooms(s.supabase),
-      staff
+    const manager = isRoomManager(s.viewer.role);
+    const [pending, mine] = await Promise.all([
+      manager
         ? getPendingReservations(s.supabase)
         : Promise.resolve([] as PendingReservation[]),
-      staff
+      manager
         ? Promise.resolve([] as MyReservation[])
         : getMyReservations(s.supabase, s.userId),
     ]);
-    return { liveRooms, pendingReservations: pending, myReservations: mine };
+    return { pendingReservations: pending, myReservations: mine };
   } catch {
     return hasSupabase()
-      ? {
-          liveRooms: [],
-          pendingReservations: [],
-          myReservations: [],
-          failed: true,
-        }
+      ? { pendingReservations: [], myReservations: [], failed: true }
       : mock();
   }
 }

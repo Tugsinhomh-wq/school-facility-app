@@ -69,23 +69,23 @@ export function buildRows({ base, repairs, rooms, counts, mine }: HomeData): Act
   }
 
   if (isStaffRole(role)) {
-    const [top] = repairs.queue;
+    const top = repairs.newestPending;
     rows.push({
       key: "repair",
       icon: Wrench,
-      title: `แจ้งซ่อมรอรับเรื่อง ${base.stats.pending} เรื่อง`,
-      detail: [base.emergencyOpen > 0 && `ฉุกเฉิน ${base.emergencyOpen} เรื่อง`, top?.title].filter(Boolean).join(" · ") || "ไม่มีงานรอรับเรื่อง",
+      title: `แจ้งซ่อมรอรับเรื่อง ${base.pending} เรื่อง`,
+      detail: [base.emergencyOpen > 0 && `ฉุกเฉิน ${base.emergencyOpen} เรื่อง`, top && `ล่าสุด: ${top.title}`].filter(Boolean).join(" · ") || "ไม่มีงานรอรับเรื่อง",
       href: "/tickets?status=pending",
-      todo: base.stats.pending,
+      todo: base.pending,
     });
   } else {
-    const [last] = repairs.recent;
+    const last = repairs.latest;
     rows.push({
       key: "repair",
       icon: Wrench,
       title: last ? "งานซ่อมล่าสุดของฉัน" : "แจ้งซ่อม",
-      status: last && { label: STATUS_LABEL[last.status], tone: TICKET_TONE[last.status] },
-      detail: last ? last.title : "ยังไม่เคยแจ้งซ่อม พบสิ่งชำรุดแตะที่นี่ได้เลย",
+      status: last ? { label: STATUS_LABEL[last.status], tone: TICKET_TONE[last.status] } : undefined,
+      detail: last ? last.title : "ยังไม่มีรายการแจ้งซ่อม แตะที่นี่เพื่อเปิดหน้าแจ้งซ่อม",
       href: last ? `/tickets/${last.id}` : "/tickets",
       todo: 0,
     });

@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Viewer } from "@/lib/data/dashboard";
 import { getSession } from "@/lib/data/session";
 import { MOCK_ROOMS, mockBookings } from "@/lib/mock-data";
-import { addDays, atBangkok, bangkokYmd, formatInstantHm } from "@/lib/time";
+import { addDays, atBangkok } from "@/lib/time";
 import type { ApprovalStatus } from "@/types/database";
 
 export interface RoomInfo {
@@ -27,27 +27,6 @@ export interface Booking {
   start_time: string;
   end_time: string;
   status: ApprovalStatus;
-}
-
-/** A row of the v_live_room_status view. */
-export interface LiveRoom {
-  room_id: string;
-  room_name: string;
-  building_name: string;
-  capacity: number | null;
-  current_status: "busy" | "available";
-  active_meeting_title: string | null;
-  active_meeting_until: string | null;
-  booked_by: string | null;
-}
-
-export interface TodayMeeting {
-  id: string;
-  room_id: string;
-  room_name: string;
-  title: string;
-  start_time: string;
-  end_time: string;
 }
 
 export interface MeetingWeek {
@@ -140,107 +119,6 @@ export async function getMeetingWeek(weekStart: string): Promise<MeetingWeek> {
   }
 }
 
-const todayRange = () => {
-  const today = bangkokYmd(new Date());
-  return {
-    today,
-    dayStart: atBangkok(today, 0).toISOString(),
-    dayEnd: atBangkok(addDays(today, 1), 0).toISOString(),
-  };
-};
-
-export function mockTodayMeetings(): TodayMeeting[] {
-  const { today } = todayRange();
-  const names = new Map(MOCK_ROOMS.map((r) => [r.id, r.name]));
-  return mockBookings()
-    .filter(
-      (b) =>
-        b.status === "approved" && bangkokYmd(new Date(b.start_time)) === today,
-    )
-    .map((b) => ({
-      id: b.id,
-      room_id: b.room_id,
-      room_name: names.get(b.room_id) ?? "",
-      title: b.purpose,
-      start_time: b.start_time,
-      end_time: b.end_time,
-    }));
-}
-
-export function mockLiveRooms(): LiveRoom[] {
-  const now = new Date().toISOString();
-  const bookings = mockBookings();
-  return MOCK_ROOMS.map((r) => {
-    const active = bookings.find(
-      (b) =>
-        b.room_id === r.id &&
-        b.status === "approved" &&
-        b.start_time <= now &&
-        now < b.end_time,
-    );
-    return {
-      room_id: r.id,
-      room_name: r.name,
-      building_name: r.building_name,
-      capacity: r.capacity,
-      current_status: active ? "busy" : "available",
-      active_meeting_title: active?.purpose ?? null,
-      active_meeting_until: active?.end_time ?? null,
-      booked_by: active?.applicant_name ?? null,
-    };
-  });
-}
-
-/** Approved meetings for today (the ticker and the rooms tab). Empty, not an error, if the SQL is not installed. */
-export async function getTodayMeetings(
-  supabase: SupabaseClient,
-): Promise<TodayMeeting[]> {
-  try {
-    const { dayStart, dayEnd } = todayRange();
-    const { data, error } = await supabase
-      .from("facility_reservations")
-      .select("id, room_id, purpose, start_time, end_time, room:rooms(name)")
-      .eq("status", "approved")
-      .gt("end_time", dayStart)
-      .lt("start_time", dayEnd)
-      .order("start_time");
-    if (error) return [];
-    return (
-      data as unknown as {
-        id: string;
-        room_id: string;
-        purpose: string;
-        start_time: string;
-        end_time: string;
-        room: { name: string } | { name: string }[] | null;
-      }[]
-    ).map((m) => ({
-      id: m.id,
-      room_id: m.room_id,
-      room_name: (Array.isArray(m.room) ? m.room[0] : m.room)?.name ?? "",
-      title: m.purpose,
-      start_time: m.start_time,
-      end_time: m.end_time,
-    }));
-  } catch {
-    return [];
-  }
-}
-
-export async function getLiveRooms(
-  supabase: SupabaseClient,
-): Promise<LiveRoom[]> {
-  try {
-    const { data, error } = await supabase
-      .from("v_live_room_status")
-      .select("*")
-      .order("room_number");
-    return error ? [] : (data as LiveRoom[]);
-  } catch {
-    return [];
-  }
-}
-
 export interface PendingReservation {
   id: string;
   purpose: string;
@@ -301,11 +179,6 @@ export function mockPendingReservations(): PendingReservation[] {
       end_time: b.end_time,
       applicant_name: b.applicant_name,
     }));
-}
-
-/** "09:00-10:30 น. ห้องประชุมภูมินทร์: ประชุมครู" */
-export function meetingLine(m: TodayMeeting) {
-  return `${formatInstantHm(m.start_time)}-${formatInstantHm(m.end_time)} น. ${m.room_name}: ${m.title}`;
 }
 
 export interface MyReservation {
