@@ -96,6 +96,7 @@ export function FeedbackRow({
             {formatDateTh(r.created_at)}
           </time>
           <span className="hidden md:block">{pill}</span>
+          <span className="sr-only">เปิดอ่านและเปลี่ยนสถานะ</span>
           <ChevronRight
             className="size-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-90"
             aria-hidden
@@ -126,7 +127,7 @@ export function FeedbackRow({
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={urlOf.get(p)}
-                      alt="รูปหน้าจอที่แนบ"
+                      alt=""
                       className="size-full object-cover"
                     />
                   </a>
