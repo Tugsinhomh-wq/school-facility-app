@@ -23,12 +23,12 @@ export default async function ManageRoomsPage() {
     <div className="mx-auto max-w-2xl space-y-4">
       <Link
         href="/meeting-rooms"
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+        className="inline-flex min-h-11 items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-4" aria-hidden />
         ขอใช้ห้องประชุม
       </Link>
-      <h1 className="font-display text-3xl font-bold tracking-tight">
+      <h1 className="font-display text-3xl font-medium tracking-tight">
         จัดการห้องประชุม
       </h1>
       <p className="text-muted-foreground">

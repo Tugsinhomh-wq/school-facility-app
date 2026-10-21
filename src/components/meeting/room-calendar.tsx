@@ -1,10 +1,11 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Clock, Lock, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, Plus, User } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { BookingMark } from "@/components/meeting/booking-mark";
 import { BookingDetailDialog } from "@/components/meeting/booking-detail-dialog";
 import {
   BookingDialog,
@@ -185,7 +186,7 @@ export function RoomCalendar({
 
   if (!room) {
     return (
-      <p className="rounded-xl border border-dashed border-border bg-card/60 p-10 text-center text-muted-foreground">
+      <p className="rounded-xl border border-dashed border-border p-10 text-center text-muted-foreground">
         ยังไม่มีห้องที่เปิดให้ขอใช้ ให้เจ้าหน้าที่ตั้งค่าห้องที่ “เปิดให้จอง”
         ในฐานข้อมูลก่อน
       </p>
@@ -207,10 +208,10 @@ export function RoomCalendar({
               role="tab"
               aria-selected={r.id === room.id}
               className={cn(
-                "inline-flex min-h-11 shrink-0 snap-start items-center rounded-full border px-4 text-sm transition-colors sm:min-h-0 sm:py-1",
+                "inline-flex min-h-11 shrink-0 snap-start items-center rounded-lg border px-4 text-sm outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50",
                 r.id === room.id
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-card/80 hover:bg-muted",
+                  ? "border-primary bg-primary/10 font-semibold text-primary"
+                  : "border-border hover:bg-muted",
               )}
             >
               {r.name}
@@ -221,7 +222,7 @@ export function RoomCalendar({
           <Button
             variant="outline"
             size="icon"
-            className="size-11 sm:size-8"
+            className="size-11"
             nativeButton={false}
             render={
               <Link
@@ -234,7 +235,7 @@ export function RoomCalendar({
           </Button>
           <Button
             variant="outline"
-            className="h-11 sm:h-8"
+            className="h-11 px-4"
             nativeButton={false}
             render={<Link href={href(thisWeek)} />}
           >
@@ -243,7 +244,7 @@ export function RoomCalendar({
           <Button
             variant="outline"
             size="icon"
-            className="size-11 sm:size-8"
+            className="size-11"
             nativeButton={false}
             render={
               <Link
@@ -254,11 +255,7 @@ export function RoomCalendar({
           >
             <ChevronRight aria-hidden />
           </Button>
-          <Button
-            variant="cta"
-            className="h-11 px-4 sm:h-8"
-            onClick={openNextFree}
-          >
+          <Button className="h-11 px-4" onClick={openNextFree}>
             <Plus aria-hidden /> จองห้อง
           </Button>
         </div>
@@ -268,56 +265,44 @@ export function RoomCalendar({
         {room.name}
         {room.building_name !== room.name ? ` · ${room.building_name}` : ""}
         {room.capacity ? ` · ${room.capacity} ที่นั่ง` : ""} ·{" "}
-        {room.requires_approval ? "ต้องให้ ผอ. อนุมัติ" : "จองแล้วได้ทันที"}.
-        แตะช่วงว่างเพื่อจอง
+        {room.requires_approval ? "ต้องให้ ผอ. อนุมัติ" : "จองแล้วได้ทันที"} แตะช่วงว่างเพื่อจอง
       </p>
 
       {userId && myUpcoming.length > 0 && (
-        <section
-          aria-labelledby="my-requests"
-          className="rounded-xl border border-border bg-card p-3 sm:p-4"
-        >
-          <h2 id="my-requests" className="mb-2 text-sm font-semibold">
+        <section aria-labelledby="my-requests">
+          <h2 id="my-requests" className="mb-2 font-semibold">
             คำขอของฉัน
           </h2>
-          <ul className="space-y-2">
+          <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border">
             {myUpcoming.map((b) => {
               const roomName =
                 rooms.find((r) => r.id === b.room_id)?.name ?? "ห้องประชุม";
               const ymd = bangkokYmd(new Date(b.start_time));
-              const pending = b.status === "pending";
               return (
                 <li key={b.id}>
                   <button
                     type="button"
                     onClick={() => setDetailId(b.id)}
-                    className="flex min-h-14 w-full cursor-pointer items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-left hover:bg-muted/50"
+                    className="flex min-h-16 w-full cursor-pointer items-center gap-3 px-4 py-3 text-left outline-none transition-colors hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring/50"
                   >
-                    <span className="min-w-0">
-                      <span className="block truncate font-medium">
+                    <span className="min-w-0 flex-1 leading-snug">
+                      <span className="block truncate font-semibold">
                         {b.purpose}
                       </span>
-                      <span className="block text-xs text-muted-foreground">
+                      <span className="block text-sm text-muted-foreground">
                         {roomName} · {formatDayShort(ymd)}{" "}
                         {formatHm(bangkokMinutes(new Date(b.start_time)))}-
                         {formatHm(bangkokMinutes(new Date(b.end_time)))} น.
                       </span>
+                      <BookingMark
+                        kind={b.status === "pending" ? "pending" : "booked"}
+                        className="mt-1.5"
+                      />
                     </span>
-                    <span
-                      className={cn(
-                        "flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium",
-                        pending
-                          ? "bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-300"
-                          : "bg-emerald-100 text-emerald-900 dark:bg-emerald-500/20 dark:text-emerald-300",
-                      )}
-                    >
-                      {pending ? (
-                        <Clock className="size-3" aria-hidden />
-                      ) : (
-                        <Lock className="size-3" aria-hidden />
-                      )}
-                      {pending ? "รออนุมัติ" : "จองสำเร็จ"}
-                    </span>
+                    <ChevronRight
+                      className="size-5 shrink-0 text-muted-foreground"
+                      aria-hidden
+                    />
                   </button>
                 </li>
               );
@@ -353,10 +338,10 @@ export function RoomCalendar({
                 aria-selected={ymd === day}
                 onClick={() => setPicked(ymd)}
                 className={cn(
-                  "flex min-h-14 flex-col items-center justify-center rounded-xl border text-xs",
+                  "flex min-h-14 flex-col items-center justify-center rounded-lg border text-xs outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
                   ymd === day
                     ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-card/80",
+                    : "border-border",
                   ymd === today && ymd !== day && "border-primary",
                 )}
               >
@@ -387,15 +372,15 @@ export function RoomCalendar({
         />
       </div>
 
-      <div className="hidden overflow-x-auto rounded-xl border border-border bg-card/85 backdrop-blur-sm md:block">
+      <div className="hidden overflow-x-auto rounded-xl border border-border md:block">
         <div className="min-w-[46rem]">
-          <div className="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] border-b border-border text-center text-sm">
+          <div className="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] border-b border-border bg-muted/50 text-center text-sm text-muted-foreground">
             <div />
             {days.map((ymd) => (
               <div
                 key={ymd}
                 className={cn(
-                  "py-2",
+                  "py-3",
                   ymd === today && "font-semibold text-primary",
                 )}
               >
@@ -438,10 +423,10 @@ export function RoomCalendar({
                         "block w-full border-t outline-none transition-colors",
                         minute % 60 === 0
                           ? "border-border"
-                          : "border-border/40",
+                          : "border-border/50",
                         disabled
-                          ? "cursor-not-allowed bg-muted/30"
-                          : "cursor-pointer hover:bg-primary/15 focus-visible:bg-primary/15",
+                          ? "cursor-not-allowed bg-muted/50"
+                          : "cursor-pointer hover:bg-primary/10 focus-visible:bg-primary/10",
                       )}
                       style={{ height: ROW_H }}
                     />
@@ -464,9 +449,9 @@ export function RoomCalendar({
                       className={cn(
                         "absolute inset-x-0.5 z-10 overflow-hidden rounded-md px-1.5 py-1 text-left text-xs leading-tight outline-none focus-visible:ring-3 focus-visible:ring-ring/60",
                         pending
-                          ? "border border-dashed border-amber-500 bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-200"
-                          : "bg-primary text-primary-foreground",
-                        mine && "ring-2 ring-primary ring-offset-1",
+                          ? "border border-amber-800/50 bg-amber-50 text-amber-900"
+                          : "border border-primary/40 bg-primary/10 text-foreground",
+                        mine && "ring-1 ring-primary",
                       )}
                       style={{
                         top: ((start - DAY_START) / STEP) * ROW_H + 1,
@@ -474,9 +459,20 @@ export function RoomCalendar({
                       }}
                     >
                       <span className="block font-medium">{b.purpose}</span>
-                      <span className="block opacity-80">
+                      <span className="flex flex-wrap items-center gap-x-1.5 text-muted-foreground">
                         {formatHm(seg.start)}-{formatHm(seg.end)}
-                        {pending ? " รออนุมัติ" : ""}
+                        {pending && (
+                          <span className="inline-flex items-center gap-0.5">
+                            <Clock className="size-3" aria-hidden />
+                            รออนุมัติ
+                          </span>
+                        )}
+                        {mine && (
+                          <span className="inline-flex items-center gap-0.5">
+                            <User className="size-3" aria-hidden />
+                            ของฉัน
+                          </span>
+                        )}
                       </span>
                     </button>
                   );
@@ -498,19 +494,23 @@ export function RoomCalendar({
         </div>
       </div>
 
-      <p className="hidden flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground md:flex">
+      <p className="hidden flex-wrap gap-x-5 gap-y-1 text-sm text-muted-foreground md:flex">
         <span className="flex items-center gap-1.5">
-          <span className="size-3 rounded-sm bg-primary" aria-hidden /> จองแล้ว
+          <span
+            className="size-3.5 rounded-sm border border-primary/40 bg-primary/10"
+            aria-hidden
+          />{" "}
+          จองแล้ว
         </span>
         <span className="flex items-center gap-1.5">
           <span
-            className="size-3 rounded-sm border border-dashed border-amber-500 bg-amber-100"
+            className="size-3.5 rounded-sm border border-amber-800/50 bg-amber-50"
             aria-hidden
           />{" "}
           รออนุมัติ (ล็อกคิวไว้ระหว่างรอ)
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="size-3 rounded-sm ring-2 ring-primary" aria-hidden />{" "}
+          <span className="size-3.5 rounded-sm ring-1 ring-primary" aria-hidden />{" "}
           ของฉัน
         </span>
       </p>

@@ -26,14 +26,14 @@ function freeHours(bookings: Booking[], ymd: string) {
 /** Every room against every day of the week: where the free time is, at a glance. Desktop only. */
 export function RoomOverview({ rooms, bookings, days, today, activeRoomId, href }: { rooms: RoomInfo[]; bookings: Booking[]; days: string[]; today: string | null; activeRoomId: string; href: (roomId: string) => string }) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-border bg-card/85 backdrop-blur-sm">
+    <div className="overflow-x-auto rounded-xl border border-border">
       <table className="w-full min-w-[46rem] border-collapse text-sm">
         <caption className="sr-only">ความว่างของทุกห้องในสัปดาห์นี้</caption>
         <thead>
-          <tr className="border-b border-border text-center">
-            <th scope="col" className="w-56 px-3 py-2 text-left font-medium text-muted-foreground">ห้อง</th>
+          <tr className="border-b border-border bg-muted/50 text-center">
+            <th scope="col" className="w-56 px-3 py-3 text-left font-medium text-muted-foreground">ห้อง</th>
             {days.map((ymd) => (
-              <th key={ymd} scope="col" className={cn("px-2 py-2 font-medium", ymd === today && "text-primary")}>
+              <th key={ymd} scope="col" className={cn("px-2 py-3 font-medium text-muted-foreground", ymd === today && "text-primary")}>
                 {formatDayShort(ymd)}
               </th>
             ))}
@@ -45,7 +45,7 @@ export function RoomOverview({ rooms, bookings, days, today, activeRoomId, href 
             return (
               <tr key={room.id} className={cn("border-b border-border last:border-0", room.id === activeRoomId && "bg-primary/5")}>
                 <th scope="row" className="px-3 py-2 text-left font-medium">
-                  <Link href={href(room.id)} className="hover:underline">{room.name}</Link>
+                  <Link href={href(room.id)} className="block py-1 hover:underline">{room.name}</Link>
                   <span className="block text-xs font-normal text-muted-foreground">{room.capacity ? `${room.capacity} ที่นั่ง` : room.building_name !== room.name ? room.building_name : room.requires_approval ? "ต้องขออนุมัติ" : "จองได้ทันที"}</span>
                 </th>
                 {days.map((ymd) => {
@@ -53,7 +53,7 @@ export function RoomOverview({ rooms, bookings, days, today, activeRoomId, href 
                   return (
                     <td key={ymd} className="px-2 py-2">
                       <Link href={href(room.id)} className="block" aria-label={`${room.name} ${formatDayShort(ymd)} ว่าง ${Math.round(free * 10) / 10} ชั่วโมง`}>
-                        <span className="relative block h-3 overflow-hidden rounded-full bg-emerald-500/25">
+                        <span className="relative block h-3 overflow-hidden rounded-full bg-muted">
                           {own.map((b) => {
                             const seg = segmentOn(b, ymd);
                             if (!seg) return null;
@@ -63,7 +63,7 @@ export function RoomOverview({ rooms, bookings, days, today, activeRoomId, href 
                             return (
                               <span
                                 key={b.id}
-                                className={cn("absolute inset-y-0", b.status === "pending" ? "bg-amber-500" : "bg-primary")}
+                                className={cn("absolute inset-y-0", b.status === "pending" ? "bg-amber-700" : "bg-primary")}
                                 style={{ left: `${((s - DAY_START) / SPAN) * 100}%`, width: `${((e - s) / SPAN) * 100}%` }}
                               />
                             );

@@ -1,5 +1,6 @@
 "use client";
 
+import { Check, Clock } from "lucide-react";
 import { useActionState, useMemo, useState } from "react";
 
 import { createMemoFromReservation, createReservation, type BookingResult } from "@/app/(dashboard)/meeting-rooms/actions";
@@ -14,7 +15,7 @@ import { formatDayLong, formatHm } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
 const selectClass =
-  "h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30 dark:[&>option]:bg-card";
+  "h-11 w-full rounded-lg border border-input bg-transparent px-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 export interface BookingDefaults {
   roomId: string;
@@ -57,11 +58,11 @@ function BookingForm({ rooms, bookings, defaults, onDone }: { rooms: RoomInfo[];
             <p className="text-sm text-muted-foreground">ห้องนี้ต้องได้รับอนุมัติ เตรียมบันทึกข้อความเสนอผู้อำนวยการได้เลย ระบบร่างให้จากข้อมูลที่กรอก</p>
             <form action={createMemoFromReservation}>
               <input type="hidden" name="reservation_id" value={state.reservationId} />
-              <Button type="submit" className="w-full">ร่างบันทึกข้อความเสนอ ผอ. (PDF/Word)</Button>
+              <Button type="submit" className="h-11 w-full">ร่างบันทึกข้อความเสนอ ผอ. (PDF/Word)</Button>
             </form>
           </>
         )}
-        <Button variant="outline" className="w-full" onClick={onDone}>ปิด</Button>
+        <Button variant="outline" className="h-11 w-full" onClick={onDone}>ปิด</Button>
       </div>
     );
   }
@@ -81,7 +82,8 @@ function BookingForm({ rooms, bookings, defaults, onDone }: { rooms: RoomInfo[];
             </option>
           ))}
         </select>
-        <p className={cn("text-xs", room?.requires_approval ? "text-amber-700 dark:text-amber-300" : "text-emerald-700 dark:text-emerald-300")}>
+        <p className={cn("flex items-center gap-1 text-sm", room?.requires_approval ? "text-amber-800" : "text-emerald-800")}>
+          {room?.requires_approval ? <Clock className="size-4 shrink-0" aria-hidden /> : <Check className="size-4 shrink-0" aria-hidden />}
           {room?.requires_approval ? "ห้องนี้ต้องให้ ผอ. อนุมัติ คำขอจะอยู่สถานะรออนุมัติ" : "จองแล้วได้ทันที ระบบล็อกคิวให้เลย"}
         </p>
       </div>
@@ -113,11 +115,11 @@ function BookingForm({ rooms, bookings, defaults, onDone }: { rooms: RoomInfo[];
 
       <div className="space-y-1.5">
         <Label htmlFor="purpose">วัตถุประสงค์ (ชื่อการประชุม)</Label>
-        <Input id="purpose" name="purpose" required maxLength={200} placeholder="เช่น ประชุมกลุ่มสาระวิทยาศาสตร์" />
+        <Input id="purpose" name="purpose" required maxLength={200} className="h-11 text-base" placeholder="เช่น ประชุมกลุ่มสาระวิทยาศาสตร์" />
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="attendee_count">จำนวนผู้เข้าร่วม (คน)</Label>
-        <Input id="attendee_count" name="attendee_count" type="number" min={1} max={room?.capacity ?? undefined} inputMode="numeric" value={attendees} onChange={(e) => setAttendees(e.target.value)} />
+        <Input id="attendee_count" name="attendee_count" type="number" min={1} className="h-11 text-base" max={room?.capacity ?? undefined} inputMode="numeric" value={attendees} onChange={(e) => setAttendees(e.target.value)} />
         {tooMany && <p role="alert" className="text-xs text-destructive">ห้องนี้รองรับได้ {room?.capacity} คน</p>}
       </div>
 
@@ -126,8 +128,8 @@ function BookingForm({ rooms, bookings, defaults, onDone }: { rooms: RoomInfo[];
         {room && room.equipment.length > 0 && (
           <div className="flex flex-wrap gap-x-4 gap-y-1">
             {room.equipment.map((eq) => (
-              <label key={`${room.id}-${eq}`} className="flex items-center gap-1.5 text-sm">
-                <input type="checkbox" name="equipment" value={eq} className="size-4 accent-[var(--color-primary)]" />
+              <label key={`${room.id}-${eq}`} className="flex min-h-11 items-center gap-2 text-sm">
+                <input type="checkbox" name="equipment" value={eq} className="size-5 accent-[var(--color-primary)]" />
                 {eq}
               </label>
             ))}
@@ -137,7 +139,7 @@ function BookingForm({ rooms, bookings, defaults, onDone }: { rooms: RoomInfo[];
       </fieldset>
 
       {state && !state.ok && <p role="alert" className="text-sm text-destructive">{state.message}</p>}
-      <Button type="submit" disabled={pending || Boolean(conflict) || tooMany} className="w-full">
+      <Button type="submit" disabled={pending || Boolean(conflict) || tooMany} className="h-11 w-full">
         {pending ? "กำลังส่ง..." : room?.requires_approval ? "ส่งคำขอใช้ห้อง" : "จองห้อง"}
       </Button>
     </form>
@@ -148,7 +150,7 @@ export function BookingDialog({ open, onClose, rooms, bookings, defaults }: { op
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent className="max-h-[92vh] overflow-y-auto">
-        <DialogHeader>
+        <DialogHeader className="pr-10">
           <DialogTitle>ขอใช้ห้องประชุม</DialogTitle>
           <DialogDescription>{defaults ? formatDayLong(defaults.ymd) : ""}</DialogDescription>
         </DialogHeader>
