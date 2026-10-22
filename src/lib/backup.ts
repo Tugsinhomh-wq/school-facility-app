@@ -24,6 +24,7 @@ export const BACKUP_TABLES = [
   "control_projects",
   "control_actions",
   "control_assessments",
+  "census_students",
 ] as const;
 
 /** Stable paging order for tables whose key is not a single `id` column. */

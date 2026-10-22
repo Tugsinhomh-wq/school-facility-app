@@ -41,9 +41,10 @@ pip install -r scripts/requirements.txt
 3. `supabase/executive_role.sql` (ถ้ายังไม่เคยรัน) รันแยกเดี่ยว ๆ เพราะเพิ่มค่า role `executive` ต้อง commit ก่อนใช้ — เป็นสิ่งที่ต้องมีก่อนไฟล์ถัดไป
 4. `supabase/control_01.sql` (โมดูลควบคุมภายใน) รันหลัง facility_02 แล้ววางทั้งไฟล์รันครั้งเดียว ส่วน "ชุดตรวจสอบ" ท้ายไฟล์เป็นคอมเมนต์ ให้คัดลอกไปรันทีละชุดภายหลัง
 5. `supabase/control_02.sql` (ผลประเมิน ปค.4) รันหลัง control_01 แล้ววางทั้งไฟล์รันครั้งเดียว ส่วน "ชุดตรวจสอบ" ท้ายไฟล์เป็นคอมเมนต์ ให้คัดลอกไปรันทีละชุดภายหลัง
-6. ชุดตรวจสอบ (check sets) ของ `facility_02_cleaning.sql`, `control_01.sql` และ `control_02.sql`
-7. `supabase/facility_99_reset_old_data.sql` รันเฉพาะตอนสลับขึ้นระบบจริง หลังสำรองข้อมูลด้วย `/api/cron/backup` แล้ว (ลบเฉพาะแถวข้อมูลเก่า)
+6. `supabase/census_01.sql` (ทะเบียนรายชื่อนักเรียนรายห้อง: เลขประจำตัวกับชื่อ-สกุล) รันหลัง control_02 แล้ววางทั้งไฟล์รันครั้งเดียว ส่วน "ชุดตรวจสอบ" ท้ายไฟล์เป็นคอมเมนต์ ให้คัดลอกไปรันทีละชุดภายหลัง ผู้ดูแลข้อมูลส่วนบุคคลของโรงเรียนควรอนุมัติก่อนนำเข้าข้อมูลจริง
+7. ชุดตรวจสอบ (check sets) ของ `facility_02_cleaning.sql`, `control_01.sql`, `control_02.sql` และ `census_01.sql`
+8. `supabase/facility_99_reset_old_data.sql` รันเฉพาะตอนสลับขึ้นระบบจริง หลังสำรองข้อมูลด้วย `/api/cron/backup` แล้ว (ลบเฉพาะแถวข้อมูลเก่า)
 
-**คำเตือน:** `src/lib/backup.ts` อ่านตารางของโมดูลควบคุมภายใน (`control_missions`, `control_projects`, `control_actions`) ด้วย ต้องรัน `supabase/control_01.sql` **ก่อน** deploy โค้ดชุดนี้ (หรือรันทันทีที่ deploy เสร็จ) ถ้ายังไม่มีตาราง การสำรองข้อมูลประจำคืนจะล้มเหลวจนกว่าจะรันไฟล์นี้ เช่นเดียวกัน `src/lib/backup.ts` อ่านตาราง `control_assessments` ด้วย ต้องรัน `supabase/control_02.sql` **ก่อน** deploy โค้ดที่อ่านตารางนี้ (หรือรันทันทีที่ deploy เสร็จ) ไม่งั้นการสำรองข้อมูลประจำคืนจะล้มเหลวเช่นกัน
+**คำเตือน:** `src/lib/backup.ts` อ่านตารางของโมดูลควบคุมภายใน (`control_missions`, `control_projects`, `control_actions`) ด้วย ต้องรัน `supabase/control_01.sql` **ก่อน** deploy โค้ดชุดนี้ (หรือรันทันทีที่ deploy เสร็จ) ถ้ายังไม่มีตาราง การสำรองข้อมูลประจำคืนจะล้มเหลวจนกว่าจะรันไฟล์นี้ เช่นเดียวกัน `src/lib/backup.ts` อ่านตาราง `control_assessments` ด้วย ต้องรัน `supabase/control_02.sql` **ก่อน** deploy โค้ดที่อ่านตารางนี้ (หรือรันทันทีที่ deploy เสร็จ) ไม่งั้นการสำรองข้อมูลประจำคืนจะล้มเหลวเช่นกัน และ `src/lib/backup.ts` อ่านตาราง `census_students` ด้วย ต้องรัน `supabase/census_01.sql` **ก่อน** deploy โค้ดที่อ่านตารางนี้ (หรือรันทันทีที่ deploy เสร็จ) ไม่งั้นการสำรองข้อมูลประจำคืนจะล้มเหลวเช่นกัน
 
 **Vercel env ที่ไม่ต้องใช้แล้ว (ลบได้):** `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (ถอด Web Push ออกแล้ว)
