@@ -11,6 +11,14 @@ export const PK4_TITLE = "รายงานการประเมินอง
 /** Share of the table width of each ปค.4 column, in the order of PK4_COLUMNS (sums to 100); Word and the print view use the same. */
 export const PK4_WIDTHS: readonly number[] = [42, 58];
 
+/** The director signs by hand, as in ปค.1 but with the school's wording for this form ("ลงชื่อ"); no name is filled in. */
+export const PK4_SIGNATURE_LINES: readonly string[] = [
+  "ลงชื่อ ................ ผู้รายงาน",
+  "(................................)",
+  `ตำแหน่ง ผู้อำนวยการ${SCHOOL_NAME}`,
+  "วันที่ ........ เดือน ........ พ.ศ. ........",
+];
+
 /** The lines above the ปค.4 table, top to bottom. */
 export const pk4Heading = ({ fiscalYear, groupLabel }: DocMeta): string[] => [SCHOOL_NAME, PK4_TITLE, yearEndLine(fiscalYear), groupLabel];
 
@@ -21,15 +29,20 @@ export const pk4Heading = ({ fiscalYear, groupLabel }: DocMeta): string[] => [SC
  */
 export type Pk4Row = { kind: "component" | "principle" | "summary"; n: number; left: string; right: string };
 
-/** Each component, its principles, then its summary. A comment ends with its result in brackets, e.g. "... (บางส่วน)". */
+/**
+ * Each component ("{n}. {label}"), its principles, then its summary. A typed comment starts with its
+ * principle's number, like the school's file ("3) ..."), and ends with its result in brackets, e.g.
+ * "3) ... (บางส่วน)". A result alone is just "(บางส่วน)" and no comment is "-": no number on those.
+ */
 export function pk4Rows(a: ControlAssessment): Pk4Row[] {
   const rows: Pk4Row[] = [];
   for (const c of PK4_COMPONENTS) {
-    rows.push({ kind: "component", n: c.n, left: `องค์ประกอบที่ ${c.n} ${c.label}`, right: "" });
+    rows.push({ kind: "component", n: c.n, left: `${c.n}. ${c.label}`, right: "" });
     for (const p of c.principles) {
       const text = a.principles[p.n]?.text.trim() ?? "";
       const label = ASSESS_RESULTS.find((r) => r.key === a.principles[p.n]?.result)?.label;
-      const right = label ? `${text} (${label})`.trim() : orDash(text);
+      const comment = text ? `${p.n}) ${text}` : "";
+      const right = label ? `${comment} (${label})`.trim() : orDash(comment);
       rows.push({ kind: "principle", n: p.n, left: `${p.n}) ${p.text}`, right });
     }
     rows.push({ kind: "summary", n: c.n, left: "", right: `${SUMMARY_LABEL}\n${orDash(a.summaries[c.n] ?? "")}` });

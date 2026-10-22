@@ -19,9 +19,9 @@ import {
 
 import { PK4_COLUMNS, PK5_COLUMNS } from "./forms.ts";
 import {
-  DIRECTOR_SIGNATURE_LINES,
   PK1_ADDRESSEE,
   PK1_EMPTY,
+  PK1_SIGNATURE_LINES,
   PK1_TITLE,
   pk1Heading,
   pk1Improvements,
@@ -30,7 +30,7 @@ import {
   pk1RiskLabel,
   type Pk1Section,
 } from "./pk1.ts";
-import { PK4_TITLE, PK4_WIDTHS, pk4Heading, pk4Rows } from "./pk4.ts";
+import { PK4_SIGNATURE_LINES, PK4_TITLE, PK4_WIDTHS, pk4Heading, pk4Rows } from "./pk4.ts";
 import { CSA_TITLE, PK5_TITLE, PK5_WIDTHS, SCHOOL_NAME, SIGNATURE_LINES, csaBlocks, csaHeading, pk5Heading, type DocMeta, type Pk5Row } from "./pk5.ts";
 import type { ControlAssessment, ControlMission } from "./types.ts";
 import { withBreakHints } from "../memo/thai-text.ts";
@@ -190,8 +190,11 @@ const block = (text: string, left: number, o: { bold?: boolean; keepNext?: boole
  */
 export function pk1ToDocx(sections: Pk1Section[], meta: { fiscalYear: number }): Promise<Buffer> {
   const sub = 1.2 * CM;
+  const [formTag, ...title] = pk1Heading(meta.fiscalYear);
   const children: Paragraph[] = [
-    ...headingParagraphs(pk1Heading(meta.fiscalYear), [0, 1]),
+    // "แบบ ปค.1" sits at the right, normal weight; the title and the year line stay centred.
+    new Paragraph({ alignment: AlignmentType.RIGHT, keepNext: true, children: [run(formTag)] }),
+    ...headingParagraphs(title, [0]),
     new Paragraph({ spacing: { before: 240 }, keepNext: true, children: [run(PK1_ADDRESSEE)] }),
     ...pk1Paragraphs(meta.fiscalYear).map(
       (t) => new Paragraph({ alignment: AlignmentType.JUSTIFIED, indent: { firstLine: 1.25 * CM }, spacing: { before: 120 }, children: [run(t)] }),
@@ -210,7 +213,7 @@ export function pk1ToDocx(sections: Pk1Section[], meta: { fiscalYear: number }):
       );
     }
   }
-  children.push(...signatureBlock(DIRECTOR_SIGNATURE_LINES, 7.5 * CM));
+  children.push(...signatureBlock(PK1_SIGNATURE_LINES, 7.5 * CM));
 
   return pack([{ properties: { page: { size: A4, margin: PORTRAIT_MARGIN } }, children }], PK1_TITLE);
 }
@@ -240,7 +243,7 @@ export function pk4ToDocx(a: ControlAssessment, meta: DocMeta): Promise<Buffer> 
     [
       {
         properties: { page: { size: A4, margin: PORTRAIT_MARGIN } },
-        children: [...headingParagraphs(pk4Heading(meta), [0, 1, 3]), new Paragraph({ spacing: { after: 120 }, children: [] }), table, ...signatureBlock(DIRECTOR_SIGNATURE_LINES, 7.5 * CM)],
+        children: [...headingParagraphs(pk4Heading(meta), [0, 1, 3]), new Paragraph({ spacing: { after: 120 }, children: [] }), table, ...signatureBlock(PK4_SIGNATURE_LINES, 7.5 * CM)],
       },
     ],
     PK4_TITLE,

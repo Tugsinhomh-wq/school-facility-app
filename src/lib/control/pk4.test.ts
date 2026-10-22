@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { PK4_TITLE, PK4_WIDTHS, pk4Counts, pk4Heading, pk4Rows } from "./pk4.ts";
-import { SCHOOL_NAME } from "./pk5.ts";
+import { PK4_SIGNATURE_LINES, PK4_TITLE, PK4_WIDTHS, pk4Counts, pk4Heading, pk4Rows } from "./pk4.ts";
+import { SCHOOL_NAME, SIGNATURE_LINES } from "./pk5.ts";
 import { emptyAssessment } from "./map.ts";
 import { PK4_COMPONENTS, SUMMARY_LABEL } from "./forms.ts";
 
@@ -28,11 +28,11 @@ test("pk4Rows: an empty assessment has 5 component rows, 17 principle rows and 5
     PK4_COMPONENTS.flatMap((c) => ["component", ...c.principles.map(() => "principle"), "summary"]),
   );
   assert.deepEqual(rows.filter((r) => r.kind === "component").map((r) => r.left), [
-    "องค์ประกอบที่ 1 สภาพแวดล้อมการควบคุม",
-    "องค์ประกอบที่ 2 การประเมินความเสี่ยง",
-    "องค์ประกอบที่ 3 กิจกรรมการควบคุม",
-    "องค์ประกอบที่ 4 สารสนเทศและการสื่อสาร",
-    "องค์ประกอบที่ 5 กิจกรรมการติดตามผล",
+    "1. สภาพแวดล้อมการควบคุม",
+    "2. การประเมินความเสี่ยง",
+    "3. กิจกรรมการควบคุม",
+    "4. สารสนเทศและการสื่อสาร",
+    "5. กิจกรรมการติดตามผล",
   ]);
   const principles = rows.filter((r) => r.kind === "principle");
   assert.deepEqual(principles.map((r) => r.n), Array.from({ length: 17 }, (_, i) => i + 1));
@@ -44,14 +44,14 @@ test("pk4Rows: an empty assessment has 5 component rows, 17 principle rows and 5
   }
 });
 
-test("pk4Rows: the comment ends with the result in brackets; a result alone and a comment alone both work", () => {
+test("pk4Rows: a comment starts with its number and ends with the result in brackets; a result alone is just the result, no comment is a dash", () => {
   const a = emptyAssessment(2569, "general");
   a.principles[1] = { result: "full", text: "มีคำสั่งโรงเรียน" };
   a.principles[2] = { result: "partial", text: "  ทำบางส่วน\nขาดหลักฐาน  " };
   a.principles[3] = { result: "none", text: "" };
   a.principles[4] = { result: null, text: "มีแต่ความเห็น" };
   const right = pk4Rows(a).filter((r) => r.kind === "principle").map((r) => r.right);
-  assert.deepEqual(right.slice(0, 5), ["มีคำสั่งโรงเรียน (ปฏิบัติครบ)", "ทำบางส่วน\nขาดหลักฐาน (บางส่วน)", "(ไม่พบ)", "มีแต่ความเห็น", "-"]);
+  assert.deepEqual(right.slice(0, 5), ["1) มีคำสั่งโรงเรียน (ปฏิบัติครบ)", "2) ทำบางส่วน\nขาดหลักฐาน (บางส่วน)", "(ไม่พบ)", "4) มีแต่ความเห็น", "-"]);
 });
 
 test("pk4Rows: the typed summary follows the label; the summary row is the last row of its component", () => {
@@ -73,4 +73,14 @@ test("pk4Counts: how many principles are at each result; total is always 17", ()
   a.principles[17].result = "none";
   a.principles[5].text = "ความเห็นโดยไม่เลือกผล";
   assert.deepEqual(pk4Counts(a), { full: 3, partial: 1, none: 1, unanswered: 12, total: 17 });
+});
+
+test("PK4_SIGNATURE_LINES: the school's 'ลงชื่อ' wording, an empty name line, the director's position and no name", () => {
+  assert.deepEqual(PK4_SIGNATURE_LINES, [
+    "ลงชื่อ ................ ผู้รายงาน",
+    "(................................)",
+    `ตำแหน่ง ผู้อำนวยการ${SCHOOL_NAME}`,
+    "วันที่ ........ เดือน ........ พ.ศ. ........",
+  ]);
+  assert.notDeepEqual(PK4_SIGNATURE_LINES, SIGNATURE_LINES, "not the ปค.5 lines, which have no name line");
 });

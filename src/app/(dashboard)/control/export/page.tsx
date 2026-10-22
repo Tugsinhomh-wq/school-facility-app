@@ -76,7 +76,8 @@ export default async function ExportPage({ searchParams }: { searchParams: Promi
   const allProjects = projectList.projects;
   const projects = allProjects.filter((p) => p.groupKey === group);
   const missions = missionList?.missions.filter((m) => m.groupKey === group) ?? [];
-  const groupFailed = projectList.failed || missionList?.failed || assessed?.failed;
+  // A failed ปค.4 read only changes the ปค.4 row; ปค.5 and CSA do not use it.
+  const groupFailed = projectList.failed || missionList?.failed;
   const inPk5 = pk5Rows(projects).length;
   // High-scoring projects the head has not confirmed yet are the usual reason a ปค.5 looks short.
   const waiting = projects.filter((p) => !p.confirmed && needsPk5(p.score)).length;
@@ -172,11 +173,13 @@ export default async function ExportPage({ searchParams }: { searchParams: Promi
               group={group}
               title="ปค.4 รายงานการประเมินองค์ประกอบของการควบคุมภายใน"
               detail={
-                filled && c
-                  ? `กรอกแล้ว · ปฏิบัติครบ ${c.full} · บางส่วน ${c.partial} · ไม่พบ ${c.none} · ยังไม่ประเมิน ${c.unanswered}`
-                  : "ยังไม่ได้กรอก"
+                assessed?.failed
+                  ? "โหลดผลประเมิน ปค.4 ไม่สำเร็จ ลองโหลดหน้าใหม่"
+                  : filled && c
+                    ? `กรอกแล้ว · ปฏิบัติครบ ${c.full} · บางส่วน ${c.partial} · ไม่พบ ${c.none} · ยังไม่ประเมิน ${c.unanswered}`
+                    : "ยังไม่ได้กรอก"
               }
-              note={filled ? undefined : "ไฟล์จะมีครบ 17 ข้อ แต่ช่องความเห็นยังว่าง"}
+              note={assessed?.failed || filled ? undefined : "ไฟล์จะมีครบ 17 ข้อ แต่ช่องความเห็นยังว่าง"}
               extra={
                 <Link href={controlHref("/control/assess", { fy, group }, currentFy)} className={toolLink}>
                   <ClipboardCheck className="size-4" aria-hidden />

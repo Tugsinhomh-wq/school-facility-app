@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  DIRECTOR_SIGNATURE_LINES,
   PK1_ADDRESSEE,
+  PK1_SIGNATURE_LINES,
   PK1_TITLE_LINES,
   pk1Heading,
   pk1ImproveLabel,
@@ -60,17 +60,22 @@ test("the fixed wording: titles, addressee and the three paragraphs with the sch
   assert.deepEqual(pk1Heading(2569), [...PK1_TITLE_LINES, "สำหรับระยะเวลาการดำเนินงานสิ้นสุด วันที่ 30 เดือน กันยายน พ.ศ. 2569"]);
   assert.equal(PK1_ADDRESSEE, "เรียน ผู้อำนวยการสำนักงานเขตพื้นที่การศึกษามัธยมศึกษาบุรีรัมย์");
   const [p1, p2, p3] = pk1Paragraphs(2569);
-  assert.ok(p1.startsWith(`${SCHOOL_NAME} ได้ประเมินผลการควบคุมภายในของหน่วยงานสำหรับปีสิ้นสุดวันที่ 30 เดือน กันยายน พ.ศ. 2569 ด้วยวิธีการที่โรงเรียนกำหนด`));
+  assert.ok(p1.startsWith(`${SCHOOL_NAME} ได้ประเมินผลการควบคุมภายในของหน่วยงานสำหรับปีสิ้นสุดวันที่ 30 เดือน กันยายน พ.ศ. 2569 ด้วยวิธีการที่โรงเรียนกำหนด`));
   assert.ok(p1.endsWith("ที่เกี่ยวข้องกับการดำเนินงาน"));
   assert.ok(p2.startsWith(`จากผลการประเมินดังกล่าว ${SCHOOL_NAME} เห็นว่า`));
   assert.ok(p2.endsWith("ภายใต้การกำกับดูแลของผู้อำนวยการสำนักงานเขตพื้นที่การศึกษามัธยมศึกษาบุรีรัมย์"));
   assert.equal(p3, "อย่างไรก็ดี มีความเสี่ยงและได้กำหนดปรับปรุงการควบคุมภายใน ในปีงบประมาณถัดไป สรุปได้ ดังนี้");
-  assert.ok(pk1Paragraphs(2570)[0].includes("พ.ศ. 2570"));
+  assert.ok(pk1Paragraphs(2570)[0].includes("พ.ศ.\u00a02570"));
+  // Every "พ.ศ." in the three paragraphs is joined to its year by a no-break space, so a line never splits the year.
+  const all = pk1Paragraphs(2569).join(" ");
+  assert.equal(all.match(/พ\.ศ\./g)?.length, 3);
+  assert.equal(all.match(/พ\.ศ\.\u00a0\d{4}/g)?.length, 3);
 });
 
-test("DIRECTOR_SIGNATURE_LINES: blanks to fill in by hand, the director's position and no name", () => {
-  assert.deepEqual(DIRECTOR_SIGNATURE_LINES, [
+test("PK1_SIGNATURE_LINES: blanks to fill in by hand, an empty name line, the director's position and no name", () => {
+  assert.deepEqual(PK1_SIGNATURE_LINES, [
     "ลายมือชื่อ ................ ผู้รายงาน",
+    "(................................)",
     `ตำแหน่ง ผู้อำนวยการ${SCHOOL_NAME}`,
     "วันที่ ........ เดือน ........ พ.ศ. ........",
   ]);

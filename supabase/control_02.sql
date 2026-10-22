@@ -1,7 +1,7 @@
 -- Internal control module (การควบคุมภายใน), round 2: the ปค.4 assessment results (one row per fiscal year
 -- and group). Run AFTER control_01.sql (and so after the files it lists).
 -- Everything here only adds; nothing existing is dropped or narrowed. Safe to run again
--- (IF NOT EXISTS / DROP POLICY IF EXISTS / DROP TRIGGER IF EXISTS).
+-- (IF NOT EXISTS / CREATE OR REPLACE / DROP POLICY IF EXISTS / DROP TRIGGER IF EXISTS).
 -- The whole file runs as one transaction in the SQL editor: if any statement fails, none applies.
 --
 -- วิธีรัน: รันไฟล์ control_01 ให้เสร็จก่อน แล้ววางไฟล์นี้ทั้งไฟล์ใน SQL Editor กด Run
@@ -47,8 +47,9 @@ END $$;
 --       "summaries":  {"1": "...", ... "5": "..."}}
 --    principle keys are 1-17, summary keys 1-5 (the PK4_COMPONENTS in forms.ts). The app validates all of
 --    that when it reads and writes; the database only guarantees that items is a JSON object.
---    updated_by is stamped by the app on save (updated_at by the trigger below); it has no ON DELETE
---    cascade, a deleted profile just clears it.
+--    updated_by and updated_at are stamped by the triggers below (the app also sends updated_by, and
+--    matches updated_at to refuse a save over a newer one); updated_by has no ON DELETE cascade, a
+--    deleted profile just clears it.
 -- =====================================================================
 CREATE TABLE IF NOT EXISTS public.control_assessments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -66,6 +67,29 @@ GRANT SELECT, INSERT, UPDATE ON public.control_assessments TO authenticated, ser
 DROP TRIGGER IF EXISTS control_assessments_touch ON public.control_assessments;
 CREATE TRIGGER control_assessments_touch BEFORE UPDATE ON public.control_assessments
   FOR EACH ROW EXECUTE FUNCTION public.touch_updated_at();
+
+-- Guard, same style as control_projects_guard in control_01: SECURITY INVOKER (never DEFINER, or the
+-- caller below would always read as the function owner). updated_by is whoever is signed in, whatever
+-- the client sent (a server-side job with no auth.uid() keeps what it sets); the year and group of a
+-- row never change, because the app's optimistic lock and the document export key on them.
+CREATE OR REPLACE FUNCTION public.control_assessments_guard()
+RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER SET search_path = '' AS $$
+DECLARE
+  v_uid UUID := (SELECT auth.uid());
+BEGIN
+  IF v_uid IS NOT NULL THEN
+    NEW.updated_by := v_uid;
+  END IF;
+  IF TG_OP = 'UPDATE' AND (NEW.fiscal_year IS DISTINCT FROM OLD.fiscal_year OR NEW.group_key IS DISTINCT FROM OLD.group_key) THEN
+    RAISE EXCEPTION 'เปลี่ยนปีงบประมาณหรือกลุ่มงานของผลประเมินไม่ได้' USING ERRCODE = 'P0001';
+  END IF;
+  RETURN NEW;
+END $$;
+REVOKE EXECUTE ON FUNCTION public.control_assessments_guard() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS control_assessments_guard ON public.control_assessments;
+CREATE TRIGGER control_assessments_guard BEFORE INSERT OR UPDATE ON public.control_assessments
+  FOR EACH ROW EXECUTE FUNCTION public.control_assessments_guard();
 
 -- =====================================================================
 -- 2. Row Level Security
@@ -96,9 +120,9 @@ CREATE POLICY "control assessments: officers update" ON public.control_assessmen
 --        ผู้บริหารทดสอบ@lrp.ac.th    = บัญชี executive
 --      ดูอีเมลที่มีอยู่จริงได้ด้วย:  select email, role from public.profiles order by email;
 --   3) ชุด 1 เป็นคำสั่ง select ธรรมดา ผลขึ้นเป็นตาราง
---      ชุด 2-5 คัดลอกทีละชุด เฉพาะบรรทัดคำสั่ง (ข้ามบรรทัดหัวข้อ "========== ชุด" และบรรทัด "ผลที่ควรได้")
+--      ชุด 2-6 คัดลอกทีละชุด เฉพาะบรรทัดคำสั่ง (ข้ามบรรทัดหัวข้อ "========== ชุด" และบรรทัด "ผลที่ควรได้")
 --      ไปวางใน SQL Editor หน้าใหม่ ลบเครื่องหมาย "-- " หน้าบรรทัดออก (เลือกข้อความแล้วกด Ctrl+/ หรือ Cmd+/) แล้วกด Run
---   4) **ชุด 2-5 จบด้วยข้อความ ERROR เสมอ — ตั้งใจให้เป็นแบบนั้น** เพราะ error ทำให้ระบบยกเลิก (ROLLBACK)
+--   4) **ชุด 2-6 จบด้วยข้อความ ERROR เสมอ — ตั้งใจให้เป็นแบบนั้น** เพราะ error ทำให้ระบบยกเลิก (ROLLBACK)
 --      ทุกอย่างที่ชุดนั้นทำ (แถวทดสอบ) จึงไม่มีอะไรค้างในระบบ ข้อความขึ้นต้นด้วย "ผลทดสอบ:" ตามด้วยค่าที่วัดได้
 --      ให้เทียบข้อความหลังคำว่า ERROR กับ "ผลที่ควรได้" ของชุดนั้น
 --   5) ถ้าขึ้น "invalid input syntax for type uuid" แปลว่าอีเมลที่แก้ไม่ตรงกับบัญชีจริงทุกตัวอักษร
@@ -107,8 +131,8 @@ CREATE POLICY "control assessments: officers update" ON public.control_assessmen
 -- แล้วสลับเป็นผู้ใช้จริงด้วย set local role authenticated + request.jwt.claims เหมือน control_01
 -- (ถ้าข้ามบรรทัด set local role ไป ชุดจะรันเป็นผู้ดูแลฐานข้อมูลซึ่งไม่ถูกจำกัดสิทธิ์ ผลจะผิด)
 --
--- ========== ชุด 1: ตารางเปิด RLS และมี policy / trigger ครบ ==========
--- ผลที่ควรได้: 1 แถว — control_assessments true 3 1 (คอลัมน์ rowsecurity, policies, triggers)
+-- ========== ชุด 1: ตารางเปิด RLS และมี policy / trigger ครบ (trigger 2 ตัว: touch และ guard) ==========
+-- ผลที่ควรได้: 1 แถว — control_assessments true 3 2 (คอลัมน์ rowsecurity, policies, triggers)
 -- select t.tablename, t.rowsecurity,
 --   (select count(*) from pg_policies p where p.schemaname = t.schemaname and p.tablename = t.tablename) as policies,
 --   (select count(*) from pg_trigger g where g.tgrelid = ('public.' || t.tablename)::regclass and not g.tgisinternal) as triggers
@@ -171,5 +195,20 @@ CREATE POLICY "control assessments: officers update" ON public.control_assessmen
 --   exception when check_violation then r_arr := 'ถูกปฏิเสธ'; end;
 --   raise exception 'ผลทดสอบ: duplicate=%, items_array=%', r_dup, r_arr; end $$;
 --
--- ตรวจว่าไม่มีอะไรค้างหลังรันชุด 2-5 (ผลที่ควรได้: 0 แถว)
+-- ========== ชุด 6: guard — เปลี่ยนกลุ่มงานไม่ได้ และ updated_by เป็นผู้บันทึกจริงเสมอ ==========
+-- ผลที่ควรได้: ERROR: ผลทดสอบ: change_group=ถูกปฏิเสธ (เปลี่ยนปีงบประมาณหรือกลุ่มงานของผลประเมินไม่ได้), updated_by_is_caller=true
+-- select set_config('test.staff', (select id::text from public.profiles where email = 'เจ้าหน้าที่ทดสอบ@lrp.ac.th'), true);
+-- select set_config('test.other', (select id::text from public.profiles where email = 'ครูทดสอบ@lrp.ac.th'), true);
+-- select set_config('request.jwt.claims', json_build_object('sub', current_setting('test.staff'), 'role', 'authenticated')::text, true);
+-- set local role authenticated;
+-- do $$ declare r_grp text := 'ไม่ถูกปฏิเสธ'; by_ok boolean; begin
+--   insert into public.control_assessments (fiscal_year, group_key, updated_by) values (9999, 'general', current_setting('test.other')::uuid);
+--   update public.control_assessments set items = '{"summaries": {"1": "แก้แล้ว"}}', updated_by = current_setting('test.other')::uuid where fiscal_year = 9999 and group_key = 'general';
+--   select updated_by = current_setting('test.staff')::uuid into by_ok from public.control_assessments where fiscal_year = 9999 and group_key = 'general';
+--   begin
+--     update public.control_assessments set group_key = 'finance' where fiscal_year = 9999 and group_key = 'general';
+--   exception when sqlstate 'P0001' then r_grp := 'ถูกปฏิเสธ (' || sqlerrm || ')'; end;
+--   raise exception 'ผลทดสอบ: change_group=%, updated_by_is_caller=%', r_grp, by_ok; end $$;
+--
+-- ตรวจว่าไม่มีอะไรค้างหลังรันชุด 2-6 (ผลที่ควรได้: 0 แถว)
 -- select fiscal_year, group_key from public.control_assessments where fiscal_year = 9999;

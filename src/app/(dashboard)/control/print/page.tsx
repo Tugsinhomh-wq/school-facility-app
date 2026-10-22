@@ -10,9 +10,9 @@ import { canReview } from "@/lib/control/access";
 import { GROUPS, PK4_COLUMNS, PK5_COLUMNS, type GroupKey } from "@/lib/control/forms";
 import { controlHref, docHref, parseExportQuery, parseYearQuery, type DocKind, type Query } from "@/lib/control/params";
 import {
-  DIRECTOR_SIGNATURE_LINES,
   PK1_ADDRESSEE,
   PK1_EMPTY,
+  PK1_SIGNATURE_LINES,
   pk1Heading,
   pk1Improvements,
   pk1ImproveLabel,
@@ -21,7 +21,7 @@ import {
   pk1Sections,
   type Pk1Section,
 } from "@/lib/control/pk1";
-import { PK4_WIDTHS, pk4Heading, pk4Rows } from "@/lib/control/pk4";
+import { PK4_SIGNATURE_LINES, PK4_WIDTHS, pk4Heading, pk4Rows } from "@/lib/control/pk4";
 import { PK5_WIDTHS, SIGNATURE_LINES, csaBlocks, csaHeading, pk5Heading, pk5Rows, type DocMeta, type Pk5Row } from "@/lib/control/pk5";
 import { fiscalYear } from "@/lib/control/risk";
 import type { ControlAssessment, ControlMission } from "@/lib/control/types";
@@ -47,7 +47,7 @@ const asDoc = (v: string | string[] | undefined): DocKind | null => {
 };
 const DOC_NAME: Record<DocKind, string> = { pk1: "ปค.1", pk4: "ปค.4", pk5: "ปค.5", csa: "CSA" };
 
-/** The director signs by hand; the block sits at the right like the Word file's. */
+/** The signature lines (the person signs by hand); the block sits at the right like the Word file's. */
 function Signature({ lines }: { lines: readonly string[] }) {
   return (
     <div className="mt-8 ml-auto w-fit space-y-0.5 text-center break-inside-avoid">
@@ -106,8 +106,9 @@ function Pk1Sheet({ sections, fy }: { sections: Pk1Section[]; fy: number }) {
   const [title1, title2, period] = pk1Heading(fy);
   return (
     <>
+      {/* The form tag sits at the right in normal weight; the title and the year line stay centred. */}
+      <p className="text-right">{title1}</p>
       <header className="space-y-0.5 text-center">
-        <p className="font-bold">{title1}</p>
         <p className="font-bold">{title2}</p>
         <p>{period}</p>
       </header>
@@ -138,7 +139,7 @@ function Pk1Sheet({ sections, fy }: { sections: Pk1Section[]; fy: number }) {
           ))}
         </section>
       ))}
-      <Signature lines={DIRECTOR_SIGNATURE_LINES} />
+      <Signature lines={PK1_SIGNATURE_LINES} />
     </>
   );
 }
@@ -196,7 +197,7 @@ function Pk4Sheet({ assessment, meta }: { assessment: ControlAssessment; meta: D
           )}
         </tbody>
       </table>
-      <Signature lines={DIRECTOR_SIGNATURE_LINES} />
+      <Signature lines={PK4_SIGNATURE_LINES} />
     </>
   );
 }

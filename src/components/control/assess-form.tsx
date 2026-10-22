@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertTriangle, Check, Circle } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { saveAssessment } from "@/app/(dashboard)/control/actions";
 import { areaClass, useControlAction } from "@/components/control/form-kit";
@@ -21,14 +21,53 @@ const CHOICES: readonly { key: AssessResult | ""; label: string }[] = [{ key: ""
 /** "5 ต.ค. 2569 14:30 น." in Bangkok time. */
 const savedAt = (iso: string) => `${formatDateShort(bangkokYmd(new Date(iso)))} ${formatInstantHm(iso)} น.`;
 
+const LEAVE = "มีข้อความที่ยังไม่ได้บันทึก ออกจากหน้านี้ใช่ไหม";
+
 /**
  * The ปค.4 form of one group and year: per principle a result and a typed comment, per component a typed
  * summary. Everything is posted on every save (the action replaces the whole assessment). The page keys
  * it on year + group, so switching starts from the other assessment. The fields stay as typed when a
- * save is refused, because the form is submitted by hand and never reset.
+ * save is refused, because the form is submitted by hand and never reset. It posts the `updated_at`
+ * it last saw (the action refuses a save over a newer one) and warns before leaving with unsaved text.
  */
 export function AssessForm({ assessment, demo }: { assessment: ControlAssessment; demo: boolean }) {
-  const { state, pending, onSubmit } = useControlAction(saveAssessment);
+  // The action's token flow: the server's updated_at as loaded, then as returned by each save.
+  const [loadedAt, setLoadedAt] = useState(assessment.updatedAt);
+  // Input events seen vs. at the last save: different means unsaved text.
+  const edits = useRef(0);
+  const saved = useRef(0);
+  const { state, pending, onSubmit } = useControlAction(async (prev, formData) => {
+    const sent = edits.current;
+    const r = await saveAssessment(prev, formData);
+    if (r?.ok) {
+      if (r.updatedAt) setLoadedAt(r.updatedAt);
+      saved.current = sent;
+    }
+    return r;
+  });
+  useEffect(() => {
+    const unsaved = () => edits.current !== saved.current;
+    const onUnload = (e: BeforeUnloadEvent) => {
+      if (unsaved()) e.preventDefault();
+    };
+    // Capture phase on the document runs before Next's own link handler, so a cancelled click goes nowhere.
+    const onClick = (e: MouseEvent) => {
+      if (!unsaved() || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const a = (e.target as Element).closest("a[href]") as HTMLAnchorElement | null;
+      if (!a || (a.target && a.target !== "_self")) return;
+      if (a.origin === location.origin && a.pathname + a.search === location.pathname + location.search) return;
+      if (!window.confirm(LEAVE)) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    window.addEventListener("beforeunload", onUnload);
+    document.addEventListener("click", onClick, true);
+    return () => {
+      window.removeEventListener("beforeunload", onUnload);
+      document.removeEventListener("click", onClick, true);
+    };
+  }, []);
   // Only the radios are state, for the live counts; the text boxes are plain uncontrolled fields.
   const [results, setResults] = useState<Record<number, AssessResult | null>>(() =>
     Object.fromEntries(Object.entries(assessment.principles).map(([n, p]) => [n, p.result])),
@@ -36,7 +75,8 @@ export function AssessForm({ assessment, demo }: { assessment: ControlAssessment
   const counts = pk4Counts({ ...assessment, principles: Object.fromEntries(Object.entries(results).map(([n, result]) => [n, { result, text: "" }])) });
 
   return (
-    <form onSubmit={onSubmit} className="space-y-8">
+    <form onSubmit={onSubmit} onChange={() => edits.current++} className="space-y-8">
+      <input type="hidden" name="updated_at" value={loadedAt ?? ""} />
       <input type="hidden" name="fiscal_year" value={assessment.fiscalYear} />
       <input type="hidden" name="group_key" value={assessment.groupKey} />
 
@@ -121,9 +161,9 @@ export function AssessForm({ assessment, demo }: { assessment: ControlAssessment
           <Button type="submit" disabled={pending || demo} className="h-11 px-6">
             {pending ? "กำลังบันทึก..." : "บันทึกผลประเมิน"}
           </Button>
-          <div role="status" aria-live="polite" className="min-w-0 flex-1 basis-40 text-sm leading-snug">
+          <div className="min-w-0 flex-1 basis-40 text-sm leading-snug">
             {state && (
-              <p className={cn("flex items-start gap-1.5", state.ok ? "text-emerald-800" : "text-destructive")}>
+              <p role={state.ok ? "status" : "alert"} className={cn("flex items-start gap-1.5", state.ok ? "text-emerald-800" : "text-destructive")}>
                 {state.ok ? <Check className="mt-0.5 size-4 shrink-0" aria-hidden /> : <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />}
                 {state.message}
               </p>
@@ -131,7 +171,11 @@ export function AssessForm({ assessment, demo }: { assessment: ControlAssessment
             {demo ? (
               <p className="text-muted-foreground">โหมดสาธิต: ยังไม่ได้เชื่อมต่อฐานข้อมูล จึงบันทึกไม่ได้</p>
             ) : (
-              assessment.updatedAt && <p className="text-muted-foreground">บันทึกครั้งล่าสุด {savedAt(assessment.updatedAt)}</p>
+              loadedAt && (
+                <p role="status" className="text-muted-foreground">
+                  บันทึกครั้งล่าสุด {savedAt(loadedAt)}
+                </p>
+              )
             )}
           </div>
         </div>

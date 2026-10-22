@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ASSESSMENT_SELECT, PROJECT_SELECT, emptyAssessment, toAction, toAssessment, toMission, toProject, type RawAction, type RawAssessment, type RawProject } from "./map.ts";
+import { PROJECT_SELECT, emptyAssessment, toAction, toAssessment, toMission, toProject, type RawAction, type RawAssessment, type RawProject } from "./map.ts";
+import { parseAssessmentForm } from "./parse.ts";
 
 const raw = (over: Partial<RawProject> = {}): RawProject => ({
   id: "p1",
@@ -224,6 +225,25 @@ test("toAssessment: updated_at that is not text is null", () => {
   assert.equal(toAssessment(rawAssessment({}, { updated_at: 5 as unknown as string })).updatedAt, null);
 });
 
-test("ASSESSMENT_SELECT lists the columns toAssessment reads", () => {
-  assert.equal(ASSESSMENT_SELECT, "fiscal_year, group_key, items, updated_at");
+test("what parseAssessmentForm gives survives the database (JSON) and toAssessment reads it back; unanswered stays null", () => {
+  const f = new Map([
+    ["fiscal_year", "2569"],
+    ["group_key", "general"],
+    ["principle_1_result", "full"],
+    ["principle_1_text", "มีคำสั่ง\nและประกาศ"],
+    ["principle_2_result", "none"],
+    ["principle_3_text", "ความเห็นโดยไม่เลือกผล"],
+    ["summary_4", "ควรปรับปรุง"],
+  ]);
+  const parsed = parseAssessmentForm(f);
+  assert.ok(parsed.ok);
+  const { principles, summaries } = parsed.value;
+  const stored = JSON.parse(JSON.stringify({ principles, summaries }));
+  const a = toAssessment(rawAssessment(stored));
+  assert.deepEqual(a.principles, principles);
+  assert.deepEqual(a.summaries, summaries);
+  assert.deepEqual(a.principles[1], { result: "full", text: "มีคำสั่ง\nและประกาศ" });
+  assert.deepEqual(a.principles[3], { result: null, text: "ความเห็นโดยไม่เลือกผล" });
+  assert.deepEqual(a.principles[17], { result: null, text: "" });
+  assert.equal(a.summaries[4], "ควรปรับปรุง");
 });
