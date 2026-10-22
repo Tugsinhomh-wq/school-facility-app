@@ -59,11 +59,11 @@ export default async function ControlPage({ searchParams }: { searchParams: Prom
 
       {officer && (
         <div className="flex flex-wrap gap-2">
-          <Link href="/control/missions" className={toolLink}>
+          <Link href={controlHref("/control/missions", { fy, group }, currentFy)} className={toolLink}>
             <Layers className="size-4" aria-hidden />
             ภารกิจและ CSA
           </Link>
-          <Link href="/control/export" className={toolLink}>
+          <Link href={controlHref("/control/export", { fy, group }, currentFy)} className={toolLink}>
             <FileDown className="size-4" aria-hidden />
             ส่งออกเอกสาร
           </Link>

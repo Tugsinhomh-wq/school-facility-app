@@ -29,7 +29,7 @@ const CM = 567; // twips per centimetre
 const A4 = { width: 11906, height: 16838 };
 
 /** Anything XML 1.0 cannot carry (control characters, lone surrogates) would make Word call the file corrupt. */
-const NOT_XML = /[^\t\n\r -퟿-�\u{10000}-\u{10FFFF}]/gu;
+const NOT_XML = /[^\t\n\r\u0020-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]/gu;
 
 /** A user's text, split into lines (a table cell or a step holds several), each safe for Word. */
 const linesOf = (text: string): string[] => text.replace(NOT_XML, "").replaceAll("\t", " ").split(/\r\n|\r|\n/);
@@ -134,10 +134,10 @@ export function csaToDocx(missions: ControlMission[], meta: DocMeta): Promise<Bu
   const heading = csaHeading(meta);
   const children: Paragraph[] = [];
   const blocks = csaBlocks(missions);
-  if (blocks.length === 0) children.push(...headingParagraphs(heading, [0, 1, 2]));
+  if (blocks.length === 0) children.push(...headingParagraphs(heading, [0, 1, 2, 3]));
   blocks.forEach((block, i) => {
     children.push(
-      ...headingParagraphs(heading, [0, 1, 2], i > 0),
+      ...headingParagraphs(heading, [0, 1, 2, 3], i > 0),
       new Paragraph({ spacing: { before: 240 }, keepNext: true, children: [run("ภารกิจ ", true), run(block.missionName)] }),
     );
     for (const step of block.steps) {

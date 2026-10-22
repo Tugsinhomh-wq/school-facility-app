@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import JSZip from "jszip";
 import { csaToDocx, pk5ToDocx } from "./docx.ts";
-import { CSA_TITLE, PK5_TITLE, SCHOOL_NAME, SIGNATURE_LINES, type Pk5Row } from "./pk5.ts";
+import { CSA_TITLE_LINES, PK5_TITLE, SCHOOL_NAME, SIGNATURE_LINES, type Pk5Row } from "./pk5.ts";
 import { CSA_STEPS, PK5_COLUMNS } from "./forms.ts";
 import type { ControlMission } from "./types.ts";
 
@@ -22,7 +22,7 @@ const decode = (s: string) =>
 function paragraphs(xml: string): string[] {
   return xml
     .split("</w:p>")
-    .map((p) => decode([...p.matchAll(/<w:t(?: [^>]*)?>([^<]*)<\/w:t>/g)].map((m) => m[1]).join("")).replaceAll("​", ""))
+    .map((p) => decode([...p.matchAll(/<w:t(?: [^>]*)?>([^<]*)<\/w:t>/g)].map((m) => m[1]).join("")).replaceAll("\u200b", ""))
     .filter((t) => t !== "");
 }
 
@@ -72,7 +72,7 @@ test("pk5ToDocx: long Thai text with line breaks lands in its own cell, one para
     assert.ok(text.includes(line), `paragraph "${line}"`);
   }
   // Word does not know where Thai lines may break: the hidden break hints are what lets it fill the line.
-  assert.ok(xml.includes("​"));
+  assert.ok(xml.includes("\u200b"));
 });
 
 test("pk5ToDocx: text that is not valid in Word's XML is cleaned instead of corrupting the file", async () => {
@@ -106,7 +106,7 @@ test("csaToDocx: no missions does not throw and still gives a portrait A4 file w
   const buf = await csaToDocx([], META);
   assert.ok(isZip(buf));
   const xml = await documentXml(buf);
-  assert.deepEqual(paragraphs(xml), [SCHOOL_NAME, CSA_TITLE, "กลุ่มบริหารทั่วไป", "ปีงบประมาณ พ.ศ. 2569"]);
+  assert.deepEqual(paragraphs(xml), [SCHOOL_NAME, ...CSA_TITLE_LINES, "กลุ่มบริหารทั่วไป", "ปีงบประมาณ พ.ศ. 2569"]);
   const pgSz = xml.match(/<w:pgSz[^>]*>/)?.[0] ?? "";
   assert.doesNotMatch(pgSz, /landscape/);
   assert.match(pgSz, /w:w="11906"/);
@@ -116,7 +116,7 @@ test("csaToDocx: no missions does not throw and still gives a portrait A4 file w
 test("csaToDocx: each mission gets the title, group, its name and the five steps; the next one starts a new page", async () => {
   const xml = await documentXml(await csaToDocx([mission(), mission({ id: "m2", name: "ภารกิจที่สอง", objective: "" })], META));
   const text = paragraphs(xml);
-  assert.equal(text.filter((t) => t === CSA_TITLE).length, 2);
+  for (const line of CSA_TITLE_LINES) assert.equal(text.filter((t) => t === line).length, 2, line);
   assert.equal(text.filter((t) => t === "กลุ่มบริหารทั่วไป").length, 2);
   assert.ok(text.some((t) => t.includes("ภารกิจตัวอย่าง")));
   assert.ok(text.some((t) => t.includes("ภารกิจที่สอง")));

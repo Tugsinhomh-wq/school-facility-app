@@ -15,6 +15,12 @@ export type { ControlAction, ControlMission, ControlProject } from "@/lib/contro
 /** PostgREST returns at most this many rows a call. */
 const PAGE = 1000;
 
+/** One line for the server log: where, the error code and message only (never row data or user input). */
+const logFailure = (where: string, e: unknown) => {
+  const err = e as { code?: string; message?: string } | null;
+  console.error(`[control] ${where} failed: ${err?.code ?? "-"} ${err?.message ?? ""}`);
+};
+
 const validYear = (fy: number) => Number.isInteger(fy) && fy >= FISCAL_YEAR_MIN && fy <= FISCAL_YEAR_MAX;
 
 /** The fiscal year's projects with their owner's name and measures, oldest first. */
@@ -31,9 +37,11 @@ export async function listProjects(fy: number): Promise<{ projects: ControlProje
       .order("id")
       .limit(PAGE);
     // A full page may have more behind it; showing part of the register as if it were all is worse than an error.
+    if (error) logFailure("listProjects", error);
     if (error || data.length >= PAGE) return { projects: [], failed: true };
     return { projects: (data as unknown as RawProject[]).map(toProject) };
-  } catch {
+  } catch (e) {
+    logFailure("listProjects", e);
     return { projects: [], failed: true };
   }
 }
@@ -44,9 +52,13 @@ export async function getProject(id: string): Promise<{ project: ControlProject 
     const s = await getSession();
     if (!s || !isUuid(id)) return { project: null };
     const { data, error } = await s.supabase.from("control_projects").select(PROJECT_SELECT).eq("id", id).maybeSingle();
-    if (error) return { project: null, failed: true };
+    if (error) {
+      logFailure("getProject", error);
+      return { project: null, failed: true };
+    }
     return { project: data ? toProject(data as unknown as RawProject) : null };
-  } catch {
+  } catch (e) {
+    logFailure("getProject", e);
     return { project: null, failed: true };
   }
 }
@@ -64,9 +76,11 @@ export async function listMissions(fy: number): Promise<{ missions: ControlMissi
       .order("created_at")
       .order("id")
       .limit(PAGE);
+    if (error) logFailure("listMissions", error);
     if (error || data.length >= PAGE) return { missions: [], failed: true };
     return { missions: (data as unknown as RawMission[]).map(toMission) };
-  } catch {
+  } catch (e) {
+    logFailure("listMissions", e);
     return { missions: [], failed: true };
   }
 }
@@ -77,9 +91,13 @@ export async function getMission(id: string): Promise<{ mission: ControlMission 
     const s = await getSession();
     if (!s || !isUuid(id)) return { mission: null };
     const { data, error } = await s.supabase.from("control_missions").select(MISSION_SELECT).eq("id", id).maybeSingle();
-    if (error) return { mission: null, failed: true };
+    if (error) {
+      logFailure("getMission", error);
+      return { mission: null, failed: true };
+    }
     return { mission: data ? toMission(data as unknown as RawMission) : null };
-  } catch {
+  } catch (e) {
+    logFailure("getMission", e);
     return { mission: null, failed: true };
   }
 }

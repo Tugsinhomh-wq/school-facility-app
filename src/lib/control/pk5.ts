@@ -9,7 +9,9 @@ import { formatDateShort, isYmd } from "../time.ts";
 /** Written out here, not imported from the memo module: that one carries names of people. */
 export const SCHOOL_NAME = "โรงเรียนละหานทรายรัชดาภิเษก";
 export const PK5_TITLE = "รายงานการประเมินผลการควบคุมภายใน";
-export const CSA_TITLE = "แบบประเมินการควบคุมด้วยตนเอง (Control Self Assessment: CSA)";
+/** The CSA title is centred on two lines; joined with a space it is the file's title. */
+export const CSA_TITLE_LINES: readonly string[] = ["แบบประเมินการควบคุมด้วยตนเอง", "(Control Self Assessment: CSA)"];
+export const CSA_TITLE = CSA_TITLE_LINES.join(" ");
 
 /**
  * The reporter signs by hand: no name is filled in, whoever the school's director or deputy is.
@@ -37,7 +39,7 @@ export const pk5Heading = ({ fiscalYear, groupLabel }: DocMeta): string[] => [
 /** The lines above each mission's CSA. */
 export const csaHeading = ({ fiscalYear, groupLabel }: DocMeta): string[] => [
   SCHOOL_NAME,
-  CSA_TITLE,
+  ...CSA_TITLE_LINES,
   groupLabel,
   `ปีงบประมาณ พ.ศ. ${fiscalYear}`,
 ];
@@ -48,9 +50,9 @@ export type Pk5Row = { projectId: string; score: number; cells: Pk5Cells };
 /** An empty field is a dash, so a blank cell never looks like a lost value. */
 const text = (s: string): string => s.trim() || "-";
 
-/** Cell 7 of one measure: who does it and by when. */
+/** Cell 7 of one measure: who does it and by when. The date's spaces are non-breaking, so it never wraps mid-date. */
 const whoAndWhen = (responsible: string, due: string | null): string =>
-  `${text(responsible)} / กำหนดเสร็จ ${due !== null && isYmd(due) ? formatDateShort(due) : "-"}`;
+  `${text(responsible)} / กำหนดเสร็จ ${due !== null && isYmd(due) ? formatDateShort(due).replaceAll(" ", "\u00a0") : "-"}`;
 
 /**
  * The ปค.5 rows: confirmed projects scoring 9 or more, highest score first and then by name. A project
@@ -65,13 +67,14 @@ export function pk5Rows(projects: ControlProject[]): Pk5Row[] {
     projectId: p.id,
     score: p.score,
     cells: [
-      text(p.objective) === "-" ? text(p.name) : text(p.objective),
+      // The school's form shows the project name, then its objective, in the first column.
+      text(p.objective) === "-" ? text(p.name) : `${text(p.name)}\nวัตถุประสงค์: ${text(p.objective)}`,
       text(p.riskIssue),
       text(p.existingControls),
       text(p.assessment),
       text(p.residualRisk),
       p.actions.length ? p.actions.map((a, i) => `${i + 1}. ${text(a.description)}`).join("\n") : "-",
-      p.actions.length ? p.actions.map((a) => whoAndWhen(a.responsible, a.due)).join("\n") : "-",
+      p.actions.length ? p.actions.map((a, i) => `${i + 1}. ${whoAndWhen(a.responsible, a.due)}`).join("\n") : "-",
     ],
   }));
 }

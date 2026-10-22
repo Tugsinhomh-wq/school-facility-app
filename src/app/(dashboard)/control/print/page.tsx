@@ -82,11 +82,12 @@ function Pk5Sheet({ rows, meta }: { rows: Pk5Row[]; meta: DocMeta }) {
 
 /** CSA as the Word file has it: one page per mission. */
 function CsaSheet({ missions, meta }: { missions: ControlMission[]; meta: DocMeta }) {
-  const [school, title, group, year] = csaHeading(meta);
+  const [school, title1, title2, group, year] = csaHeading(meta);
   const heading = (
     <header className="space-y-0.5 text-center">
       <p className="font-bold">{school}</p>
-      <p className="font-bold">{title}</p>
+      <p className="font-bold">{title1}</p>
+      <p className="font-bold">{title2}</p>
       <p className="font-bold">{group}</p>
       <p>{year}</p>
     </header>
@@ -170,7 +171,6 @@ export default async function PrintPage({ searchParams }: { searchParams: Promis
           <PrintButton />
           <a
             href={docHref(`/control/export/${doc}`, fy, group)}
-            download
             className={cn(buttonVariants({ variant: "outline" }), "h-11 gap-1.5 px-4")}
           >
             <FileDown aria-hidden />

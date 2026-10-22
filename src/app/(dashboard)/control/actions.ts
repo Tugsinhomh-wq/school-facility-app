@@ -67,6 +67,8 @@ async function officerCtx(): Promise<Ctx | ControlResult> {
 function failure(error: { code?: string; message?: string }, fallback: string): Refusal {
   if (error.code === "42501") return refuse(NO_ACCESS);
   if (error.code === "P0001" && error.message) return refuse(error.message);
+  // Code and message only: no row data or user input goes to the log.
+  console.error(`[control] write failed: ${error.code ?? "-"} ${error.message ?? ""}`);
   return refuse(fallback);
 }
 

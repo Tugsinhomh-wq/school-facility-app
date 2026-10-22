@@ -35,8 +35,8 @@ function DocRow({ title, detail, note, doc, fy, group }: { title: string; detail
         {note && <p className="text-sm text-muted-foreground">{note}</p>}
       </div>
       <div className="flex flex-wrap gap-2">
-        {/* A plain link to the route: the browser saves the file, no JavaScript needed. */}
-        <a href={docHref(`/control/export/${doc}`, fy, group)} download className={cn(buttonVariants(), "h-11 gap-1.5 px-4")}>
+        {/* A plain link to the route: its Content-Disposition makes the browser save the file. No `download` attribute, or an error answer (400/403/500) would be saved as a broken file. */}
+        <a href={docHref(`/control/export/${doc}`, fy, group)} className={cn(buttonVariants(), "h-11 gap-1.5 px-4")}>
           <FileDown aria-hidden />
           ดาวน์โหลด Word (.docx)
         </a>

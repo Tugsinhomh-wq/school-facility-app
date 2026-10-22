@@ -74,7 +74,13 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   const options: MissionOption[] = (missionList?.missions ?? [])
     .filter((m) => m.groupKey === project.groupKey)
     .map((m) => ({ id: m.id, name: m.name }));
-  if (mission && !options.some((o) => o.id === mission.id)) options.push({ id: mission.id, name: mission.name, note: "(คนละปีหรือกลุ่มงาน)" });
+  // Even when the mission could not be read, its option stays, or saving would send an empty mission and unlink it.
+  if (project.missionId && !options.some((o) => o.id === project.missionId))
+    options.push(
+      mission
+        ? { id: mission.id, name: mission.name, note: "(คนละปีหรือกลุ่มงาน)" }
+        : { id: project.missionId, name: "(ภารกิจเดิม โหลดชื่อไม่สำเร็จ)" },
+    );
 
   const groupLabel = GROUPS.find((g) => g.key === project.groupKey)?.label ?? project.groupKey;
   const headTouched = project.headLikelihood !== null || project.headImpact !== null;

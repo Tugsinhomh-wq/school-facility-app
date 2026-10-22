@@ -109,13 +109,23 @@ function ActionEditor({ action }: { action: ControlAction }) {
             {pending ? "กำลังบันทึก..." : "บันทึกมาตรการ"}
           </Button>
         </form>
-        <form action={remove} className="space-y-2 border-t border-border pt-4">
-          <input type="hidden" name="id" value={action.id} />
-          <Result state={removed} />
-          <Button type="submit" variant="destructive" disabled={removing} className="h-11 w-full sm:w-auto">
-            {removing ? "กำลังลบ..." : "ลบมาตรการนี้"}
-          </Button>
-        </form>
+        {/* Two clicks: opening this section, then the red button inside it. */}
+        <details className="group/del rounded-xl border border-border">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 rounded-xl px-4 py-3 font-medium text-destructive outline-none focus-visible:ring-3 focus-visible:ring-ring/50 [&::-webkit-details-marker]:hidden">
+            <span className="flex-1">ลบมาตรการนี้</span>
+            <ChevronDown className="size-4 shrink-0 transition-transform group-open/del:rotate-180" aria-hidden />
+          </summary>
+          <form action={remove} className="space-y-3 border-t border-border px-4 py-4">
+            <input type="hidden" name="id" value={action.id} />
+            <p className="line-clamp-3 break-words whitespace-pre-line">
+              ลบมาตรการ &ldquo;{action.description}&rdquo; ลบแล้วเอากลับคืนไม่ได้
+            </p>
+            <Result state={removed} />
+            <Button type="submit" variant="destructive" disabled={removing} className="h-11 w-full sm:w-auto">
+              {removing ? "กำลังลบ..." : "ยืนยันลบมาตรการ"}
+            </Button>
+          </form>
+        </details>
       </div>
     </details>
   );

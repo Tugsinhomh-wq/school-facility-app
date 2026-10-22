@@ -4,6 +4,7 @@ import { startTransition, useActionState, useRef, type FormEvent, type ReactNode
 
 import type { ControlResult } from "@/app/(dashboard)/control/actions";
 import { Label } from "@/components/ui/label";
+import { withSubmitter } from "@/lib/control/form-data";
 import { cn } from "@/lib/utils";
 
 // Shared pieces of the internal-control forms: field sizes (44px targets), a labelled field, the
@@ -57,7 +58,9 @@ export function useControlAction(run: Run, resetOnOk = false) {
   }, null);
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const data = new FormData(e.currentTarget, (e.nativeEvent as SubmitEvent).submitter);
+    const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+    // Older browsers ignore the 2nd argument; withSubmitter adds the pressed button then.
+    const data = withSubmitter(new FormData(e.currentTarget, submitter), submitter);
     startTransition(() => dispatch(data));
   };
   return { ref, state, pending, onSubmit };

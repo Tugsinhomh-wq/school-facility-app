@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { CSA_TITLE, PK5_TITLE, SCHOOL_NAME, SIGNATURE_LINES, csaBlocks, csaHeading, pk5Heading, pk5Rows } from "./pk5.ts";
+import { CSA_TITLE, CSA_TITLE_LINES, PK5_TITLE, SCHOOL_NAME, SIGNATURE_LINES, csaBlocks, csaHeading, pk5Heading, pk5Rows } from "./pk5.ts";
 import { toProject, type RawAction, type RawProject } from "./map.ts";
 import { CSA_STEPS } from "./forms.ts";
 import type { ControlMission } from "./types.ts";
@@ -73,24 +73,28 @@ test("pk5Rows: highest score first, then by name", () => {
   assert.deepEqual(pk5Rows([]), []);
 });
 
-test("pk5Rows: the seven cells follow the columns of the form", () => {
+test("pk5Rows: the seven cells follow the columns of the form; cell 1 is the project name, then its objective", () => {
   const [row] = pk5Rows([project()]);
   assert.equal(row.cells.length, 7);
-  assert.deepEqual(row.cells.slice(0, 5), ["วัตถุประสงค์ตัวอย่าง", "ประเด็นความเสี่ยง", "การควบคุมที่มี", "ผลการประเมิน", "ความเสี่ยงที่เหลือ"]);
+  assert.deepEqual(row.cells.slice(0, 5), ["โครงการตัวอย่าง\nวัตถุประสงค์: วัตถุประสงค์ตัวอย่าง", "ประเด็นความเสี่ยง", "การควบคุมที่มี", "ผลการประเมิน", "ความเสี่ยงที่เหลือ"]);
 });
 
 test("pk5Rows: an empty column is '-' and a project without measures still gets its row", () => {
   const [row] = pk5Rows([
     project({ objective: "", risk_issue: "  \n ", existing_controls: "", assessment: "", residual_risk: "", actions: [] }),
   ]);
-  // The objective falls back to the project's name; every other empty cell is a dash.
+  // With no objective, cell 1 is the project's name alone; every other empty cell is a dash.
   assert.deepEqual(row.cells, ["โครงการตัวอย่าง", "-", "-", "-", "-", "-", "-"]);
 });
 
 test("pk5Rows: two measures are numbered, with who does them and by when", () => {
   const [row] = pk5Rows([project({ actions: [act(1), act(2, { due: "2027-03-05" })] })]);
   assert.equal(row.cells[5], "1. มาตรการ 1\n2. มาตรการ 2");
-  assert.equal(row.cells[6], "ผู้รับผิดชอบ 1 / กำหนดเสร็จ 31 ธ.ค. 2569\nผู้รับผิดชอบ 2 / กำหนดเสร็จ 5 มี.ค. 2570");
+  // Cell 7 is numbered like cell 6; the date's spaces are non-breaking so it never wraps mid-date.
+  assert.equal(
+    row.cells[6],
+    "1. ผู้รับผิดชอบ 1 / กำหนดเสร็จ 31\u00a0ธ.ค.\u00a02569\n2. ผู้รับผิดชอบ 2 / กำหนดเสร็จ 5\u00a0มี.ค.\u00a02570",
+  );
 });
 
 test("pk5Rows: a measure missing its person or date shows dashes and keeps its place", () => {
@@ -98,7 +102,10 @@ test("pk5Rows: a measure missing its person or date shows dashes and keeps its p
     project({ actions: [act(1, { responsible: "", due: null }), act(2, { description: "  " }), act(3, { due: "2026-02-31" })] }),
   ]);
   assert.equal(row.cells[5], "1. มาตรการ 1\n2. -\n3. มาตรการ 3");
-  assert.equal(row.cells[6], "- / กำหนดเสร็จ -\nผู้รับผิดชอบ 2 / กำหนดเสร็จ 31 ธ.ค. 2569\nผู้รับผิดชอบ 3 / กำหนดเสร็จ -");
+  assert.equal(
+    row.cells[6],
+    "1. - / กำหนดเสร็จ -\n2. ผู้รับผิดชอบ 2 / กำหนดเสร็จ 31\u00a0ธ.ค.\u00a02569\n3. ผู้รับผิดชอบ 3 / กำหนดเสร็จ -",
+  );
 });
 
 test("pk5Rows: the head's likelihood and impact decide, not the owner's", () => {
@@ -159,12 +166,14 @@ test("csaBlocks: five steps in order with the form's own labels, '-' for a step 
   assert.equal(csaBlocks([mission({ name: " " })])[0].missionName, "-");
 });
 
-test("csaHeading: school, the CSA title, the group and the year", () => {
+test("csaHeading: school, the CSA title on two lines, the group and the year", () => {
   assert.deepEqual(csaHeading({ fiscalYear: 2570, groupLabel: "กลุ่มบริหารงานบุคคล" }), [
     SCHOOL_NAME,
-    CSA_TITLE,
+    "แบบประเมินการควบคุมด้วยตนเอง",
+    "(Control Self Assessment: CSA)",
     "กลุ่มบริหารงานบุคคล",
     "ปีงบประมาณ พ.ศ. 2570",
   ]);
+  assert.deepEqual(CSA_TITLE_LINES, ["แบบประเมินการควบคุมด้วยตนเอง", "(Control Self Assessment: CSA)"]);
   assert.equal(CSA_TITLE, "แบบประเมินการควบคุมด้วยตนเอง (Control Self Assessment: CSA)");
 });
