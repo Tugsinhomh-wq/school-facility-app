@@ -5,11 +5,13 @@ export type ReportRoom = {
   name: string;
   zone: string;
   advisors: string;
+  /** First day (YYYY-MM-DD) the room existed; earlier days are not due for it. */
+  since: string;
   /** YYYY-MM-DD of every day this room was confirmed (on time or late). */
   confirmed: ReadonlySet<string>;
 };
 
-export type ReportRow = Omit<ReportRoom, "confirmed"> & {
+export type ReportRow = Omit<ReportRoom, "confirmed" | "since"> & {
   due: number;
   done: number;
   missing: number;
@@ -21,7 +23,8 @@ const ratio = (done: number, due: number) => (due > 0 ? done / due : null);
 
 /**
  * Per room, confirmed days out of the days that were due in `from`..`to` (same counting as the
- * weekly table: weekends, off days and days not yet over are not due). Sorted by room name.
+ * weekly table: weekends, off days and days not yet over are not due; nor are days before the
+ * room existed). Sorted by room name.
  */
 export function reportRows({
   rooms,
@@ -37,10 +40,12 @@ export function reportRows({
   offDays: ReadonlySet<string>;
 }) {
   const last = to < today ? to : today;
-  const days: string[] = [];
-  for (let d = from; d <= last; d = addDays(d, 1)) days.push(d);
 
-  const rows: ReportRow[] = rooms.map(({ confirmed, ...room }) => {
+  const rows: ReportRow[] = rooms.map(({ confirmed, since, ...room }) => {
+    // A room added mid-period (or copied in by a rollover) owes nothing before it existed.
+    const days: string[] = [];
+    for (let d = from > since ? from : since; d <= last; d = addDays(d, 1))
+      days.push(d);
     const { done, due } = weekTally(
       days.map((ymd) => ({
         state: dayState({

@@ -60,8 +60,8 @@ test("report workbook: headers, a row per room, a school-wide total and shading 
   const days = (...d: string[]) => new Set(d);
   const result = reportRows({
     rooms: [
-      { name: "ม.1/10", zone: "z", advisors: "ก", confirmed: days("2026-10-05") },
-      { name: "ม.1/2", zone: "z", advisors: "ข, ค", confirmed: days("2026-10-05", "2026-10-06") },
+      { name: "ม.1/10", zone: "z", advisors: "ก", confirmed: days("2026-10-05"), since: "2026-01-01" },
+      { name: "ม.1/2", zone: "z", advisors: "ข, ค", confirmed: days("2026-10-05", "2026-10-06"), since: "2026-01-01" },
     ],
     from: "2026-10-05",
     to: "2026-10-09",
@@ -80,4 +80,16 @@ test("report workbook: headers, a row per room, a school-wide total and shading 
   assert.deepEqual(rows[1], REPORT_HEADERS);
   assert.equal(rows.length, 5); // title, headers, 2 rooms, total
   assert.equal(rows[4][0], "รวมทั้งโรงเรียน");
+});
+
+test("report: a room created mid-period owes nothing before its first day", async () => {
+  const { reportRows } = await import("./cleaning-report.ts");
+  const { rows } = reportRows({
+    rooms: [{ name: "ม.1/1", zone: "z", advisors: "", since: "2026-10-06", confirmed: new Set(["2026-10-06"]) }],
+    from: "2026-10-05",
+    to: "2026-10-09",
+    today: "2026-10-08", // Mon is before the room existed; Tue (done) and Wed (missed) are due; Thu is today, unconfirmed
+    offDays: new Set(),
+  });
+  assert.deepEqual([rows[0].due, rows[0].done], [2, 1]);
 });
