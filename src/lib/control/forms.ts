@@ -20,6 +20,15 @@ export const RISK_TYPES: readonly { key: "F" | "C" | "O"; label: string }[] = [
   { key: "O", label: "ด้านการดำเนินงาน" },
 ];
 
+export type ActionStatus = "open" | "doing" | "done";
+
+/** Status of an improvement measure; the keys are repeated in the SQL CHECK on control_actions.status. */
+export const ACTION_STATUSES: readonly { key: ActionStatus; label: string }[] = [
+  { key: "open", label: "ค้าง" },
+  { key: "doing", label: "กำลังทำ" },
+  { key: "done", label: "เสร็จ" },
+];
+
 /** The five steps of the CSA (control self-assessment) of one mission. */
 export const CSA_STEPS: readonly { n: 1 | 2 | 3 | 4 | 5; label: string; hint: string }[] = [
   { n: 1, label: "วิเคราะห์ภารกิจและวัตถุประสงค์", hint: "ภารกิจนี้ต้องบรรลุอะไร ตามกฎหมาย แผนงาน หรือนโยบายของโรงเรียน" },

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { CSA_STEPS, GROUPS, IMPACT, LIKELIHOOD, PK5_COLUMNS, RISK_TYPES } from "./forms.ts";
+import { ACTION_STATUSES, CSA_STEPS, GROUPS, IMPACT, LIKELIHOOD, PK5_COLUMNS, RISK_TYPES } from "./forms.ts";
 
 // The SQL CHECK lists in supabase/control_01.sql repeat these values, so a change here is a schema change.
 test("GROUPS: six fixed groups with the keys the database uses", () => {
@@ -68,4 +68,16 @@ test("LIKELIHOOD and IMPACT: a description for each level 1-5", () => {
     for (const text of levels) assert.ok(text.trim().length > 0);
     assert.equal(new Set(levels).size, 5);
   }
+});
+
+// The SQL CHECK on control_actions.status repeats these keys.
+test("ACTION_STATUSES: open, doing and done with a Thai label each", () => {
+  assert.deepEqual(
+    ACTION_STATUSES.map((s) => [s.key, s.label]),
+    [
+      ["open", "ค้าง"],
+      ["doing", "กำลังทำ"],
+      ["done", "เสร็จ"],
+    ],
+  );
 });
