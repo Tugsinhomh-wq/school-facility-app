@@ -13,12 +13,12 @@ import { MAX_NAME, MAX_TEXT } from "@/lib/control/parse";
 import type { ControlAction } from "@/lib/control/types";
 import { formatDayShort } from "@/lib/time";
 
-const STATUS_VIEW: Record<ActionStatus, { icon: LucideIcon; className: string }> = {
+export const STATUS_VIEW: Record<ActionStatus, { icon: LucideIcon; className: string }> = {
   open: { icon: Circle, className: "text-amber-800" },
   doing: { icon: CircleDashed, className: "text-primary" },
   done: { icon: Check, className: "text-emerald-800" },
 };
-const statusLabel = (s: ActionStatus) => ACTION_STATUSES.find((x) => x.key === s)?.label ?? s;
+export const statusLabel = (s: ActionStatus) => ACTION_STATUSES.find((x) => x.key === s)?.label ?? s;
 
 /** Icon + word, so the status never depends on colour. */
 function StatusText({ status }: { status: ActionStatus }) {
@@ -32,7 +32,7 @@ function StatusText({ status }: { status: ActionStatus }) {
 }
 
 /** "จ. 5 ต.ค. 2569": a due date can fall in either half of the fiscal year, so the year is shown. */
-const dueLabel = (ymd: string) => `${formatDayShort(ymd)} ${Number(ymd.slice(0, 4)) + 543}`;
+export const dueLabel = (ymd: string) => `${formatDayShort(ymd)} ${Number(ymd.slice(0, 4)) + 543}`;
 
 function Meta({ action }: { action: ControlAction }) {
   return (

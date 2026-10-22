@@ -1,5 +1,6 @@
 import "server-only";
 
+import { followUp, type FollowUpItem } from "@/lib/control/follow-up";
 import type { GroupKey } from "@/lib/control/forms";
 import {
   ASSESSMENT_SELECT,
@@ -14,8 +15,10 @@ import {
   type RawProject,
 } from "@/lib/control/map";
 import { FISCAL_YEAR_MAX, FISCAL_YEAR_MIN, isUuid } from "@/lib/control/parse";
+import { fiscalYear } from "@/lib/control/risk";
 import type { ControlAssessment, ControlMission, ControlProject } from "@/lib/control/types";
 import { getSession } from "@/lib/data/session";
+import { bangkokYmd } from "@/lib/time";
 
 export type { ControlAction, ControlAssessment, ControlMission, ControlProject } from "@/lib/control/types";
 
@@ -56,6 +59,21 @@ export async function listProjects(fy: number): Promise<{ projects: ControlProje
     logFailure("listProjects", e);
     return { projects: [], failed: true };
   }
+}
+
+/**
+ * Every improvement measure of the current and the previous fiscal year (a ปค.5 of last year has
+ * measures due this year), sorted by urgency as of today in Bangkok. Whose measures: whatever RLS
+ * returns. Never throws; `failed` if either year could not be loaded (the other year's items are kept).
+ */
+export async function listFollowUp(): Promise<{ items: FollowUpItem[]; failed?: true }> {
+  const today = bangkokYmd(new Date());
+  const fy = fiscalYear(today);
+  const [now, before] = await Promise.all([listProjects(fy), listProjects(fy - 1)]);
+  return {
+    items: followUp([...now.projects, ...before.projects], today),
+    ...(now.failed || before.failed ? { failed: true as const } : {}),
+  };
 }
 
 /** One project; null = not found or not visible to this user (RLS), which looks the same on purpose. */

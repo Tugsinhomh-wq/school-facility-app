@@ -1,7 +1,9 @@
 import { ActionList, buildRows } from "@/components/dashboard/home-actions";
 import { LoadError } from "@/components/ui/state-card";
+import { followUpCounts } from "@/lib/control/follow-up";
 import { getTodayCounts } from "@/lib/data/cleaning-officer";
 import { getMyToday } from "@/lib/data/cleaning-teacher";
+import { listFollowUp } from "@/lib/data/control";
 import { getDashboardBase, getRepairsData, getRoomsData } from "@/lib/data/dashboard";
 import { guardExecutive } from "@/lib/data/session";
 
@@ -9,16 +11,17 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   await guardExecutive();
-  const [base, repairs, rooms, counts, mine] = await Promise.all([
+  const [base, repairs, rooms, counts, mine, followUp] = await Promise.all([
     getDashboardBase(),
     getRepairsData(),
     getRoomsData(),
     getTodayCounts(),
     getMyToday(),
+    listFollowUp(),
   ]);
   const { viewer } = base;
   const failed = base.failed || repairs.failed || rooms.failed;
-  const rows = failed ? [] : buildRows({ base, repairs, rooms, counts, mine });
+  const rows = failed ? [] : buildRows({ base, repairs, rooms, counts, mine, followUp: followUp.failed ? null : followUpCounts(followUp.items) });
   const todo = rows.reduce((sum, r) => sum + r.todo, 0);
 
   return (
