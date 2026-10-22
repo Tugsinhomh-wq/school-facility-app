@@ -43,7 +43,7 @@ export function MobileNav({ role, signedIn }: { role: UserRole | null; signedIn:
     <nav
       aria-label="เมนูหลัก"
       className={cn(
-        "fixed inset-x-0 bottom-0 z-40 grid border-t border-border bg-background pb-[env(safe-area-inset-bottom)] md:hidden",
+        "fixed inset-x-0 bottom-0 z-40 grid border-t border-border bg-background pb-[env(safe-area-inset-bottom)] md:hidden print:hidden",
         executive ? "grid-cols-2" : "grid-cols-4",
       )}
     >

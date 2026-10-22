@@ -22,7 +22,7 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-screen md:flex">
       <AppSidebar viewer={viewer} />
-      <div className="min-w-0 flex-1 px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-28 sm:px-6 md:px-10 md:pt-10 md:pb-10">
+      <div className="min-w-0 flex-1 px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-28 sm:px-6 md:px-10 md:pt-10 md:pb-10 print:p-0">
         <LastPageTracker />
         <div className="mx-auto max-w-6xl">
           <Link

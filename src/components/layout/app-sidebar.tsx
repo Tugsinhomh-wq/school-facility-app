@@ -16,7 +16,7 @@ const SCHOOL = "โรงเรียนละหานทรายรัชด�
 export function AppSidebar({ viewer }: { viewer: Viewer | null }) {
   const AccountIcon = NAV_ICONS.account;
   return (
-    <aside className="sticky top-0 hidden h-screen w-58 shrink-0 flex-col gap-4 overflow-y-auto border-r border-sidebar-border bg-sidebar px-3 py-5 md:flex">
+    <aside className="sticky top-0 hidden h-screen w-58 shrink-0 flex-col gap-4 overflow-y-auto border-r border-sidebar-border bg-sidebar px-3 py-5 md:flex print:hidden">
       <Link
         href="/"
         className="flex items-center gap-3 rounded-lg px-2 py-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"

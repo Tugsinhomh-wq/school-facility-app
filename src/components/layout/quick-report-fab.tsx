@@ -54,7 +54,7 @@ export function QuickReportFab() {
           setOpen(true);
         }}
         aria-label="แจ้งซ่อม"
-        className="fixed right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-40 flex h-14 items-center gap-2 rounded-full bg-primary px-5 text-base font-semibold text-primary-foreground shadow-lg shadow-black/25 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-offset-2 active:scale-95 md:bottom-6"
+        className="fixed right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-40 flex h-14 items-center gap-2 rounded-full bg-primary px-5 text-base font-semibold text-primary-foreground shadow-lg shadow-black/25 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-offset-2 active:scale-95 md:bottom-6 print:hidden"
       >
         <Plus className="size-5" aria-hidden />
         แจ้งซ่อม

@@ -64,3 +64,9 @@ export function formatDayLong(ymd: string) {
   const { y, m, d, wd } = parts(ymd);
   return `วัน${DAYS_LONG[wd]}ที่ ${d} ${MONTHS_LONG[m]} ${y}`;
 }
+
+/** "5 ต.ค. 2569": day, short month and the Buddhist-era year, for documents. */
+export function formatDateShort(ymd: string) {
+  const { y, m, d } = parts(ymd);
+  return `${d} ${MONTHS_SHORT[m]} ${y}`;
+}
