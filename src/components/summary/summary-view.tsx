@@ -62,19 +62,19 @@ function Row({
   alert?: boolean;
 }) {
   return (
-    <div className="flex min-h-14 items-center justify-between gap-4 py-2.5">
-      <div className="min-w-0">
-        <dt>{label}</dt>
-        {sub && <dd className="text-sm text-muted-foreground">{sub}</dd>}
-      </div>
+    <div className="grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 py-2.5">
+      <dt>{label}</dt>
       <dd
         className={cn(
-          "shrink-0 text-xl font-medium tabular-nums",
+          "col-start-2 row-span-2 row-start-1 text-xl font-medium tabular-nums",
           alert && "text-destructive",
         )}
       >
         {value}
       </dd>
+      {sub && (
+        <dd className="col-start-1 text-sm text-muted-foreground">{sub}</dd>
+      )}
     </div>
   );
 }
@@ -272,7 +272,10 @@ export function SummaryView({
       </div>
 
       {!data ? (
-        <LoadError what="ข้อมูลสรุป" retryHref="/summary" />
+        <LoadError
+          what="ข้อมูลสรุป"
+          retryHref={href(period.kind, period.key)}
+        />
       ) : (
         <>
           <p className="text-lg">
