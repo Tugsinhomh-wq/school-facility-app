@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { canEditProject, canReview } from "@/lib/control/access";
 import {
@@ -152,9 +153,16 @@ export async function saveProject(_prev: ControlResult, formData: FormData): Pro
   }
 
   if (!id) {
-    const { error } = await ctx.db.from("control_projects").insert({ ...patch, owner_id: ownerId ?? ctx.userId });
+    const { data, error } = await ctx.db
+      .from("control_projects")
+      .insert({ ...patch, owner_id: ownerId ?? ctx.userId })
+      .select("id")
+      .single();
     if (error) return failure(error, "เพิ่มโครงการไม่สำเร็จ ลองใหม่อีกครั้ง");
     revalidate();
+    // The new project's page is where its risk score and measures are filled in next.
+    const newId = (data as unknown as { id?: string } | null)?.id;
+    if (isUuid(newId)) redirect(`/control/projects/${newId}`);
     return { ok: true, message: `เพิ่มโครงการ ${patch.name} แล้ว` };
   }
 
