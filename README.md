@@ -38,7 +38,10 @@ pip install -r scripts/requirements.txt
 **ลำดับรัน SQL ใน Supabase SQL Editor:**
 1. `supabase/facility_01_head_role.sql` รันแยกเดี่ยว ๆ ก่อน (เพิ่มค่า role `head` ต้อง commit ก่อนใช้)
 2. `supabase/facility_02_cleaning.sql`
-3. ชุดตรวจสอบของไฟล์ 02 (check sets)
-4. `supabase/facility_99_reset_old_data.sql` รันเฉพาะตอนสลับขึ้นระบบจริง หลังสำรองข้อมูลด้วย `/api/cron/backup` แล้ว (ลบเฉพาะแถวข้อมูลเก่า)
+3. `supabase/control_01.sql` (โมดูลควบคุมภายใน) รันหลัง `executive_role.sql` และ facility_02 แล้ววางทั้งไฟล์รันครั้งเดียว ส่วน "ชุดตรวจสอบ" ท้ายไฟล์เป็นคอมเมนต์ ให้คัดลอกไปรันทีละชุดภายหลัง
+4. ชุดตรวจสอบ (check sets) ของ `facility_02_cleaning.sql` และ `control_01.sql`
+5. `supabase/facility_99_reset_old_data.sql` รันเฉพาะตอนสลับขึ้นระบบจริง หลังสำรองข้อมูลด้วย `/api/cron/backup` แล้ว (ลบเฉพาะแถวข้อมูลเก่า)
+
+**คำเตือน:** `src/lib/backup.ts` อ่านตารางของโมดูลควบคุมภายใน (`control_missions`, `control_projects`, `control_actions`) ด้วย ต้องรัน `supabase/control_01.sql` **ก่อน** deploy โค้ดชุดนี้ (หรือรันทันทีที่ deploy เสร็จ) ถ้ายังไม่มีตาราง การสำรองข้อมูลประจำคืนจะล้มเหลวจนกว่าจะรันไฟล์นี้
 
 **Vercel env ที่ไม่ต้องใช้แล้ว (ลบได้):** `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (ถอด Web Push ออกแล้ว)

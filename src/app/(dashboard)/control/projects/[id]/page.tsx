@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ActionsList } from "@/components/control/actions-list";
+import { DeleteProject } from "@/components/control/delete-project";
 import { ConfirmedPill, RiskPill } from "@/components/control/project-row";
 import { ProjectForm, ScoreForm } from "@/components/control/project-form";
 import { ReviewForm, type MissionOption } from "@/components/control/review-form";
@@ -193,6 +194,15 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
             confirmed={project.confirmed}
             retryHref={retryHref}
           />
+        </section>
+      )}
+
+      {editable && (
+        <section aria-labelledby="delete-title" className={section}>
+          <h2 id="delete-title" className={heading}>
+            ลบโครงการ
+          </h2>
+          <DeleteProject projectId={project.id} name={project.name} measures={project.actions.length} />
         </section>
       )}
     </div>

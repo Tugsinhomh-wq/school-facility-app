@@ -45,9 +45,9 @@ export const MODULES: AppModule[] = [
   {
     id: "control",
     label: "ควบคุมภายใน",
-    href: null,
-    soon: true,
-    roles: "all",
+    href: "/control",
+    // Signed-out visitors and executives do not get it: /control is for signed-in staff and teachers.
+    roles: ["user", "staff", "head", "room_staff", "super_admin"],
     group: "other",
   },
 ];

@@ -11,7 +11,9 @@
 --
 -- Who may do what (mirrors canEditProject in src/lib/control/access.ts):
 --   officers  = public.current_role_is('staff', 'super_admin'), i.e. staff, head and super_admin.
---   executive = read only (the app does not open /control to them in round 1).
+--   executive = can read everything, but is given no write path by the app: /control is closed to executives
+--               in round 1. At the database level an executive who is also the owner of a project can
+--               still write the rows they own (the owner rules below ignore the role). Accepted for round 1.
 --   owner     = the account in control_projects.owner_id: edits its own project until an officer confirms it.
 --   anyone else sees nothing of someone else's project.
 

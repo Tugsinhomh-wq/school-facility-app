@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { redirect, RedirectType } from "next/navigation";
 
 import { canEditProject, canReview } from "@/lib/control/access";
 import {
@@ -235,6 +235,11 @@ export async function reviewProject(_prev: ControlResult, formData: FormData): P
   return { ok: true, message: confirm === true ? "ยืนยันโครงการแล้ว" : confirm === false ? "ยกเลิกการยืนยันแล้ว" : "บันทึกแล้ว" };
 }
 
+/**
+ * Remove a project (and, by the foreign key, its measures). Only whoever canEditProject may. On success
+ * it goes to the list of the project's year: the page it was called from would be a 404 now. A delete
+ * that touched no row (nothing deleted) is refused and does not redirect.
+ */
 export async function deleteProject(formData: FormData): Promise<ControlResult> {
   const id = field(formData, "id");
   if (!isUuid(id)) return refuse(RELOAD);
@@ -248,7 +253,7 @@ export async function deleteProject(formData: FormData): Promise<ControlResult> 
   const bad = outcome(await ctx.db.from("control_projects").delete().eq("id", id).select("id"), "ลบโครงการไม่สำเร็จ ลองใหม่อีกครั้ง");
   if (bad) return bad;
   revalidate();
-  return { ok: true, message: "ลบโครงการแล้ว" };
+  redirect(`/control?fy=${project.fiscalYear}`, RedirectType.replace);
 }
 
 // --- missions (officers only) --------------------------------------------------------------------
@@ -293,7 +298,7 @@ export async function deleteMission(formData: FormData): Promise<ControlResult> 
   if (bad) return bad;
   revalidate();
   const fy = (res.data as unknown as { fiscal_year?: number }[])[0]?.fiscal_year;
-  redirect(Number.isInteger(fy) ? `/control/missions?fy=${fy}` : "/control/missions");
+  redirect(Number.isInteger(fy) ? `/control/missions?fy=${fy}` : "/control/missions", RedirectType.replace);
 }
 
 // --- improvement measures ------------------------------------------------------------------------
