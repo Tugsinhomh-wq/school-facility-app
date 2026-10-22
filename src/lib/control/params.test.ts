@@ -82,3 +82,11 @@ test("docHref always names the year and the group", () => {
   assert.equal(docHref("/control/export/pk5", 2569, "general"), "/control/export/pk5?fy=2569&group=general");
   assert.equal(docHref("/control/print", 2570, "royal", "csa"), "/control/print?doc=csa&fy=2570&group=royal");
 });
+
+test("docHref: ปค.1 is school-wide, so it never carries a group; ปค.4 does", () => {
+  assert.equal(docHref("/control/export/pk1", 2569), "/control/export/pk1?fy=2569");
+  assert.equal(docHref("/control/print", 2569, undefined, "pk1"), "/control/print?doc=pk1&fy=2569");
+  assert.equal(docHref("/control/print", 2569, "general", "pk1"), "/control/print?doc=pk1&fy=2569");
+  assert.equal(docHref("/control/print", 2570, "royal", "pk4"), "/control/print?doc=pk4&fy=2570&group=royal");
+  assert.equal(docHref("/control/export/pk4", 2569, "general"), "/control/export/pk4?fy=2569&group=general");
+});

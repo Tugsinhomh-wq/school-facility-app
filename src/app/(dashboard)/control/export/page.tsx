@@ -1,6 +1,7 @@
-import { ArrowLeft, FileDown } from "lucide-react";
+import { ArrowLeft, ClipboardCheck, FileDown } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import type { ReactNode } from "react";
 
 import { chip } from "@/components/cleaning/officer-overview";
 import { YearNav } from "@/components/control/filters";
@@ -8,10 +9,12 @@ import { buttonVariants } from "@/components/ui/button";
 import { LoadError } from "@/components/ui/state-card";
 import { canReview } from "@/lib/control/access";
 import { GROUPS, type GroupKey } from "@/lib/control/forms";
-import { controlHref, docHref, resolveGroup, resolveYear, type Query } from "@/lib/control/params";
+import { controlHref, docHref, resolveGroup, resolveYear, type DocKind, type Query } from "@/lib/control/params";
+import { pk1Sections } from "@/lib/control/pk1";
+import { pk4Counts } from "@/lib/control/pk4";
 import { pk5Rows } from "@/lib/control/pk5";
 import { fiscalYear, needsPk5 } from "@/lib/control/risk";
-import { listMissions, listProjects } from "@/lib/data/control";
+import { getAssessment, listMissions, listProjects } from "@/lib/data/control";
 import { getSession, guardExecutive } from "@/lib/data/session";
 import { bangkokYmd } from "@/lib/time";
 import { cn } from "@/lib/utils";
@@ -25,8 +28,8 @@ const heading = "text-sm font-medium text-muted-foreground";
 const toolLink =
   "inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-sm font-medium outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50";
 
-/** One document of the chooser: what is in it, then the two ways to get it. */
-function DocRow({ title, detail, note, doc, fy, group }: { title: string; detail: string; note?: string; doc: "pk5" | "csa"; fy: number; group: GroupKey }) {
+/** One document of the chooser: what is in it, then the ways to get it. ปค.1 has no group (school-wide). */
+function DocRow({ title, detail, note, extra, doc, fy, group }: { title: string; detail: string; note?: string; extra?: ReactNode; doc: DocKind; fy: number; group?: GroupKey }) {
   return (
     <li className="space-y-3 px-4 py-4 sm:px-5">
       <div className="space-y-0.5 leading-snug">
@@ -43,12 +46,13 @@ function DocRow({ title, detail, note, doc, fy, group }: { title: string; detail
         <Link href={docHref("/control/print", fy, group, doc)} className={toolLink}>
           ดูแบบพิมพ์
         </Link>
+        {extra}
       </div>
     </li>
   );
 }
 
-/** Choose the fiscal year and one group, then download ปค.5 or CSA as Word, or open the print view. Officers only. */
+/** Choose the fiscal year (ปค.1, school-wide) and one group (ปค.4, ปค.5, CSA), then download Word or open the print view. Officers only. */
 export default async function ExportPage({ searchParams }: { searchParams: Promise<Query> }) {
   await guardExecutive();
   const session = await getSession();
@@ -63,13 +67,23 @@ export default async function ExportPage({ searchParams }: { searchParams: Promi
   const groupLabel = GROUPS.find((g) => g.key === group)?.label;
   const here = controlHref("/control/export", { fy, group }, currentFy);
 
-  const [projectList, missionList] = group ? await Promise.all([listProjects(fy), listMissions(fy)]) : [null, null];
-  const failed = projectList?.failed || missionList?.failed;
-  const projects = projectList?.projects.filter((p) => p.groupKey === group) ?? [];
+  // ปค.1 covers every group, so the year's projects are always read; the group's own documents need more only once one is chosen.
+  const [projectList, missionList, assessed] = await Promise.all([
+    listProjects(fy),
+    group ? listMissions(fy) : null,
+    group ? getAssessment(fy, group) : null,
+  ]);
+  const allProjects = projectList.projects;
+  const projects = allProjects.filter((p) => p.groupKey === group);
   const missions = missionList?.missions.filter((m) => m.groupKey === group) ?? [];
+  const groupFailed = projectList.failed || missionList?.failed || assessed?.failed;
   const inPk5 = pk5Rows(projects).length;
   // High-scoring projects the head has not confirmed yet are the usual reason a ปค.5 looks short.
   const waiting = projects.filter((p) => !p.confirmed && needsPk5(p.score)).length;
+
+  const pk1Groups = pk1Sections(allProjects).filter((s) => s.items.length > 0);
+  const inPk1 = pk1Groups.reduce((n, s) => n + s.items.length, 0);
+  const waitingAll = allProjects.filter((p) => !p.confirmed && needsPk5(p.score)).length;
 
   const pk5Note = [
     inPk5 === 0 ? "ต้องให้คะแนน 9 ขึ้นไปและหัวหน้ายืนยันแล้ว ไฟล์จะมีแต่หัวเรื่องและช่องลงนาม" : "เฉพาะโครงการที่คะแนน 9 ขึ้นไปและหัวหน้ายืนยันแล้ว",
@@ -77,6 +91,16 @@ export default async function ExportPage({ searchParams }: { searchParams: Promi
   ]
     .filter(Boolean)
     .join(" · ");
+  const pk1Note = [
+    inPk1 === 0 ? "ต้องให้คะแนน 9 ขึ้นไปและหัวหน้ายืนยันแล้ว ทุกกลุ่มงานในไฟล์จะเป็น \"ไม่มีรายการที่ต้องรายงาน\"" : "รายการเดียวกับ ปค.5 ของทุกกลุ่มงาน",
+    waitingAll > 0 && `อีก ${waitingAll} โครงการคะแนน 9 ขึ้นไปที่รอหัวหน้ายืนยัน จึงยังไม่อยู่ในเอกสาร`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  // A saved row is "filled in" (updatedAt is set); nothing saved yet is the empty assessment.
+  const filled = assessed?.assessment.updatedAt != null;
+  const c = assessed ? pk4Counts(assessed.assessment) : null;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -90,12 +114,31 @@ export default async function ExportPage({ searchParams }: { searchParams: Promi
       <div className="space-y-1">
         <h1 className="font-display text-3xl font-medium tracking-tight">ส่งออกเอกสาร</h1>
         <p className="text-sm text-muted-foreground">
-          ปค.5 และ CSA ออกเป็นไฟล์ Word ทีละกลุ่มงาน เพราะแต่ละกลุ่มลงนามรายงานของตัวเอง
+          ปค.1 ออกฉบับเดียวทั้งโรงเรียน ส่วน ปค.4 ปค.5 และ CSA ออกเป็นไฟล์ Word ทีละกลุ่มงาน
         </p>
       </div>
       {!session && <p className="text-sm text-muted-foreground">โหมดสาธิต: ยังไม่ได้เชื่อมต่อฐานข้อมูล จึงยังไม่มีเอกสารให้ส่งออก</p>}
 
       <YearNav path="/control/export" fy={fy} group={group} currentFy={currentFy} />
+
+      <section aria-labelledby="school-title" className="space-y-2">
+        <h2 id="school-title" className={heading}>
+          ทั้งโรงเรียน ปีงบประมาณ {fy}
+        </h2>
+        {projectList.failed ? (
+          <LoadError what="ข้อมูลสำหรับ ปค.1" retryHref={here} />
+        ) : (
+          <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border">
+            <DocRow
+              doc="pk1"
+              fy={fy}
+              title="ปค.1 หนังสือรับรองการประเมินผลการควบคุมภายใน"
+              detail={inPk1 > 0 ? `${inPk1} โครงการใน ${pk1Groups.length} กลุ่มงาน` : "ยังไม่มีโครงการในเอกสาร"}
+              note={pk1Note}
+            />
+          </ul>
+        )}
+      </section>
 
       <nav aria-label="เลือกกลุ่มงาน" className="space-y-2">
         <h2 className={heading}>กลุ่มงาน</h2>
@@ -115,7 +158,7 @@ export default async function ExportPage({ searchParams }: { searchParams: Promi
 
       {!group ? (
         <p className="text-base">เลือกกลุ่มงานก่อน จึงจะดาวน์โหลดเอกสารได้</p>
-      ) : failed ? (
+      ) : groupFailed ? (
         <LoadError what="ข้อมูลสำหรับเอกสาร" retryHref={here} />
       ) : (
         <section aria-labelledby="docs-title" className="space-y-2">
@@ -123,6 +166,24 @@ export default async function ExportPage({ searchParams }: { searchParams: Promi
             เอกสารของ{groupLabel} ปีงบประมาณ {fy}
           </h2>
           <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border">
+            <DocRow
+              doc="pk4"
+              fy={fy}
+              group={group}
+              title="ปค.4 รายงานการประเมินองค์ประกอบของการควบคุมภายใน"
+              detail={
+                filled && c
+                  ? `กรอกแล้ว · ปฏิบัติครบ ${c.full} · บางส่วน ${c.partial} · ไม่พบ ${c.none} · ยังไม่ประเมิน ${c.unanswered}`
+                  : "ยังไม่ได้กรอก"
+              }
+              note={filled ? undefined : "ไฟล์จะมีครบ 17 ข้อ แต่ช่องความเห็นยังว่าง"}
+              extra={
+                <Link href={controlHref("/control/assess", { fy, group }, currentFy)} className={toolLink}>
+                  <ClipboardCheck className="size-4" aria-hidden />
+                  ประเมิน ปค.4
+                </Link>
+              }
+            />
             <DocRow
               doc="pk5"
               fy={fy}

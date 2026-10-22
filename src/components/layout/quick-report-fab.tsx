@@ -23,8 +23,8 @@ export function QuickReportFab() {
   const [formKey, setFormKey] = useState(0);
   const [buildings, setBuildings] = useState<BuildingOption[]>([]);
   const pathname = usePathname();
-  // The summary and account pages are not for reporting repairs.
-  const hidden = pathname === "/summary" || pathname === "/account";
+  // The summary and account pages are not for reporting repairs, and on the ปค.4 form the button would cover the sticky save bar.
+  const hidden = pathname === "/summary" || pathname === "/account" || pathname === "/control/assess";
 
   // Load the building list the first time the sheet opens, so pages do not pay for it.
   useEffect(() => {

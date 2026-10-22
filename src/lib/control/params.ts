@@ -33,12 +33,18 @@ export function controlHref(path: string, f: { fy: number; group?: GroupKey }, c
   return s ? `${path}?${s}` : path;
 }
 
-/** Link to a document of one group. The year is always spelled out, so a saved link keeps opening the same year's document. */
-export function docHref(path: string, fy: number, group: GroupKey, doc?: "pk5" | "csa"): string {
+/** The four documents: ปค.1 is school-wide (a year only), the others belong to one group. */
+export type DocKind = "pk1" | "pk4" | "pk5" | "csa";
+
+/**
+ * Link to a document. The year is always spelled out, so a saved link keeps opening the same year's
+ * document; the group is left out for ปค.1 (even if given), which has none.
+ */
+export function docHref(path: string, fy: number, group?: GroupKey, doc?: DocKind): string {
   const q = new URLSearchParams();
   if (doc) q.set("doc", doc);
   q.set("fy", String(fy));
-  q.set("group", group);
+  if (group && doc !== "pk1") q.set("group", group);
   return `${path}?${q}`;
 }
 
