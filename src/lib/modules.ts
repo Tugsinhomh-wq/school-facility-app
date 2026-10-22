@@ -37,9 +37,9 @@ export const MODULES: AppModule[] = [
   {
     id: "census",
     label: "สำมะโนผู้เรียน",
-    href: null,
-    soon: true,
-    roles: "all",
+    href: "/census",
+    // The roster holds students' names: same visibility as control. Signed-out visitors and executives never see it.
+    roles: ["user", "staff", "head", "room_staff", "super_admin"],
     group: "other",
   },
   {
