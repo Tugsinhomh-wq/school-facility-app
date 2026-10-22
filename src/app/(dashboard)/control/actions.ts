@@ -8,6 +8,7 @@ import {
   cleanText,
   isUuid,
   parseActionForm,
+  parseAssessmentForm,
   parseMissionForm,
   parseOwnerEmail,
   parseProjectForm,
@@ -17,7 +18,8 @@ import {
 import { getSession, hasSupabase } from "@/lib/data/session";
 import type { UserRole } from "@/types/database";
 
-export type ControlResult = { ok: boolean; message: string } | null;
+/** `updatedAt` is only the ปค.4 save: the form sends it back with its next save (see saveAssessment). */
+export type ControlResult = { ok: boolean; message: string; updatedAt?: string } | null;
 
 // These actions only ever use the signed-in user's own client, so Row Level Security and the guard
 // trigger in supabase/control_01.sql stay in force. The checks here (canEditProject, canReview) give
@@ -348,4 +350,48 @@ export async function deleteAction(formData: FormData): Promise<ControlResult> {
   if (bad) return bad;
   revalidate();
   return { ok: true, message: "ลบมาตรการแล้ว" };
+}
+
+// --- ปค.4 assessment (officers only) -------------------------------------------------------------
+
+const ASSESS_CONFLICT = "มีผู้อื่นบันทึกผลประเมินกลุ่มนี้ไปก่อน โหลดหน้าใหม่เพื่อดูฉบับล่าสุด แล้วกรอกส่วนของคุณอีกครั้ง";
+
+/**
+ * Save the whole ปค.4 form of one group and year (the first save creates the row). The form always
+ * posts every field, so this replaces `items` as a whole, and it stays on the page. Two officers
+ * would overwrite each other, so the form also posts the `updated_at` it was loaded with (the
+ * string PostgREST gave, untouched; "" when no row existed): the update only matches that exact
+ * value, and the new one goes back in the result for the form's next save. No row yet is a plain
+ * insert, so the unique key refuses a second first save.
+ */
+export async function saveAssessment(_prev: ControlResult, formData: FormData): Promise<ControlResult> {
+  const parsed = parseAssessmentForm(formData);
+  if (!parsed.ok) return refuse(parsed.message);
+  const loadedAt = field(formData, "updated_at");
+  if (loadedAt && Number.isNaN(Date.parse(loadedAt))) return refuse(RELOAD);
+
+  const ctx = await officerCtx();
+  if (!isCtx(ctx)) return ctx;
+  const { fiscalYear, groupKey, principles, summaries } = parsed.value;
+  const items = { principles, summaries };
+  const table = ctx.db.from("control_assessments");
+  const res = loadedAt
+    ? await table
+        .update({ items, updated_by: ctx.userId })
+        .eq("fiscal_year", fiscalYear)
+        .eq("group_key", groupKey)
+        .eq("updated_at", loadedAt)
+        .select("id, updated_at")
+    : await table.insert({ fiscal_year: fiscalYear, group_key: groupKey, items, updated_by: ctx.userId }).select("id, updated_at");
+  if (res.error?.code === "23505") return refuse(ASSESS_CONFLICT);
+  if (loadedAt && !res.error && Array.isArray(res.data) && res.data.length === 0) {
+    // Nothing matched: a newer save moved updated_at, or Row Level Security hides the row. Only a visible row is a conflict.
+    const seen = await table.select("id").eq("fiscal_year", fiscalYear).eq("group_key", groupKey).maybeSingle();
+    return refuse(seen.data ? ASSESS_CONFLICT : NO_ACCESS);
+  }
+  const bad = outcome(res, "บันทึกผลการประเมินไม่สำเร็จ ลองใหม่อีกครั้ง");
+  if (bad) return bad;
+  revalidate();
+  const updatedAt = (res.data as unknown as { updated_at?: string }[])[0]?.updated_at;
+  return { ok: true, message: "บันทึกแล้ว", updatedAt };
 }

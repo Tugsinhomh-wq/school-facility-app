@@ -17,9 +17,22 @@ import {
   WidthType,
 } from "docx";
 
-import { PK5_COLUMNS } from "./forms.ts";
+import { PK4_COLUMNS, PK5_COLUMNS } from "./forms.ts";
+import {
+  PK1_ADDRESSEE,
+  PK1_EMPTY,
+  PK1_SIGNATURE_LINES,
+  PK1_TITLE,
+  pk1Heading,
+  pk1Improvements,
+  pk1ImproveLabel,
+  pk1Paragraphs,
+  pk1RiskLabel,
+  type Pk1Section,
+} from "./pk1.ts";
+import { PK4_SIGNATURE_LINES, PK4_TITLE, PK4_WIDTHS, pk4Heading, pk4Rows } from "./pk4.ts";
 import { CSA_TITLE, PK5_TITLE, PK5_WIDTHS, SCHOOL_NAME, SIGNATURE_LINES, csaBlocks, csaHeading, pk5Heading, type DocMeta, type Pk5Row } from "./pk5.ts";
-import type { ControlMission } from "./types.ts";
+import type { ControlAssessment, ControlMission } from "./types.ts";
 import { withBreakHints } from "../memo/thai-text.ts";
 
 /** "TH Sarabun New" must be installed on the reader's machine, as for the memos. */
@@ -27,6 +40,7 @@ const FONT = "TH Sarabun New";
 const SIZE = 32; // 16 pt, in half-points
 const CM = 567; // twips per centimetre
 const A4 = { width: 11906, height: 16838 };
+const PORTRAIT_MARGIN = { top: 2 * CM, bottom: 2 * CM, left: 2.5 * CM, right: 2 * CM };
 
 /** Anything XML 1.0 cannot carry (control characters, lone surrogates) would make Word call the file corrupt. */
 const NOT_XML = /[^\t\n\r\u0020-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]/gu;
@@ -60,15 +74,40 @@ const headingParagraphs = (lines: string[], boldAt: number[], pageBreakBefore = 
       }),
   );
 
-const cell = (width: number, lines: string[], header: boolean) =>
+/** `shade` fills the cell (a header always is); `boldFirst` makes the first line bold; `span` is the number of columns it covers. */
+const cell = (width: number, lines: string[], header: boolean, opts: { span?: number; shade?: boolean; boldFirst?: boolean } = {}) =>
   new TableCell({
     width: { size: width, type: WidthType.DXA },
+    columnSpan: opts.span,
     borders: allBorders,
     margins: { top: 40, bottom: 40, left: 90, right: 90 },
     verticalAlign: header ? VerticalAlign.CENTER : VerticalAlign.TOP,
-    shading: header ? { type: ShadingType.CLEAR, fill: "E7E6E6", color: "auto" } : undefined,
-    children: lines.map((line) => new Paragraph({ alignment: header ? AlignmentType.CENTER : AlignmentType.LEFT, children: [run(line, header)] })),
+    shading: header || opts.shade ? { type: ShadingType.CLEAR, fill: header ? "E7E6E6" : "F2F2F2", color: "auto" } : undefined,
+    children: lines.map(
+      (line, i) => new Paragraph({ alignment: header ? AlignmentType.CENTER : AlignmentType.LEFT, children: [run(line, header || (opts.boldFirst === true && i === 0))] }),
+    ),
   });
+
+/** The signature lines at the end of a document, centred in the right-hand part of the page. */
+const signatureBlock = (lines: readonly string[], left: number) =>
+  lines.map(
+    (line, i) =>
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        indent: { left },
+        spacing: { before: i === 0 ? 480 : 0 },
+        keepNext: i < lines.length - 1,
+        keepLines: true,
+        children: [run(line)],
+      }),
+  );
+
+/** Column widths in twips from shares summing to 100; the last takes the rounding. */
+const columnWidths = (total: number, shares: readonly number[]): number[] => {
+  const widths = shares.map((s) => Math.floor((total * s) / 100));
+  widths[widths.length - 1] += total - widths.reduce((a, b) => a + b, 0);
+  return widths;
+};
 
 function pack(sections: ConstructorParameters<typeof Document>[0]["sections"], title: string): Promise<Buffer> {
   return Packer.toBuffer(
@@ -89,8 +128,7 @@ export function pk5ToDocx(rows: Pk5Row[], meta: DocMeta): Promise<Buffer> {
   const margin = { top: 2 * CM, bottom: 2 * CM, left: 1.5 * CM, right: 1.5 * CM };
   // Landscape: the long edge is the width. docx swaps the two for us when the orientation is landscape.
   const total = A4.height - margin.left - margin.right;
-  const widths = PK5_WIDTHS.map((s) => Math.floor((total * s) / 100));
-  widths[widths.length - 1] += total - widths.reduce((a, b) => a + b, 0);
+  const widths = columnWidths(total, PK5_WIDTHS);
 
   const table = new Table({
     width: { size: total, type: WidthType.DXA },
@@ -103,23 +141,11 @@ export function pk5ToDocx(rows: Pk5Row[], meta: DocMeta): Promise<Buffer> {
     ],
   });
 
-  const signer = { alignment: AlignmentType.CENTER, indent: { left: 15 * CM } } as const;
-  const signature = SIGNATURE_LINES.map(
-    (line, i) =>
-      new Paragraph({
-        ...signer,
-        spacing: { before: i === 0 ? 480 : 0 },
-        keepNext: i < SIGNATURE_LINES.length - 1,
-        keepLines: true,
-        children: [run(line)],
-      }),
-  );
-
   return pack(
     [
       {
         properties: { page: { size: { ...A4, orientation: PageOrientation.LANDSCAPE }, margin } },
-        children: [...headingParagraphs(pk5Heading(meta), [0, 1, 3]), new Paragraph({ spacing: { after: 120 }, children: [] }), table, ...signature],
+        children: [...headingParagraphs(pk5Heading(meta), [0, 1, 3]), new Paragraph({ spacing: { after: 120 }, children: [] }), table, ...signatureBlock(SIGNATURE_LINES, 15 * CM)],
       },
     ],
     PK5_TITLE,
@@ -147,7 +173,79 @@ export function csaToDocx(missions: ControlMission[], meta: DocMeta): Promise<Bu
   });
 
   return pack(
-    [{ properties: { page: { size: A4, margin: { top: 2 * CM, bottom: 2 * CM, left: 2.5 * CM, right: 2 * CM } } }, children }],
+    [{ properties: { page: { size: A4, margin: PORTRAIT_MARGIN } }, children }],
     CSA_TITLE,
+  );
+}
+
+/** A paragraph per line of `text`; with `hanging`, the first line starts that far left of the rest. */
+const block = (text: string, left: number, o: { bold?: boolean; keepNext?: boolean; hanging?: number } = {}) =>
+  linesOf(text).map(
+    (line, i) => new Paragraph({ indent: { left, hanging: i === 0 ? o.hanging : undefined }, keepNext: o.keepNext, children: [run(line, o.bold)] }),
+  );
+
+/**
+ * ปค.1 on A4 portrait: title, year, addressee and the three fixed paragraphs, then every group with its
+ * items (title, remaining risk, improvement) or "none to report", then the director's signature lines.
+ */
+export function pk1ToDocx(sections: Pk1Section[], meta: { fiscalYear: number }): Promise<Buffer> {
+  const sub = 1.2 * CM;
+  const [formTag, ...title] = pk1Heading(meta.fiscalYear);
+  const children: Paragraph[] = [
+    // "แบบ ปค.1" sits at the right, normal weight; the title and the year line stay centred.
+    new Paragraph({ alignment: AlignmentType.RIGHT, keepNext: true, children: [run(formTag)] }),
+    ...headingParagraphs(title, [0]),
+    new Paragraph({ spacing: { before: 240 }, keepNext: true, children: [run(PK1_ADDRESSEE)] }),
+    ...pk1Paragraphs(meta.fiscalYear).map(
+      (t) => new Paragraph({ alignment: AlignmentType.JUSTIFIED, indent: { firstLine: 1.25 * CM }, spacing: { before: 120 }, children: [run(t)] }),
+    ),
+  ];
+  for (const s of sections) {
+    children.push(new Paragraph({ spacing: { before: 240 }, keepNext: true, children: [run(s.groupLabel, true)] }));
+    if (s.items.length === 0) children.push(...block(PK1_EMPTY, sub));
+    for (const item of s.items) {
+      children.push(
+        ...block(`${item.n}. ${item.title}`, sub, { bold: true, keepNext: true, hanging: sub }),
+        ...block(pk1RiskLabel(item.n), 2 * sub, { keepNext: true, hanging: sub }),
+        ...block(item.risk, 2 * sub),
+        ...block(pk1ImproveLabel(item.n), 2 * sub, { keepNext: true, hanging: sub }),
+        ...pk1Improvements(item).flatMap((t) => block(t, 2 * sub)),
+      );
+    }
+  }
+  children.push(...signatureBlock(PK1_SIGNATURE_LINES, 7.5 * CM));
+
+  return pack([{ properties: { page: { size: A4, margin: PORTRAIT_MARGIN } }, children }], PK1_TITLE);
+}
+
+/**
+ * ปค.4 on A4 portrait: the heading, a two-column table (its header row repeats on every page; no row is
+ * kept whole, because LibreOffice drops rows that are both) with a shaded band per component, then the
+ * director's signature lines. An empty assessment still gives every row, with dashes.
+ */
+export function pk4ToDocx(a: ControlAssessment, meta: DocMeta): Promise<Buffer> {
+  const total = A4.width - PORTRAIT_MARGIN.left - PORTRAIT_MARGIN.right;
+  const widths = columnWidths(total, PK4_WIDTHS);
+  const rows = pk4Rows(a).map((r) =>
+    r.kind === "component"
+      ? new TableRow({ children: [cell(total, [r.left], false, { span: 2, shade: true, boldFirst: true })] })
+      : new TableRow({ children: [cell(widths[0], linesOf(r.left), false), cell(widths[1], linesOf(r.right), false, { boldFirst: r.kind === "summary" })] }),
+  );
+  const table = new Table({
+    width: { size: total, type: WidthType.DXA },
+    columnWidths: widths,
+    layout: TableLayoutType.FIXED,
+    borders: { ...allBorders, insideHorizontal: lineBorder, insideVertical: lineBorder },
+    rows: [new TableRow({ tableHeader: true, children: PK4_COLUMNS.map((c, i) => cell(widths[i], [c], true)) }), ...rows],
+  });
+
+  return pack(
+    [
+      {
+        properties: { page: { size: A4, margin: PORTRAIT_MARGIN } },
+        children: [...headingParagraphs(pk4Heading(meta), [0, 1, 3]), new Paragraph({ spacing: { after: 120 }, children: [] }), table, ...signatureBlock(PK4_SIGNATURE_LINES, 7.5 * CM)],
+      },
+    ],
+    PK4_TITLE,
   );
 }

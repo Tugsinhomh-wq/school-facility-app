@@ -1,4 +1,4 @@
-import { FileDown, Layers, Plus } from "lucide-react";
+import { ClipboardCheck, FileDown, Layers, Plus } from "lucide-react";
 import Link from "next/link";
 
 import { GroupNav, YearNav } from "@/components/control/filters";
@@ -66,6 +66,10 @@ export default async function ControlPage({ searchParams }: { searchParams: Prom
           <Link href={controlHref("/control/export", { fy, group }, currentFy)} className={toolLink}>
             <FileDown className="size-4" aria-hidden />
             ส่งออกเอกสาร
+          </Link>
+          <Link href={controlHref("/control/assess", { fy, group }, currentFy)} className={toolLink}>
+            <ClipboardCheck className="size-4" aria-hidden />
+            ประเมิน ปค.4
           </Link>
         </div>
       )}

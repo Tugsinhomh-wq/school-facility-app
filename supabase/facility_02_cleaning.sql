@@ -42,7 +42,8 @@ GRANT EXECUTE ON FUNCTION public.current_role_is(public.user_role[]) TO authenti
 -- 2. Tables
 -- =====================================================================
 -- One row per class per term (e.g. term '2569/2', name 'ม.3/2'), with its cleaning zone.
--- No student names or accounts: the class is the unit, its advisors confirm for it.
+-- No student accounts: the class is the unit, its advisors confirm for it. (Class rosters, student ID + name only,
+-- were added later in census_01.sql.)
 CREATE TABLE IF NOT EXISTS public.classrooms (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   term TEXT NOT NULL,

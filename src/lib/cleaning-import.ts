@@ -24,14 +24,14 @@ const THAI_DIGITS = "๐๑๒๓๔๕๖๗๘๙";
 const EMAIL_RE = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
 
 // Strip BOM / zero-width chars, trim, collapse inner whitespace.
-function clean(value: unknown): string {
+export function clean(value: unknown): string {
   return String(value ?? "")
     .replace(/[﻿​-‍]/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }
 
-function thaiDigitsToAscii(s: string): string {
+export function thaiDigitsToAscii(s: string): string {
   return s.replace(/[๐-๙]/g, (d) => String(THAI_DIGITS.indexOf(d)));
 }
 

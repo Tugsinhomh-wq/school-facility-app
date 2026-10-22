@@ -1,11 +1,23 @@
 import "server-only";
 
-import { MISSION_SELECT, PROJECT_SELECT, toMission, toProject, type RawMission, type RawProject } from "@/lib/control/map";
+import type { GroupKey } from "@/lib/control/forms";
+import {
+  ASSESSMENT_SELECT,
+  emptyAssessment,
+  MISSION_SELECT,
+  PROJECT_SELECT,
+  toAssessment,
+  toMission,
+  toProject,
+  type RawAssessment,
+  type RawMission,
+  type RawProject,
+} from "@/lib/control/map";
 import { FISCAL_YEAR_MAX, FISCAL_YEAR_MIN, isUuid } from "@/lib/control/parse";
-import type { ControlMission, ControlProject } from "@/lib/control/types";
+import type { ControlAssessment, ControlMission, ControlProject } from "@/lib/control/types";
 import { getSession } from "@/lib/data/session";
 
-export type { ControlAction, ControlMission, ControlProject } from "@/lib/control/types";
+export type { ControlAction, ControlAssessment, ControlMission, ControlProject } from "@/lib/control/types";
 
 // Every query goes through the signed-in user's own client, so Row Level Security decides what comes
 // back: an owner gets their own projects, an officer or executive gets all. No session = demo mode:
@@ -99,5 +111,29 @@ export async function getMission(id: string): Promise<{ mission: ControlMission 
   } catch (e) {
     logFailure("getMission", e);
     return { mission: null, failed: true };
+  }
+}
+
+/** The ปค.4 of one group and year; a group not filled in yet is the empty one (nothing answered), not an error. Officers and executives only (RLS). */
+export async function getAssessment(fy: number, groupKey: GroupKey): Promise<{ assessment: ControlAssessment; failed?: true }> {
+  const empty = emptyAssessment(fy, groupKey);
+  try {
+    const s = await getSession();
+    if (!s) return { assessment: empty };
+    if (!validYear(fy)) return { assessment: empty, failed: true };
+    const { data, error } = await s.supabase
+      .from("control_assessments")
+      .select(ASSESSMENT_SELECT)
+      .eq("fiscal_year", fy)
+      .eq("group_key", groupKey)
+      .maybeSingle();
+    if (error) {
+      logFailure("getAssessment", error);
+      return { assessment: empty, failed: true };
+    }
+    return { assessment: data ? toAssessment(data as unknown as RawAssessment) : empty };
+  } catch (e) {
+    logFailure("getAssessment", e);
+    return { assessment: empty, failed: true };
   }
 }

@@ -6,7 +6,7 @@
 // is left unchanged on update and left to the column default on create, while a key that is present
 // but empty is stored as empty (or NULL for a number, a date or a choice). Keys that only an officer
 // may change (owner, mission, the head's scores, confirmation) are never read by parseProjectForm.
-import { ACTION_STATUSES, GROUPS, RISK_TYPES, type ActionStatus, type GroupKey } from "./forms.ts";
+import { ACTION_STATUSES, ASSESS_RESULTS, COMPONENT_COUNT, GROUPS, PRINCIPLE_COUNT, RISK_TYPES, type ActionStatus, type AssessResult, type GroupKey } from "./forms.ts";
 import { fiscalYear, riskScore } from "./risk.ts";
 import { isYmd } from "../time.ts";
 
@@ -249,4 +249,42 @@ export function parseActionForm(f: Fields, mode: Mode): Parsed<ActionPatch> {
   c.take("due", pick(f, "due", false), parseDue);
   c.take("status", pick(f, "status", false), parseStatus);
   return c.done();
+}
+
+export type AssessmentValue = {
+  fiscalYear: number;
+  groupKey: GroupKey;
+  /** Keys "1".."17" and "1".."5", all present: this is what is stored as `items`. */
+  principles: Record<string, { result: AssessResult | null; text: string }>;
+  summaries: Record<string, string>;
+};
+
+/**
+ * The whole ปค.4 form of one group: fields principle_{n}_result (empty = not answered), principle_{n}_text
+ * and summary_{n}. Unlike the other forms this is not a patch: every key is stored, so a field missing
+ * from the form is an empty answer. Fields outside 1-17 / 1-5 are never read.
+ */
+export function parseAssessmentForm(f: Fields): Parsed<AssessmentValue> {
+  const errors: string[] = [];
+  const fy = parseFiscalYear(pick(f, "fiscal_year", true) ?? "");
+  const group = parseGroupKey(pick(f, "group_key", true) ?? "");
+  if (!fy.ok) errors.push(fy.message);
+  if (!group.ok) errors.push(group.message);
+  const principles: AssessmentValue["principles"] = {};
+  for (let n = 1; n <= PRINCIPLE_COUNT; n++) {
+    const raw = (pick(f, `principle_${n}_result`, true) ?? "").trim();
+    const result = ASSESS_RESULTS.find((x) => x.key === raw)?.key ?? null;
+    if (raw !== "" && result === null) errors.push(`ผลการประเมินข้อ ${n} ไม่ถูกต้อง เลือกใหม่อีกครั้ง`);
+    const t = parseText(pick(f, `principle_${n}_text`, true) ?? "", `ความเห็นข้อ ${n}`, MAX_TEXT, false);
+    if (!t.ok) errors.push(t.message);
+    principles[n] = { result, text: t.ok ? t.value : "" };
+  }
+  const summaries: AssessmentValue["summaries"] = {};
+  for (let n = 1; n <= COMPONENT_COUNT; n++) {
+    const t = parseText(pick(f, `summary_${n}`, true) ?? "", `สรุปองค์ประกอบที่ ${n}`, MAX_TEXT, false);
+    if (!t.ok) errors.push(t.message);
+    summaries[n] = t.ok ? t.value : "";
+  }
+  if (errors.length > 0 || !fy.ok || !group.ok) return fail(errors.join(" · "));
+  return pass({ fiscalYear: fy.value, groupKey: group.value, principles, summaries });
 }

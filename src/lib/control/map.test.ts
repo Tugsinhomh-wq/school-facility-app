@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { PROJECT_SELECT, toAction, toMission, toProject, type RawAction, type RawProject } from "./map.ts";
+import { PROJECT_SELECT, emptyAssessment, toAction, toAssessment, toMission, toProject, type RawAction, type RawAssessment, type RawProject } from "./map.ts";
+import { parseAssessmentForm } from "./parse.ts";
 
 const raw = (over: Partial<RawProject> = {}): RawProject => ({
   id: "p1",
@@ -142,4 +143,107 @@ test("toMission: camelCase mapping of the five CSA steps", () => {
 test("PROJECT_SELECT names the owner's profile through owner_id (control_projects has two foreign keys to profiles)", () => {
   assert.match(PROJECT_SELECT, /owner:profiles!owner_id\(full_name\)/);
   assert.match(PROJECT_SELECT, /actions:control_actions\(/);
+});
+
+const rawAssessment = (items: unknown, over: Partial<RawAssessment> = {}): RawAssessment => ({
+  fiscal_year: 2569,
+  group_key: "general",
+  items,
+  updated_at: "2026-10-22T03:00:00+00:00",
+  ...over,
+});
+
+test("emptyAssessment: principles 1-17 and summaries 1-5 are all present and empty", () => {
+  const a = emptyAssessment(2570, "royal");
+  assert.equal(a.fiscalYear, 2570);
+  assert.equal(a.groupKey, "royal");
+  assert.equal(a.updatedAt, null);
+  assert.deepEqual(Object.keys(a.principles).map(Number), Array.from({ length: 17 }, (_, i) => i + 1));
+  assert.deepEqual(Object.keys(a.summaries).map(Number), [1, 2, 3, 4, 5]);
+  assert.deepEqual(a.principles[17], { result: null, text: "" });
+  assert.equal(a.summaries[5], "");
+});
+
+test("toAssessment: reads the stored principles and summaries", () => {
+  const a = toAssessment(
+    rawAssessment({
+      principles: { "1": { result: "full", text: "มีคำสั่ง" }, "17": { result: "none", text: "" }, "9": { result: "partial", text: "บางข้อ" } },
+      summaries: { "1": "ทำต่อ", "5": "ติดตามผล" },
+    }),
+  );
+  assert.deepEqual(a.principles[1], { result: "full", text: "มีคำสั่ง" });
+  assert.deepEqual(a.principles[9], { result: "partial", text: "บางข้อ" });
+  assert.deepEqual(a.principles[17], { result: "none", text: "" });
+  assert.deepEqual(a.principles[2], { result: null, text: "" });
+  assert.equal(a.summaries[1], "ทำต่อ");
+  assert.equal(a.summaries[5], "ติดตามผล");
+  assert.equal(a.summaries[3], "");
+  assert.equal(a.updatedAt, "2026-10-22T03:00:00+00:00");
+  assert.equal(a.fiscalYear, 2569);
+  assert.equal(a.groupKey, "general");
+});
+
+test("toAssessment: items of any other shape give an empty assessment and never throw", () => {
+  const empty = emptyAssessment(2569, "general");
+  empty.updatedAt = "2026-10-22T03:00:00+00:00";
+  for (const items of [null, undefined, [], [1, 2], "text", 42, true, {}, { principles: null, summaries: null }, { principles: [], summaries: "x" }, { principles: "x", summaries: 7 }]) {
+    assert.deepEqual(toAssessment(rawAssessment(items)), empty, JSON.stringify(items));
+  }
+});
+
+test("toAssessment: bad parts become empty, good parts beside them are kept", () => {
+  const a = toAssessment(
+    rawAssessment({
+      principles: {
+        "1": { result: "FULL", text: "ผิดตัวพิมพ์" }, // not one of the three keys
+        "2": { result: "full", text: 42 }, // text of the wrong type
+        "3": "full", // entry is not an object
+        "4": null,
+        "5": [],
+        "6": { result: ["full"], text: ["x"] },
+        "7": { result: "partial", text: "ดี" },
+        "0": { result: "full", text: "นอกช่วง" },
+        "18": { result: "full", text: "นอกช่วง" },
+        "x": { result: "full", text: "ไม่ใช่เลข" },
+        "1.5": { result: "full", text: "ทศนิยม" },
+        "__proto__": { result: "full", text: "proto" },
+      },
+      summaries: { "1": 5, "2": null, "3": ["a"], "4": "ดี", "6": "นอกช่วง", "0": "นอกช่วง", "x": "ไม่ใช่เลข" },
+    }),
+  );
+  assert.deepEqual(a.principles[1], { result: null, text: "ผิดตัวพิมพ์" });
+  assert.deepEqual(a.principles[2], { result: "full", text: "" });
+  for (const n of [3, 4, 5, 6]) assert.deepEqual(a.principles[n], { result: null, text: "" }, `principle ${n}`);
+  assert.deepEqual(a.principles[7], { result: "partial", text: "ดี" });
+  assert.deepEqual(Object.keys(a.principles).map(Number), Array.from({ length: 17 }, (_, i) => i + 1), "no out-of-range or unknown key is added");
+  assert.deepEqual(Object.keys(a.summaries).map(Number), [1, 2, 3, 4, 5]);
+  assert.deepEqual([a.summaries[1], a.summaries[2], a.summaries[3], a.summaries[4], a.summaries[5]], ["", "", "", "ดี", ""]);
+});
+
+test("toAssessment: updated_at that is not text is null", () => {
+  assert.equal(toAssessment(rawAssessment({}, { updated_at: null })).updatedAt, null);
+  assert.equal(toAssessment(rawAssessment({}, { updated_at: 5 as unknown as string })).updatedAt, null);
+});
+
+test("what parseAssessmentForm gives survives the database (JSON) and toAssessment reads it back; unanswered stays null", () => {
+  const f = new Map([
+    ["fiscal_year", "2569"],
+    ["group_key", "general"],
+    ["principle_1_result", "full"],
+    ["principle_1_text", "มีคำสั่ง\nและประกาศ"],
+    ["principle_2_result", "none"],
+    ["principle_3_text", "ความเห็นโดยไม่เลือกผล"],
+    ["summary_4", "ควรปรับปรุง"],
+  ]);
+  const parsed = parseAssessmentForm(f);
+  assert.ok(parsed.ok);
+  const { principles, summaries } = parsed.value;
+  const stored = JSON.parse(JSON.stringify({ principles, summaries }));
+  const a = toAssessment(rawAssessment(stored));
+  assert.deepEqual(a.principles, principles);
+  assert.deepEqual(a.summaries, summaries);
+  assert.deepEqual(a.principles[1], { result: "full", text: "มีคำสั่ง\nและประกาศ" });
+  assert.deepEqual(a.principles[3], { result: null, text: "ความเห็นโดยไม่เลือกผล" });
+  assert.deepEqual(a.principles[17], { result: null, text: "" });
+  assert.equal(a.summaries[4], "ควรปรับปรุง");
 });

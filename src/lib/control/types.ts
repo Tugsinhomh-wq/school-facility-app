@@ -1,6 +1,6 @@
 // Shapes the internal-control data layer hands to the pages. Types only, so client components and
 // `npm test` can import them without touching server-only code (src/lib/data/control.ts re-exports them).
-import type { ActionStatus, GroupKey } from "./forms.ts";
+import type { ActionStatus, AssessResult, GroupKey } from "./forms.ts";
 
 /** One improvement measure of a project: who does what by when. */
 export type ControlAction = {
@@ -54,4 +54,17 @@ export type ControlMission = {
   practice: string;
   assessment: string;
   improvement: string;
+};
+
+/** One principle of the ปค.4: the staff's comment and result (null = not answered yet). */
+export type PrincipleEntry = { result: AssessResult | null; text: string };
+
+/** The ปค.4 assessment of one group in one fiscal year; after mapping, principles has keys 1-17 and summaries 1-5. */
+export type ControlAssessment = {
+  fiscalYear: number;
+  groupKey: GroupKey;
+  principles: Record<number, PrincipleEntry>;
+  /** The typed "สรุป/วิธีการที่ควรปฏิบัติ" of each component. */
+  summaries: Record<number, string>;
+  updatedAt: string | null;
 };
