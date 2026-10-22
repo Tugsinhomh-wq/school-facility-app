@@ -263,9 +263,12 @@ export async function saveMission(_prev: ControlResult, formData: FormData): Pro
   const ctx = await officerCtx();
   if (!isCtx(ctx)) return ctx;
   if (!id) {
-    const { error } = await ctx.db.from("control_missions").insert(parsed.value);
+    const { data, error } = await ctx.db.from("control_missions").insert(parsed.value).select("id").single();
     if (error) return failure(error, "เพิ่มภารกิจไม่สำเร็จ ลองใหม่อีกครั้ง");
     revalidate();
+    // The new mission's page is where its five CSA steps are filled in next.
+    const newId = (data as unknown as { id?: string } | null)?.id;
+    if (isUuid(newId)) redirect(`/control/missions/${newId}`);
     return { ok: true, message: `เพิ่มภารกิจ ${parsed.value.name} แล้ว` };
   }
   if (Object.keys(parsed.value).length === 0) return refuse(NOTHING);
@@ -275,17 +278,22 @@ export async function saveMission(_prev: ControlResult, formData: FormData): Pro
   return { ok: true, message: "บันทึกภารกิจแล้ว" };
 }
 
-/** Deleting a mission unlinks its projects (the foreign key sets their mission_id to empty). */
+/**
+ * Deleting a mission unlinks its projects (the foreign key sets their mission_id to empty). On success
+ * it goes to the list of that mission's year: the page it was called from would be a 404 now.
+ */
 export async function deleteMission(formData: FormData): Promise<ControlResult> {
   const id = field(formData, "id");
   if (!isUuid(id)) return refuse(RELOAD);
 
   const ctx = await officerCtx();
   if (!isCtx(ctx)) return ctx;
-  const bad = outcome(await ctx.db.from("control_missions").delete().eq("id", id).select("id"), "ลบภารกิจไม่สำเร็จ ลองใหม่อีกครั้ง");
+  const res = await ctx.db.from("control_missions").delete().eq("id", id).select("id, fiscal_year");
+  const bad = outcome(res, "ลบภารกิจไม่สำเร็จ ลองใหม่อีกครั้ง");
   if (bad) return bad;
   revalidate();
-  return { ok: true, message: "ลบภารกิจแล้ว" };
+  const fy = (res.data as unknown as { fiscal_year?: number }[])[0]?.fiscal_year;
+  redirect(Number.isInteger(fy) ? `/control/missions?fy=${fy}` : "/control/missions");
 }
 
 // --- improvement measures ------------------------------------------------------------------------

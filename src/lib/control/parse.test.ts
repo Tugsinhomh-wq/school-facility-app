@@ -22,6 +22,7 @@ import {
   parseStatus,
   parseText,
 } from "./parse.ts";
+import { CSA_FIELD, CSA_STEPS } from "./forms.ts";
 
 // A Map stands in for FormData: both have get(name).
 const form = (o: Record<string, string>) => new Map(Object.entries(o));
@@ -290,6 +291,12 @@ test("parseMissionForm: year, group and name are required to create; the five CS
   const msg = bad(parseMissionForm(form({}), "create"));
   for (const part of ["ปีงบประมาณ", "กลุ่มงาน", "ชื่อภารกิจ"]) assert.match(msg, new RegExp(part));
   assert.match(bad(parseMissionForm(form({ ...all, group_key: "nope", improvement: "ก".repeat(MAX_TEXT + 1) }), "create")), /กลุ่มงาน/);
+});
+
+test("CSA_FIELD: every CSA step has its own mission field, and parseMissionForm reads all five", () => {
+  const fields = Object.fromEntries(CSA_STEPS.map((s) => [CSA_FIELD[s.n], `ขั้น ${s.n}`]));
+  assert.equal(Object.keys(fields).length, 5);
+  assert.deepEqual(ok(parseMissionForm(form(fields), "update")), fields);
 });
 
 test("parseMissionForm (update): only what is in the form is changed", () => {

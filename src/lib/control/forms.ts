@@ -38,6 +38,9 @@ export const CSA_STEPS: readonly { n: 1 | 2 | 3 | 4 | 5; label: string; hint: st
   { n: 5, label: "การวิเคราะห์สาเหตุและแนวทางแก้ไข", hint: "ข้อบกพร่องเกิดจากอะไร และจะปรับปรุงการควบคุมอย่างไร" },
 ];
 
+/** The mission column (and form field) that holds each CSA step; the SQL comments on control_missions say the same. */
+export const CSA_FIELD = { 1: "objective", 2: "procedures", 3: "practice", 4: "assessment", 5: "improvement" } as const;
+
 /** Column headers of the ปค.5 table, in order. */
 export const PK5_COLUMNS: readonly string[] = [
   "ภารกิจตามกฎหมาย/แผนฯ / วัตถุประสงค์",

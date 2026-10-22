@@ -8,10 +8,10 @@ import { ProjectForm, ScoreForm } from "@/components/control/project-form";
 import { ReviewForm, type MissionOption } from "@/components/control/review-form";
 import { LoadError } from "@/components/ui/state-card";
 import { canEditProject, canReview } from "@/lib/control/access";
-import { CSA_STEPS, GROUPS } from "@/lib/control/forms";
+import { CSA_FIELD, CSA_STEPS, GROUPS } from "@/lib/control/forms";
 import { controlHref } from "@/lib/control/params";
 import { fiscalYear } from "@/lib/control/risk";
-import type { ControlMission, ControlProject } from "@/lib/control/types";
+import type { ControlProject } from "@/lib/control/types";
 import { getMission, getProject, listMissions } from "@/lib/data/control";
 import { getSession, guardExecutive } from "@/lib/data/session";
 import { bangkokYmd, formatDayLong } from "@/lib/time";
@@ -23,12 +23,6 @@ export const metadata = {
 
 const section = "space-y-3 border-t border-border pt-6";
 const heading = "text-sm font-medium text-muted-foreground";
-
-/** The mission's field that holds each of the five CSA steps. */
-const CSA_FIELD = { 1: "objective", 2: "procedures", 3: "practice", 4: "assessment", 5: "improvement" } as const satisfies Record<
-  number,
-  keyof ControlMission
->;
 
 /** Why the fields are closed, in words. */
 function lockReason(project: ControlProject, userId: string, measuresOpen: boolean): string {
