@@ -247,6 +247,7 @@ async function OfficerView({ today, params }: { today: string; params: Params })
         dayState({ ymd: today, today, offDays: now.offDays, confirmation: null }) === "off"
       }
       showMyRooms={!mine.failed && mine.rows.length > 0}
+      reportBad={param(params.report) === "bad"}
     />
   );
 }
