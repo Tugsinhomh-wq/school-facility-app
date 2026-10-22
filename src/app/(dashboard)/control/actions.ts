@@ -8,6 +8,7 @@ import {
   cleanText,
   isUuid,
   parseActionForm,
+  parseAssessmentForm,
   parseMissionForm,
   parseOwnerEmail,
   parseProjectForm,
@@ -348,4 +349,32 @@ export async function deleteAction(formData: FormData): Promise<ControlResult> {
   if (bad) return bad;
   revalidate();
   return { ok: true, message: "ลบมาตรการแล้ว" };
+}
+
+// --- ปค.4 assessment (officers only) -------------------------------------------------------------
+
+/**
+ * Save the whole ปค.4 form of one group and year (the first save creates the row). The form always
+ * posts every field, so this replaces `items` as a whole, and it stays on the page.
+ */
+export async function saveAssessment(_prev: ControlResult, formData: FormData): Promise<ControlResult> {
+  const parsed = parseAssessmentForm(formData);
+  if (!parsed.ok) return refuse(parsed.message);
+
+  const ctx = await officerCtx();
+  if (!isCtx(ctx)) return ctx;
+  const { fiscalYear, groupKey, principles, summaries } = parsed.value;
+  const bad = outcome(
+    await ctx.db
+      .from("control_assessments")
+      .upsert(
+        { fiscal_year: fiscalYear, group_key: groupKey, items: { principles, summaries }, updated_by: ctx.userId },
+        { onConflict: "fiscal_year,group_key" },
+      )
+      .select("id"),
+    "บันทึกผลการประเมินไม่สำเร็จ ลองใหม่อีกครั้ง",
+  );
+  if (bad) return bad;
+  revalidate();
+  return { ok: true, message: "บันทึกแล้ว" };
 }

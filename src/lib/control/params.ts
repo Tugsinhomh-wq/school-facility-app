@@ -42,16 +42,27 @@ export function docHref(path: string, fy: number, group: GroupKey, doc?: "pk5" |
   return `${path}?${q}`;
 }
 
+/** ?fy= of a document: a missing one is the current year, a malformed one is refused (see parseExportQuery). */
+function parseYearParam(q: Query, currentFy: number): Parsed<number> {
+  const year = first(q.fy);
+  return year === undefined ? { ok: true, value: currentFy } : parseFiscalYear(year);
+}
+
 /**
  * The year and the one group of a document to export (?fy= and ?group=). Unlike resolveYear, a bad
  * ?fy= is refused rather than replaced: a signed report must never quietly show another year. A
  * missing ?fy= is the current year; ?group= is required, there is no "every group" document.
  */
 export function parseExportQuery(q: Query, currentFy: number): Parsed<{ fy: number; group: GroupKey }> {
-  const year = first(q.fy);
-  const fy = year === undefined ? { ok: true as const, value: currentFy } : parseFiscalYear(year);
+  const fy = parseYearParam(q, currentFy);
   if (!fy.ok) return fy;
   const group = resolveGroup(q.group);
   if (!group) return { ok: false, message: first(q.group)?.trim() ? "ไม่พบกลุ่มงานที่เลือก" : "เลือกกลุ่มงานก่อน" };
   return { ok: true, value: { fy: fy.value, group } };
+}
+
+/** The year of a school-wide document (ปค.1): only ?fy=, refused when malformed, any ?group= is ignored. */
+export function parseYearQuery(q: Query, currentFy: number): Parsed<{ fy: number }> {
+  const fy = parseYearParam(q, currentFy);
+  return fy.ok ? { ok: true, value: { fy: fy.value } } : fy;
 }

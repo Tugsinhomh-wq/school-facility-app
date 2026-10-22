@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { controlHref, docHref, parseExportQuery, resolveGroup, resolveYear } from "./params.ts";
+import { controlHref, docHref, parseExportQuery, parseYearQuery, resolveGroup, resolveYear } from "./params.ts";
 import { GROUPS } from "./forms.ts";
 
 const NOW = 2569;
@@ -61,6 +61,20 @@ test("parseExportQuery: a malformed year is refused instead of quietly printing 
     assert.equal(r.ok, false, `fy=${JSON.stringify(bad)}`);
   }
   const r = parseExportQuery({ fy: "abc", group: "general" }, NOW);
+  assert.ok(!r.ok && r.message.includes("ปีงบประมาณ"));
+});
+
+test("parseYearQuery: only the year matters, it defaults to the current one and a group is ignored", () => {
+  assert.deepEqual(parseYearQuery({}, NOW), { ok: true, value: { fy: NOW } });
+  assert.deepEqual(parseYearQuery({ fy: "2568" }, NOW), { ok: true, value: { fy: 2568 } });
+  assert.deepEqual(parseYearQuery({ fy: ["2570", "2568"], group: "bad" }, NOW), { ok: true, value: { fy: 2570 } });
+});
+
+test("parseYearQuery: a malformed year is refused instead of quietly printing another year", () => {
+  for (const bad of ["abc", "2569.5", "2499", "2701", "", "-2569", "25 69"]) {
+    assert.equal(parseYearQuery({ fy: bad }, NOW).ok, false, `fy=${JSON.stringify(bad)}`);
+  }
+  const r = parseYearQuery({ fy: "abc" }, NOW);
   assert.ok(!r.ok && r.message.includes("ปีงบประมาณ"));
 });
 
