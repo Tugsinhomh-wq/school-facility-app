@@ -29,7 +29,12 @@ export function addDays(ymd: string, n: number) {
 /** 0 = Monday ... 6 = Sunday. */
 export const weekdayIndex = (ymd: string) => (new Date(`${ymd}T00:00:00Z`).getUTCDay() + 6) % 7;
 export const mondayOf = (ymd: string) => addDays(ymd, -weekdayIndex(ymd));
-export const isYmd = (s: unknown): s is string => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(`${s}T00:00:00Z`));
+/** A real calendar day: "2026-02-31" matches the pattern but rolls over to March, so it is refused. */
+export const isYmd = (s: unknown): s is string =>
+  typeof s === "string" &&
+  /^\d{4}-\d{2}-\d{2}$/.test(s) &&
+  !Number.isNaN(Date.parse(`${s}T00:00:00Z`)) &&
+  new Date(`${s}T00:00:00Z`).toISOString().slice(0, 10) === s;
 
 export const formatHm = (minutes: number) =>
   `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;

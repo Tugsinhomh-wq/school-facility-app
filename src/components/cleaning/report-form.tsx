@@ -4,9 +4,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 /** Plain GET form: the browser downloads the .xlsx from /cleaning/report. */
-export function ReportForm({ today }: { today: string }) {
+export function ReportForm({ today, bad }: { today: string; bad?: boolean }) {
   return (
     <section
+      id="report"
       aria-labelledby="report-title"
       className="space-y-3 border-t border-border pt-6"
     >
@@ -20,6 +21,12 @@ export function ReportForm({ today }: { today: string }) {
         หนึ่งแถวต่อห้อง: วันที่ต้องยืนยัน ยืนยันแล้ว ร้อยละ
         และจำนวนวันที่ยังไม่ยืนยัน ห้องที่ต่ำกว่า 80% จะถูกแรเงา
       </p>
+      {bad && (
+        <p role="alert" className="text-sm text-destructive">
+          ช่วงวันที่ไม่ถูกต้อง: ต้องเลือกวันเริ่มไม่หลังวันสิ้นสุด และยาวไม่เกิน
+          400 วัน
+        </p>
+      )}
       <form
         action="/cleaning/report"
         className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
@@ -31,6 +38,7 @@ export function ReportForm({ today }: { today: string }) {
             name="from"
             type="date"
             required
+            max={today}
             defaultValue={`${today.slice(0, 8)}01`}
             className="h-11 text-base"
           />
@@ -42,6 +50,7 @@ export function ReportForm({ today }: { today: string }) {
             name="to"
             type="date"
             required
+            max={today}
             defaultValue={today}
             className="h-11 text-base"
           />

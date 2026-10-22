@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+
 import { reportRows } from "@/lib/cleaning-report";
 import { reportXlsx } from "@/lib/cleaning-sheet";
 import { getReportData } from "@/lib/data/cleaning-officer";
@@ -11,7 +13,8 @@ export async function GET(req: Request) {
   const from = q.get("from");
   const to = q.get("to");
   if (!isYmd(from) || !isYmd(to) || from > to || addDays(from, MAX_DAYS) < to) {
-    return new Response("ช่วงวันที่ไม่ถูกต้อง", { status: 400 });
+    // A plain GET from the form: send the officer back to it with a message, not to a bare error page.
+    redirect("/cleaning?report=bad#report");
   }
   const data = await getReportData(from, to);
   if (!data) return new Response("ไม่มีสิทธิ์", { status: 403 });

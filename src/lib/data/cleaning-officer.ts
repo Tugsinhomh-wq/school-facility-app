@@ -95,7 +95,9 @@ export async function getConfirmationPhotos(
       .from("cleaning-photos")
       .createSignedUrls(paths, 3600);
     if (signed.error) return { failed: true };
-    return { urls: signed.data.flatMap((u) => (u.signedUrl ? [u.signedUrl] : [])) };
+    return {
+      urls: signed.data.flatMap((u) => (u.signedUrl ? [u.signedUrl] : [])),
+    };
   } catch {
     return { failed: true };
   }
@@ -110,7 +112,9 @@ const PAGE = 1000;
 export async function getReportData(
   from: string,
   to: string,
-): Promise<{ rooms: ReportRoom[]; offDays: Set<string> } | { failed: true } | null> {
+): Promise<
+  { rooms: ReportRoom[]; offDays: Set<string> } | { failed: true } | null
+> {
   try {
     const s = await getSession();
     if (!s || !isFacilityOfficer(s.viewer.role)) return null;
@@ -135,13 +139,32 @@ export async function getReportData(
       }
       if (data.length < PAGE) break;
     }
-    const off = await s.supabase.from("school_off_days").select("day").gte("day", from).lte("day", to);
+    const created = await s.supabase
+      .from("classrooms")
+      .select("id, created_at")
+      .in(
+        "id",
+        rows.map((r) => r.id),
+      );
+    if (created.error) return { failed: true };
+    const since = new Map(
+      (created.data as { id: string; created_at: string }[]).map((c) => [
+        c.id,
+        bangkokYmd(new Date(c.created_at)),
+      ]),
+    );
+    const off = await s.supabase
+      .from("school_off_days")
+      .select("day")
+      .gte("day", from)
+      .lte("day", to);
     if (off.error) return { failed: true };
     return {
       rooms: rows.map((r) => ({
         name: r.name,
         zone: r.zone,
         advisors: r.advisors.map((a) => a.name).join(", "),
+        since: since.get(r.id) ?? from,
         confirmed: confirmed.get(r.id) ?? new Set<string>(),
       })),
       offDays: new Set((off.data as { day: string }[]).map((o) => o.day)),

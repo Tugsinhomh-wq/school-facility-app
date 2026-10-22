@@ -69,6 +69,7 @@ export function OfficerOverview({
   weekRows,
   offToday,
   showMyRooms,
+  reportBad,
 }: {
   today: string;
   /** Monday of the week shown in the table. */
@@ -81,6 +82,8 @@ export function OfficerOverview({
   weekRows: WeekRow[];
   offToday: boolean;
   showMyRooms: boolean;
+  /** The report form was sent with a bad range. */
+  reportBad?: boolean;
 }) {
   const thisMonday = mondayOf(today);
   const { building } = filters;
@@ -222,7 +225,7 @@ export function OfficerOverview({
         </p>
       </section>
 
-      <ReportForm today={today} />
+      <ReportForm today={today} bad={reportBad} />
     </div>
   );
 }

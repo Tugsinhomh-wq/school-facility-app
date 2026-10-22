@@ -62,19 +62,19 @@ function Row({
   alert?: boolean;
 }) {
   return (
-    <div className="flex min-h-14 items-center justify-between gap-4 py-2.5">
-      <div className="min-w-0">
-        <dt>{label}</dt>
-        {sub && <dd className="text-sm text-muted-foreground">{sub}</dd>}
-      </div>
+    <div className="grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 py-2.5">
+      <dt>{label}</dt>
       <dd
         className={cn(
-          "shrink-0 text-xl font-medium tabular-nums",
+          "col-start-2 row-span-2 row-start-1 text-xl font-medium tabular-nums",
           alert && "text-destructive",
         )}
       >
         {value}
       </dd>
+      {sub && (
+        <dd className="col-start-1 text-sm text-muted-foreground">{sub}</dd>
+      )}
     </div>
   );
 }
@@ -272,7 +272,10 @@ export function SummaryView({
       </div>
 
       {!data ? (
-        <LoadError what="ข้อมูลสรุป" retryHref="/summary" />
+        <LoadError
+          what="ข้อมูลสรุป"
+          retryHref={href(period.kind, period.key)}
+        />
       ) : (
         <>
           <p className="text-lg">
@@ -316,8 +319,7 @@ export function SummaryView({
 
           <Section title="แนวโน้ม">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div
-                role="tablist"
+              <nav
                 aria-label="ช่วงเวลา"
                 className="inline-flex rounded-lg bg-muted p-1 text-sm"
               >
@@ -325,8 +327,7 @@ export function SummaryView({
                   <Link
                     key={k}
                     href={href(k)}
-                    role="tab"
-                    aria-selected={period.kind === k}
+                    aria-current={period.kind === k ? "page" : undefined}
                     className={cn(
                       "flex min-h-11 items-center rounded-md px-4 font-medium",
                       period.kind === k
@@ -337,7 +338,7 @@ export function SummaryView({
                     {k === "month" ? "รายเดือน" : "รายภาคเรียน"}
                   </Link>
                 ))}
-              </div>
+              </nav>
               <div className="inline-flex items-center gap-1">
                 <Link
                   href={href(period.kind, period.prevKey)}
