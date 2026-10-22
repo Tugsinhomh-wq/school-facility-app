@@ -22,12 +22,12 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-screen md:flex">
       <AppSidebar viewer={viewer} />
-      <div className="min-w-0 flex-1 px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-28 sm:px-6 md:px-10 md:pt-10 md:pb-10">
+      <div className="min-w-0 flex-1 px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-28 sm:px-6 md:px-10 md:pt-10 md:pb-10 print:p-0">
         <LastPageTracker />
         <div className="mx-auto max-w-6xl">
           <Link
             href="/"
-            className="mb-5 flex items-center gap-2.5 rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50 md:hidden"
+            className="mb-5 flex items-center gap-2.5 rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50 md:hidden print:hidden"
           >
             <Image src="/logo.png" alt="" width={640} height={1016} className="h-8 w-auto" priority />
             <span className="font-semibold">สำนักงานออนไลน์</span>
