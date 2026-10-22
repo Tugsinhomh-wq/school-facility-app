@@ -1,6 +1,7 @@
-import { AlertCircle, Check, ChevronRight, Clock, DoorOpen, Sparkles, Wrench, type LucideIcon } from "lucide-react";
+import { AlertCircle, CalendarClock, Check, ChevronRight, Clock, DoorOpen, Sparkles, Wrench, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 
+import type { FollowUpCounts } from "@/lib/control/follow-up";
 import type { TodayCounts } from "@/lib/data/cleaning-officer";
 import type { getMyToday } from "@/lib/data/cleaning-teacher";
 import type { DashboardBase, RepairsData, RoomsData } from "@/lib/data/dashboard";
@@ -45,10 +46,12 @@ export type HomeData = {
   /** Officers only (null for everyone else). */
   counts: TodayCounts;
   mine: Awaited<ReturnType<typeof getMyToday>>;
+  /** Improvement measures near or past their due date; null = signed out, an executive, or the load failed (no row). */
+  followUp: FollowUpCounts | null;
 };
 
 /** Turns the data the home page already loads into rows, by role: officers see what waits for a decision, teachers their own items. */
-export function buildRows({ base, repairs, rooms, counts, mine }: HomeData): ActionRow[] {
+export function buildRows({ base, repairs, rooms, counts, mine, followUp }: HomeData): ActionRow[] {
   const role = base.viewer?.role;
   const rows: ActionRow[] = [];
 
@@ -136,6 +139,18 @@ export function buildRows({ base, repairs, rooms, counts, mine }: HomeData): Act
         todo: missing,
       });
     }
+  }
+
+  // Anyone who can open /control (not an executive, not signed out); RLS already limits whose measures are counted.
+  if (followUp && followUp.alert > 0) {
+    rows.push({
+      key: "control-follow-up",
+      icon: CalendarClock,
+      title: `มาตรการควบคุมภายในที่ใกล้หรือเกินกำหนด ${followUp.alert} รายการ`,
+      detail: `เกินกำหนด ${followUp.overdue} · ใกล้ถึง ${followUp.soon}`,
+      href: "/control/follow-up",
+      todo: followUp.alert,
+    });
   }
 
   // An advisor's own room is their first job; an officer's overview comes after the queues.

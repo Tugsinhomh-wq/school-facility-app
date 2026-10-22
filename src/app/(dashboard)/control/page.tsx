@@ -1,4 +1,4 @@
-import { ClipboardCheck, FileDown, Layers, Plus } from "lucide-react";
+import { CalendarClock, ClipboardCheck, FileDown, Layers, Plus } from "lucide-react";
 import Link from "next/link";
 
 import { GroupNav, YearNav } from "@/components/control/filters";
@@ -57,22 +57,28 @@ export default async function ControlPage({ searchParams }: { searchParams: Prom
       <YearNav path="/control" fy={fy} group={group} currentFy={currentFy} />
       <GroupNav path="/control" fy={fy} group={group} currentFy={currentFy} />
 
-      {officer && (
-        <div className="flex flex-wrap gap-2">
-          <Link href={controlHref("/control/missions", { fy, group }, currentFy)} className={toolLink}>
-            <Layers className="size-4" aria-hidden />
-            ภารกิจและ CSA
-          </Link>
-          <Link href={controlHref("/control/export", { fy, group }, currentFy)} className={toolLink}>
-            <FileDown className="size-4" aria-hidden />
-            ส่งออกเอกสาร
-          </Link>
-          <Link href={controlHref("/control/assess", { fy, group }, currentFy)} className={toolLink}>
-            <ClipboardCheck className="size-4" aria-hidden />
-            ประเมิน ปค.4
-          </Link>
-        </div>
-      )}
+      <div className="flex flex-wrap gap-2">
+        <Link href="/control/follow-up" className={toolLink}>
+          <CalendarClock className="size-4" aria-hidden />
+          ติดตามมาตรการ
+        </Link>
+        {officer && (
+          <>
+            <Link href={controlHref("/control/missions", { fy, group }, currentFy)} className={toolLink}>
+              <Layers className="size-4" aria-hidden />
+              ภารกิจและ CSA
+            </Link>
+            <Link href={controlHref("/control/export", { fy, group }, currentFy)} className={toolLink}>
+              <FileDown className="size-4" aria-hidden />
+              ส่งออกเอกสาร
+            </Link>
+            <Link href={controlHref("/control/assess", { fy, group }, currentFy)} className={toolLink}>
+              <ClipboardCheck className="size-4" aria-hidden />
+              ประเมิน ปค.4
+            </Link>
+          </>
+        )}
+      </div>
 
       {failed ? (
         <LoadError what="รายการโครงการ" retryHref={here} />
