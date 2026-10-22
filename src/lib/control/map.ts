@@ -1,8 +1,8 @@
 // Database rows of the internal-control tables to the camelCase shapes of ./types.ts. Pure, so
 // `npm test` can load it; src/lib/data/control.ts does the querying.
-import type { ActionStatus, GroupKey } from "./forms.ts";
+import { ASSESS_RESULTS, COMPONENT_COUNT, PRINCIPLE_COUNT, type ActionStatus, type GroupKey } from "./forms.ts";
 import { effectiveScore } from "./risk.ts";
-import type { ControlAction, ControlMission, ControlProject } from "./types.ts";
+import type { ControlAction, ControlAssessment, ControlMission, ControlProject, PrincipleEntry } from "./types.ts";
 
 type One<T> = T | T[] | null;
 
@@ -54,6 +54,14 @@ export type RawMission = {
   improvement: string;
 };
 
+export type RawAssessment = {
+  fiscal_year: number;
+  group_key: GroupKey;
+  /** Any JSON: the database only guarantees an object, so every part is checked here. */
+  items: unknown;
+  updated_at: string | null;
+};
+
 const ACTION_COLUMNS = "id, project_id, description, responsible, due, status, created_at";
 
 /**
@@ -66,6 +74,8 @@ export const PROJECT_SELECT =
   `confirmed_at, owner:profiles!owner_id(full_name), actions:control_actions(${ACTION_COLUMNS})`;
 
 export const MISSION_SELECT = "id, fiscal_year, group_key, name, objective, procedures, practice, assessment, improvement";
+
+export const ASSESSMENT_SELECT = "fiscal_year, group_key, items, updated_at";
 
 const first = <T>(v: One<T>): T | null => (Array.isArray(v) ? (v[0] ?? null) : v);
 
@@ -127,3 +137,37 @@ export const toMission = (r: RawMission): ControlMission => ({
   assessment: r.assessment,
   improvement: r.improvement,
 });
+
+/** A plain JSON object, or an empty one for null, an array or a scalar. */
+const objectOf = (v: unknown): Record<string, unknown> =>
+  typeof v === "object" && v !== null && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+
+/** An assessment with nothing answered: keys 1-17 and 1-5 are all present. */
+export function emptyAssessment(fiscalYear: number, groupKey: GroupKey): ControlAssessment {
+  const principles: Record<number, PrincipleEntry> = {};
+  for (let n = 1; n <= PRINCIPLE_COUNT; n++) principles[n] = { result: null, text: "" };
+  const summaries: Record<number, string> = {};
+  for (let n = 1; n <= COMPONENT_COUNT; n++) summaries[n] = "";
+  return { fiscalYear, groupKey, principles, summaries, updatedAt: null };
+}
+
+/** The row's jsonb is untrusted: a part of the wrong shape, an unknown key or a bad result becomes empty and never throws. */
+export function toAssessment(r: RawAssessment): ControlAssessment {
+  const a = emptyAssessment(r.fiscal_year, r.group_key);
+  const items = objectOf(r.items);
+  const principles = objectOf(items.principles);
+  const summaries = objectOf(items.summaries);
+  for (let n = 1; n <= PRINCIPLE_COUNT; n++) {
+    const p = objectOf(principles[n]);
+    a.principles[n] = {
+      result: ASSESS_RESULTS.find((x) => x.key === p.result)?.key ?? null,
+      text: typeof p.text === "string" ? p.text : "",
+    };
+  }
+  for (let n = 1; n <= COMPONENT_COUNT; n++) {
+    const s = summaries[n];
+    a.summaries[n] = typeof s === "string" ? s : "";
+  }
+  a.updatedAt = typeof r.updated_at === "string" ? r.updated_at : null;
+  return a;
+}

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { CSA_TITLE, CSA_TITLE_LINES, PK5_TITLE, SCHOOL_NAME, SIGNATURE_LINES, csaBlocks, csaHeading, pk5Heading, pk5Rows } from "./pk5.ts";
+import { CSA_TITLE, CSA_TITLE_LINES, PK5_TITLE, SCHOOL_NAME, SIGNATURE_LINES, csaBlocks, csaHeading, pk5Heading, pk5Projects, pk5Rows } from "./pk5.ts";
 import { toProject, type RawAction, type RawProject } from "./map.ts";
 import { CSA_STEPS } from "./forms.ts";
 import type { ControlMission } from "./types.ts";
@@ -176,4 +176,18 @@ test("csaHeading: school, the CSA title on two lines, the group and the year", (
   ]);
   assert.deepEqual(CSA_TITLE_LINES, ["แบบประเมินการควบคุมด้วยตนเอง", "(Control Self Assessment: CSA)"]);
   assert.equal(CSA_TITLE, "แบบประเมินการควบคุมด้วยตนเอง (Control Self Assessment: CSA)");
+});
+
+test("pk5Projects: the projects ปค.5 lists, in its order; pk5Rows is exactly these projects", () => {
+  const projects = [
+    project({ id: "unconfirmed", confirmed_at: null }),
+    project({ id: "eight", likelihood: 2, impact: 4 }),
+    project({ id: "a", name: "ข", likelihood: 3, impact: 3 }),
+    project({ id: "b", name: "ก", likelihood: 4, impact: 4 }),
+    project({ id: "d", name: "ก", likelihood: 3, impact: 3 }),
+  ];
+  const listed = pk5Projects(projects);
+  assert.deepEqual(listed.map((p) => [p.id, p.score]), [["b", 16], ["d", 9], ["a", 9]]);
+  assert.deepEqual(pk5Rows(projects).map((r) => r.projectId), listed.map((p) => p.id));
+  assert.deepEqual(pk5Projects([]), []);
 });

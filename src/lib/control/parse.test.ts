@@ -8,6 +8,7 @@ import {
   cleanText,
   isUuid,
   parseActionForm,
+  parseAssessmentForm,
   parseBudget,
   parseDue,
   parseFiscalYear,
@@ -318,4 +319,82 @@ test("parseActionForm (update): empty due clears it, missing fields stay", () =>
   assert.deepEqual(ok(parseActionForm(form({ due: "" }), "update")), { due: null });
   assert.deepEqual(ok(parseActionForm(form({ status: "done" }), "update")), { status: "done" });
   assert.match(bad(parseActionForm(form({ description: " " }), "update")), /มาตรการ/);
+});
+
+// The whole ปค.4 form: year, group, 17 results and comments, 5 summaries.
+const assessForm = (o: Record<string, string> = {}) => form({ fiscal_year: "2569", group_key: "general", ...o });
+
+test("parseAssessmentForm: an empty form for a year and group gives all 17 principles and 5 summaries, unanswered", () => {
+  const v = ok(parseAssessmentForm(assessForm()));
+  assert.equal(v.fiscalYear, 2569);
+  assert.equal(v.groupKey, "general");
+  assert.deepEqual(Object.keys(v.principles), Array.from({ length: 17 }, (_, i) => String(i + 1)));
+  assert.deepEqual(Object.keys(v.summaries), ["1", "2", "3", "4", "5"]);
+  assert.deepEqual(v.principles["1"], { result: null, text: "" });
+  assert.equal(v.summaries["5"], "");
+});
+
+test("parseAssessmentForm: results and comments are read per principle, text is trimmed and CRLF becomes LF", () => {
+  const v = ok(
+    parseAssessmentForm(
+      assessForm({
+        principle_1_result: "full",
+        principle_1_text: "  มีคำสั่ง\r\nและประกาศ  ",
+        principle_2_result: "partial",
+        principle_17_result: " none ",
+        principle_17_text: "ไม่มีหลักฐาน",
+        principle_5_text: "ไม่เลือกผล",
+        summary_1: "  ทำต่อ  ",
+        summary_5: "ติดตาม\0ผล",
+      }),
+    ),
+  );
+  assert.deepEqual(v.principles["1"], { result: "full", text: "มีคำสั่ง\nและประกาศ" });
+  assert.deepEqual(v.principles["2"], { result: "partial", text: "" });
+  assert.deepEqual(v.principles["17"], { result: "none", text: "ไม่มีหลักฐาน" });
+  assert.deepEqual(v.principles["5"], { result: null, text: "ไม่เลือกผล" });
+  assert.equal(v.summaries["1"], "ทำต่อ");
+  assert.equal(v.summaries["5"], "ติดตามผล");
+});
+
+test("parseAssessmentForm: year and group are checked like the project form's", () => {
+  assert.match(bad(parseAssessmentForm(form({ group_key: "general" }))), /ปีงบประมาณ/);
+  assert.match(bad(parseAssessmentForm(form({ fiscal_year: "2569", group_key: "nope" }))), /กลุ่มงาน/);
+  assert.match(bad(parseAssessmentForm(form({ fiscal_year: "99999" }))), /ปีงบประมาณ.*กลุ่มงาน/);
+});
+
+test("parseAssessmentForm: a result other than full, partial, none or empty is refused with the principle's number", () => {
+  assert.match(bad(parseAssessmentForm(assessForm({ principle_3_result: "FULL" }))), /ข้อ 3/);
+  assert.match(bad(parseAssessmentForm(assessForm({ principle_17_result: "yes" }))), /ข้อ 17/);
+});
+
+test("parseAssessmentForm: a comment or summary over MAX_TEXT is refused, one of exactly MAX_TEXT is kept", () => {
+  assert.match(bad(parseAssessmentForm(assessForm({ principle_4_text: "ก".repeat(MAX_TEXT + 1) }))), /ความเห็นข้อ 4.*2000/);
+  assert.match(bad(parseAssessmentForm(assessForm({ summary_2: "ก".repeat(MAX_TEXT + 1) }))), /สรุปองค์ประกอบที่ 2.*2000/);
+  const v = ok(parseAssessmentForm(assessForm({ principle_4_text: "ก".repeat(MAX_TEXT), summary_2: "ข".repeat(MAX_TEXT) })));
+  assert.equal(v.principles["4"].text.length, MAX_TEXT);
+  assert.equal(v.summaries["2"].length, MAX_TEXT);
+});
+
+test("parseAssessmentForm: reports every bad field at once", () => {
+  const msg = bad(parseAssessmentForm(assessForm({ principle_1_result: "x", principle_2_result: "y", summary_1: "ก".repeat(MAX_TEXT + 1) })));
+  assert.match(msg, /ข้อ 1.*ข้อ 2.*สรุปองค์ประกอบที่ 1/);
+});
+
+test("parseAssessmentForm: fields outside 1-17 and 1-5 are ignored, and so is a File in a text field", () => {
+  const v = ok(
+    parseAssessmentForm(
+      assessForm({ principle_0_result: "full", principle_18_result: "bogus", principle_18_text: "นอกช่วง", summary_0: "นอก", summary_6: "นอก", other: "x" }),
+    ),
+  );
+  assert.deepEqual(Object.keys(v.principles).length, 17);
+  assert.deepEqual(Object.keys(v.summaries).length, 5);
+  assert.deepEqual(Object.keys(v).sort(), ["fiscalYear", "groupKey", "principles", "summaries"]);
+  const fd = new FormData();
+  fd.set("fiscal_year", "2569");
+  fd.set("group_key", "general");
+  fd.set("principle_1_text", new File(["x"], "x.txt"));
+  fd.set("principle_1_result", "full");
+  const r = ok(parseAssessmentForm(fd));
+  assert.deepEqual(r.principles["1"], { result: "full", text: "" });
 });
