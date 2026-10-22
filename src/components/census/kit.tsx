@@ -1,4 +1,5 @@
 import { AlertTriangle, CheckCircle2, Lock } from "lucide-react";
+import type { Ref } from "react";
 
 import type { CensusResult } from "@/app/(dashboard)/census/actions";
 import { cn } from "@/lib/utils";
@@ -18,13 +19,14 @@ export function PrivacyNotice() {
 /**
  * The action's answer, announced to screen readers: icon and words, never colour alone. An import
  * shows its counts; import errors are quiet rows by spreadsheet row, past the first ones "และอีก M รายการ".
+ * Pass a `ref` to move focus here after an action (the button that was pressed may be gone).
  */
-export function Result({ state }: { state: CensusResult }) {
+export function Result({ state, ref }: { state: CensusResult; ref?: Ref<HTMLDivElement> }) {
   if (!state) return null;
   const Icon = state.ok ? CheckCircle2 : AlertTriangle;
   const { counts, errors, more } = state;
   return (
-    <div role={state.ok ? "status" : "alert"} className={cn("space-y-2 text-sm", state.ok ? "text-emerald-800" : "text-destructive")}>
+    <div ref={ref} tabIndex={-1} role={state.ok ? "status" : "alert"} className={cn("space-y-2 text-sm outline-none", state.ok ? "text-emerald-800" : "text-destructive")}>
       <p className="flex items-start gap-2">
         <Icon className="mt-0.5 size-4 shrink-0" aria-hidden />
         <span className="min-w-0 break-words">{counts ? "นำเข้ารายชื่อแล้ว" : state.message}</span>

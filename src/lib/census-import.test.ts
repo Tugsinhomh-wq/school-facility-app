@@ -24,11 +24,31 @@ test("a valid file parses with spreadsheet row numbers", () => {
   ]);
 });
 
-test("the template rows parse cleanly", () => {
+test("the template reads back with its zeros, and its example rows are refused", () => {
   assert.deepEqual(censusTemplateRows()[0], CENSUS_HEADERS);
   const r = parseCensusRows(censusTemplateRows());
+  assert.equal(r.ok.length, 0);
+  assert.deepEqual(r.errors.map((e) => e.row), [2, 3]);
+  assert.match(r.errors[0].message, /แถวตัวอย่าง/);
+  assert.doesNotMatch(r.errors[0].message, /หลัก/); // the code itself was read fine: 00001 kept its zeros
+});
+
+test("a real row with an example's code but another name is fine", () => {
+  const r = parseCensusRows([header, ["ม.1/1", "00001", "นักเรียนทดสอบ ก"]]);
   assert.deepEqual(r.errors, []);
-  assert.equal(r.ok.length, 2);
+  assert.equal(r.ok.length, 1);
+});
+
+test("NUL and other control characters are stripped from cells; a code that stays bad is a normal bad-code error", () => {
+  const r = parseCensusRows([
+    header,
+    ["ม.1/1", "00001", "a\u0000b"],
+    ["ม.1/1", "12\u000034", "นักเรียนทดสอบ ก"],
+    ["ม.1/1", "00003", "c\u0007 d\te"],
+  ]);
+  assert.deepEqual(r.ok.map((s) => s.name), ["ab", "c d e"]);
+  assert.deepEqual(r.errors.map((e) => e.row), [3]);
+  assert.match(r.errors[0].message, /4 หลัก/);
 });
 
 test("Thai digits in room and code become ASCII", () => {

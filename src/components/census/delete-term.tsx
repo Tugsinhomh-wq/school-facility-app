@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import { startTransition, useActionState, useState, type FormEvent } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState, type FormEvent } from "react";
 
 import { deleteTermRoster, type CensusResult } from "@/app/(dashboard)/census/actions";
 import { Result } from "@/components/census/kit";
@@ -22,6 +22,8 @@ export function DeleteTermRoster({ term }: { term: string }) {
     if (r?.ok) setTyped("");
     return r;
   }, null);
+  const resultRef = useRef<HTMLDivElement>(null);
+  useEffect(() => resultRef.current?.focus(), [state]);
   // By hand, so a refused delete keeps what was typed (a plain form action would clear it).
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -38,8 +40,8 @@ export function DeleteTermRoster({ term }: { term: string }) {
       <form onSubmit={onSubmit} className="space-y-3 border-t border-border px-4 py-4">
         <input type="hidden" name="term" value={term} />
         <p className="text-sm">
-          ลบรายชื่อนักเรียนของทุกห้องในภาคเรียน {term} ลบแล้วเอากลับคืนในระบบไม่ได้
-          ไฟล์สำรองข้อมูลยังเก็บสำเนาที่เข้ารหัสไว้อีกไม่เกิน 60 วัน
+          ลบรายชื่อนักเรียนของทุกห้องในภาคเรียน {term} รวมนักเรียนของห้องที่ปิดใช้งานในภาคนี้ด้วย (ห้องเหล่านั้นไม่อยู่ในจำนวนห้องที่แสดง)
+          ลบแล้วเอากลับคืนในระบบไม่ได้ ไฟล์สำรองข้อมูลยังเก็บสำเนาที่เข้ารหัสไว้อีกไม่เกิน 60 วัน
         </p>
         <Field id="delete-term-confirm" label={`พิมพ์ ${term} เพื่อยืนยัน`}>
           <Input
@@ -53,7 +55,7 @@ export function DeleteTermRoster({ term }: { term: string }) {
             className={fieldClass}
           />
         </Field>
-        <Result state={state} />
+        <Result state={state} ref={resultRef} />
         <Button type="submit" variant="destructive" disabled={pending || !termConfirmed(typed, term)} className="h-11 w-full sm:w-auto">
           {pending ? "กำลังลบ..." : `ลบรายชื่อทั้งภาค ${term}`}
         </Button>

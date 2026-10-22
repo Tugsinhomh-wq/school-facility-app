@@ -1,8 +1,8 @@
 -- Student census module (สำมะโนผู้เรียน), part 01: the class roster, one row per student per term.
 -- Run AFTER control_02.sql (and so after the files it lists; it needs facility_02_cleaning.sql for the classes).
 -- This module stores ONLY the student ID (exactly 5 digits) and the full name, per term. Nothing else.
--- It deliberately reverses the "No student names or accounts" note on public.classrooms in
--- facility_02_cleaning.sql: that note no longer holds, and the privacy page says so. Students still have no accounts.
+-- It deliberately adds the student names that public.classrooms in facility_02_cleaning.sql once said it would not hold
+-- (that comment now points here), and the privacy page says so. Students still have no accounts.
 -- Everything here only adds; nothing existing is dropped or narrowed. Safe to run again
 -- (IF NOT EXISTS / CREATE OR REPLACE / DROP POLICY IF EXISTS / DROP TRIGGER IF EXISTS).
 -- The whole file runs as one transaction in the SQL editor: if any statement fails, none applies.
@@ -120,6 +120,9 @@ CREATE POLICY "census students: officers delete" ON public.census_students FOR D
 -- "นักเรียนทดสอบ ก" รหัส 9xxxx จึงไม่ชนกับข้อมูลจริง แล้วสลับเป็นผู้ใช้จริงด้วย set local role authenticated
 -- + request.jwt.claims เหมือน control_02 (ถ้าข้ามบรรทัด set local role ไป ชุดจะรันเป็นผู้ดูแลฐานข้อมูล
 -- ซึ่งไม่ถูกจำกัดสิทธิ์ ผลจะผิด) ชุด 6-7 ตรวจกฎของตาราง จึงรันเป็นผู้ดูแลฐานข้อมูลโดยตั้งใจ
+-- ชุด 3-5 เก็บ id ห้องไว้ด้วย set_config ก่อนสลับบทบาท แล้ว insert ด้วย id นั้นตรงๆ (ไม่ใช้ insert … select จากตาราง classrooms
+-- เพราะผู้ใช้ที่ถูกจำกัดสิทธิ์อาจเลือกได้ 0 แถว ทำให้ไม่มีอะไรถูก insert และไม่มี error ผลจะดูเหมือน "ไม่ถูกปฏิเสธ" ทั้งที่ไม่ได้ทดสอบจริง)
+-- ส่วน update / delete ที่ถูกปฏิเสธ จะเห็นเป็น rows=0 ไม่ใช่ error
 --
 -- ========== ชุด 1: ตารางเปิด RLS และมี policy / trigger ครบ (policy 4 ตัว: อ่าน เพิ่ม แก้ ลบ, trigger 1 ตัว: guard) ==========
 -- ผลที่ควรได้: 1 แถว — census_students true 4 1 (คอลัมน์ rowsecurity, policies, triggers)
@@ -157,6 +160,7 @@ CREATE POLICY "census students: officers delete" ON public.census_students FOR D
 -- insert into public.census_students (classroom_id, student_code, full_name)
 --   select c.id, case c.name when 'ทดสอบ ก' then '90001' else '90002' end, 'นักเรียนทดสอบ ' || right(c.name, 1)
 --   from public.classrooms c where c.term = '9999/9';
+-- select set_config('test.room', (select id::text from public.classrooms where term = '9999/9' and name = 'ทดสอบ ก'), true);
 -- select set_config('test.advisor', (select id::text from public.profiles where email = 'ครูที่ปรึกษาทดสอบ@lrp.ac.th'), true);
 -- select set_config('request.jwt.claims', json_build_object('sub', current_setting('test.advisor'), 'role', 'authenticated')::text, true);
 -- set local role authenticated;
@@ -166,8 +170,8 @@ CREATE POLICY "census students: officers delete" ON public.census_students FOR D
 --   select count(*) into other from public.census_students where student_code = '90002';
 --   begin
 --     insert into public.census_students (classroom_id, student_code, full_name)
---       select id, '90003', 'นักเรียนทดสอบ ค' from public.classrooms where term = '9999/9' and name = 'ทดสอบ ก';
---   exception when others then r_ins := 'ถูกปฏิเสธ'; end;
+--       values (current_setting('test.room')::uuid, '90003', 'นักเรียนทดสอบ ค');
+--   exception when sqlstate '42501' or sqlstate 'P0001' then r_ins := 'ถูกปฏิเสธ'; end;
 --   update public.census_students set full_name = 'แก้โดยครูที่ปรึกษา' where term = '9999/9';
 --   get diagnostics upd = row_count;
 --   delete from public.census_students where term = '9999/9';
@@ -179,6 +183,7 @@ CREATE POLICY "census students: officers delete" ON public.census_students FOR D
 -- insert into public.classrooms (term, name, zone) values ('9999/9', 'ทดสอบ ก', 'เขตทดสอบ');
 -- insert into public.census_students (classroom_id, student_code, full_name)
 --   select id, '90001', 'นักเรียนทดสอบ ก' from public.classrooms where term = '9999/9' and name = 'ทดสอบ ก';
+-- select set_config('test.room', (select id::text from public.classrooms where term = '9999/9' and name = 'ทดสอบ ก'), true);
 -- select set_config('test.user', (select id::text from public.profiles where email = 'ครูทดสอบ@lrp.ac.th'), true);
 -- select set_config('request.jwt.claims', json_build_object('sub', current_setting('test.user'), 'role', 'authenticated')::text, true);
 -- set local role authenticated;
@@ -186,8 +191,8 @@ CREATE POLICY "census students: officers delete" ON public.census_students FOR D
 --   select count(*) into seen from public.census_students where term = '9999/9';
 --   begin
 --     insert into public.census_students (classroom_id, student_code, full_name)
---       select id, '90003', 'นักเรียนทดสอบ ค' from public.classrooms where term = '9999/9' and name = 'ทดสอบ ก';
---   exception when others then r_ins := 'ถูกปฏิเสธ'; end;
+--       values (current_setting('test.room')::uuid, '90003', 'นักเรียนทดสอบ ค');
+--   exception when sqlstate '42501' or sqlstate 'P0001' then r_ins := 'ถูกปฏิเสธ'; end;
 --   update public.census_students set full_name = 'แก้โดยครู' where term = '9999/9';
 --   get diagnostics upd = row_count;
 --   delete from public.census_students where term = '9999/9';
@@ -199,6 +204,7 @@ CREATE POLICY "census students: officers delete" ON public.census_students FOR D
 -- insert into public.classrooms (term, name, zone) values ('9999/9', 'ทดสอบ ก', 'เขตทดสอบ');
 -- insert into public.census_students (classroom_id, student_code, full_name)
 --   select id, '90001', 'นักเรียนทดสอบ ก' from public.classrooms where term = '9999/9' and name = 'ทดสอบ ก';
+-- select set_config('test.room', (select id::text from public.classrooms where term = '9999/9' and name = 'ทดสอบ ก'), true);
 -- select set_config('test.executive', (select id::text from public.profiles where email = 'ผู้บริหารทดสอบ@lrp.ac.th'), true);
 -- select set_config('request.jwt.claims', json_build_object('sub', current_setting('test.executive'), 'role', 'authenticated')::text, true);
 -- set local role authenticated;
@@ -206,8 +212,8 @@ CREATE POLICY "census students: officers delete" ON public.census_students FOR D
 --   select count(*) into seen from public.census_students where term = '9999/9';
 --   begin
 --     insert into public.census_students (classroom_id, student_code, full_name)
---       select id, '90003', 'นักเรียนทดสอบ ค' from public.classrooms where term = '9999/9' and name = 'ทดสอบ ก';
---   exception when others then r_ins := 'ถูกปฏิเสธ'; end;
+--       values (current_setting('test.room')::uuid, '90003', 'นักเรียนทดสอบ ค');
+--   exception when sqlstate '42501' or sqlstate 'P0001' then r_ins := 'ถูกปฏิเสธ'; end;
 --   update public.census_students set full_name = 'แก้โดยผู้บริหาร' where term = '9999/9';
 --   get diagnostics upd = row_count;
 --   delete from public.census_students where term = '9999/9';

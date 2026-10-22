@@ -28,6 +28,15 @@ export function censusTemplateRows(): string[][] {
   return [CENSUS_HEADERS, ...CENSUS_EXAMPLES];
 }
 
+/** A code as typed: Thai digits become ASCII, and a number cell can come back as "12345.0", which is still 12345. */
+const normCode = (raw: string) => thaiDigitsToAscii(raw).replace(/^(\d+)\.0+$/, "$1");
+
+/** clean(), after dropping NUL and other control characters (tab and line breaks stay, and clean() folds them to a space). */
+const cell = (v: unknown) => clean(String(v ?? "").replace(/(?![\t\n\v\f\r])\p{Cc}/gu, ""));
+
+/** The template's example rows as parse sees them, so they can be refused. */
+const EXAMPLE_KEYS = new Set(CENSUS_EXAMPLES.map(([, code, name]) => `${normCode(cell(code))}|${cell(name)}`));
+
 export const MAX_ROWS = 3000;
 const MAX_NAME = 200;
 const CODE_LEN = 5;
@@ -36,7 +45,7 @@ export function parseCensusRows(rows: string[][]): { ok: ParsedStudent[]; errors
   const ok: ParsedStudent[] = [];
   const errors: ImportError[] = [];
 
-  const headerCells = (rows[0] ?? []).map(clean);
+  const headerCells = (rows[0] ?? []).map(cell);
   const col = {
     room: headerCells.indexOf(COL_ROOM),
     code: headerCells.indexOf(COL_CODE),
@@ -64,15 +73,14 @@ export function parseCensusRows(rows: string[][]): { ok: ParsedStudent[]; errors
   for (let i = 1; i < rows.length; i++) {
     const row = i + 1; // 1-based spreadsheet row
     const cells = rows[i] ?? [];
-    const rawRoom = clean(cells[col.room]);
-    const rawCode = clean(cells[col.code]);
-    const name = clean(cells[col.name]);
+    const rawRoom = cell(cells[col.room]);
+    const rawCode = cell(cells[col.code]);
+    const name = cell(cells[col.name]);
 
     if (!rawRoom && !rawCode && !name) continue; // empty row
 
     const room = thaiDigitsToAscii(rawRoom);
-    // A number cell can come back as "12345.0"; that is still 12345.
-    const code = thaiDigitsToAscii(rawCode).replace(/^(\d+)\.0+$/, "$1");
+    const code = normCode(rawCode);
     const problems: string[] = [];
 
     if (!room) problems.push("ไม่ได้ระบุห้อง");
@@ -92,6 +100,8 @@ export function parseCensusRows(rows: string[][]): { ok: ParsedStudent[]; errors
       if (first !== undefined) problems.push(`เลขประจำตัว "${code}" ซ้ำกับแถวที่ ${first}`);
       else seen.set(code, row);
     }
+
+    if (EXAMPLE_KEYS.has(`${code}|${name}`)) problems.push("แถวนี้เป็นแถวตัวอย่างจากแม่แบบ ลบออกก่อนนำเข้า");
 
     if (!name) problems.push("ไม่ได้ระบุชื่อ-สกุล");
     else if (name.length > MAX_NAME) problems.push(`ชื่อ-สกุลยาวเกิน ${MAX_NAME} ตัวอักษร`);

@@ -25,7 +25,6 @@ type Db = NonNullable<Awaited<ReturnType<typeof getSession>>>["supabase"];
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_FILE = 1024 * 1024;
-const CHUNK = 500;
 const PAGE = 1000;
 const DEMO = { ok: true, message: "โหมดสาธิต: ยังไม่ได้ตั้งค่า Supabase จึงไม่ได้บันทึกข้อมูลจริง" };
 
@@ -99,22 +98,12 @@ export async function importRoster(_prev: CensusResult, formData: FormData): Pro
   const total = mapped.rows.length;
   const updated = mapped.rows.filter((r) => existing.has(r.student_code)).length;
 
-  for (let at = 0; at < total; at += CHUNK) {
-    const { error } = await db
-      .from("census_students")
-      .upsert(mapped.rows.slice(at, at + CHUNK), { onConflict: "term,student_code" });
-    if (error) {
-      // Codes and counts only: never the rows, which hold names.
-      console.error("census import failed", { code: error.code, from: at, total });
-      revalidate();
-      return {
-        ok: false,
-        message:
-          at === 0
-            ? "บันทึกไม่สำเร็จ ยังไม่ได้บันทึกข้อมูลใด ลองใหม่อีกครั้ง"
-            : `บันทึกได้เพียงบางส่วน (${at} จาก ${total} รายการ) กรุณานำเข้าไฟล์เดิมอีกครั้ง ระบบจะอัปเดตต่อให้ครบ`,
-      };
-    }
+  // One call for all rows (at most 3000, a few hundred KB): a single upsert is atomic, so a failure saved nothing.
+  const { error } = await db.from("census_students").upsert(mapped.rows, { onConflict: "term,student_code" });
+  if (error) {
+    // Codes and counts only: never the rows, which hold names.
+    console.error("census import failed", { code: error.code, total });
+    return { ok: false, message: "บันทึกไม่สำเร็จ ยังไม่ได้บันทึกข้อมูลใด ลองใหม่อีกครั้ง" };
   }
   revalidate();
   const counts = { added: total - updated, updated, total };

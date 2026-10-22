@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { deleteStudent, type CensusResult } from "@/app/(dashboard)/census/actions";
 import { Result } from "@/components/census/kit";
@@ -18,6 +18,9 @@ export function RosterList({ students, officer, term }: { students: CensusStuden
   const [armed, setArmed] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<CensusResult>(null);
+  const resultRef = useRef<HTMLDivElement>(null);
+  // The deleted row's button is gone, so focus goes to the answer.
+  useEffect(() => resultRef.current?.focus(), [result]);
 
   async function remove(id: string) {
     setBusy(true);
@@ -32,7 +35,7 @@ export function RosterList({ students, officer, term }: { students: CensusStuden
 
   return (
     <div className="space-y-3">
-      <Result state={result} />
+      <Result state={result} ref={resultRef} />
       {students.length === 0 ? (
         <EmptyState
           title="ยังไม่มีรายชื่อนักเรียนในห้องนี้"
