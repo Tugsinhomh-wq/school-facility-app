@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { advisorDiff, groupRoomsByLevel, levelOf, parseUuidList } from "./advisors.ts";
+import { advisorDiff, groupRoomsByLevel, levelOf, parseUuidList, planAdvisorSave, sameIdSet } from "./advisors.ts";
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 
@@ -41,4 +41,42 @@ test("diff ignores unknown ids, dedupes, and never touches other terms", () => {
 
 test("diff with nothing changed is empty", () => {
   assert.deepEqual(advisorDiff([id(1)], [id(1)], [id(1)]), { add: [], remove: [] });
+});
+
+test("uuid list: exactly 200 ids pass, a File value is rejected", () => {
+  assert.equal(parseUuidList(Array.from({ length: 200 }, (_, i) => id(i)))?.length, 200);
+  assert.equal(parseUuidList([new File([""], "a.txt")]), null);
+});
+
+test("level of a two-digit class number is not a level", () => {
+  assert.equal(levelOf("ม.10/1"), "อื่น ๆ");
+});
+
+test("sameIdSet ignores order, case and duplicates", () => {
+  assert.equal(sameIdSet([id(1), id(2)], [id(2).toUpperCase(), id(1), id(1)]), true);
+  assert.equal(sameIdSet([id(1)], [id(1), id(2)]), false);
+  assert.equal(sameIdSet([], []), true);
+});
+
+test("plan: diffs over the shown rooms when they match the current set", () => {
+  const all = [id(1), id(2), id(3)];
+  assert.deepEqual(planAdvisorSave(all, [id(1)], [id(2), id(9)], all), { add: [id(1)], remove: [id(2)] });
+  assert.deepEqual(planAdvisorSave(all.map((x) => x.toUpperCase()), [id(3).toUpperCase()], [], all), { add: [id(3)], remove: [] });
+});
+
+test("plan: refuses when a room appeared or vanished since the page loaded", () => {
+  const shown = [id(1), id(2)];
+  assert.deepEqual(planAdvisorSave(shown, [id(1)], [], [...shown, id(3)]), { error: "stale" });
+  assert.deepEqual(planAdvisorSave(shown, [id(1)], [], [id(1)]), { error: "stale" });
+});
+
+test("plan: empty shown is refused, even with nothing ticked", () => {
+  assert.deepEqual(planAdvisorSave([], [], [id(1)], [id(1)]), { error: "stale" });
+  assert.deepEqual(planAdvisorSave([], [], [], []), { error: "stale" });
+});
+
+test("plan: ticked ids that were not shown are refused; duplicates are fine", () => {
+  const shown = [id(1), id(2)];
+  assert.deepEqual(planAdvisorSave(shown, [id(8)], [], shown), { error: "unshown" });
+  assert.deepEqual(planAdvisorSave([...shown, id(1)], [id(1), id(1)], [], shown), { add: [id(1)], remove: [] });
 });

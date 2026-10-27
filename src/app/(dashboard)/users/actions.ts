@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { parseUuidList } from "@/lib/advisors";
+import { parseUuidList, planAdvisorSave } from "@/lib/advisors";
 import { latestTermRooms, setUserRooms } from "@/lib/data/advisors";
 import { getSession } from "@/lib/data/session";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -57,7 +57,9 @@ export async function updateUser(
 
 /**
  * Homeroom-advisor rooms of one user for the latest term: ticked rooms are added, unticked ones
- * removed. Older terms are not touched. Any account may be an advisor; roles are not changed.
+ * removed, judged only over the rooms the form showed (`shown`). If the latest term's active rooms
+ * are no longer exactly those, nothing is written. Executives and closed accounts can only lose
+ * rooms (cleanup), never gain them. Older terms are not touched; roles are not changed.
  */
 export async function saveAdvisorRooms(
   _prev: UserResult,
@@ -65,27 +67,45 @@ export async function saveAdvisorRooms(
 ): Promise<UserResult> {
   const user = parseUuidList([String(formData.get("id") ?? "")]);
   const rooms = parseUuidList(formData.getAll("room"));
-  if (user?.length !== 1 || !rooms)
+  const shown = parseUuidList(formData.getAll("shown"));
+  if (user?.length !== 1 || !rooms || !shown)
     return { ok: false, message: "ข้อมูลไม่ถูกต้อง" };
 
   const session = await adminSession();
   if (!session) return { ok: false, message: "เฉพาะผู้ดูแลระบบ" };
+  // Profiles are readable here by the policy "profiles: super_admin read all" (supabase/schema.sql).
+  const { data: target, error: targetError } = await session.supabase
+    .from("profiles")
+    .select("id, role, is_active")
+    .eq("id", user[0])
+    .maybeSingle();
+  if (targetError) return { ok: false, message: "บันทึกไม่สำเร็จ" };
+  if (!target) return { ok: false, message: "ไม่พบบัญชีนี้" };
   const latest = await latestTermRooms(session.supabase);
   if (!latest) return { ok: false, message: "บันทึกไม่สำเร็จ" };
-  const known = new Set(latest.rooms.map((r) => r.id));
-  if (
-    latest.term !== String(formData.get("term") ?? "") ||
-    rooms.some((r) => !known.has(r))
-  )
+
+  const latestIds = latest.rooms.map((r) => r.id);
+  const plan = planAdvisorSave(shown, rooms, [], latestIds);
+  if ("error" in plan)
     return {
       ok: false,
-      message: "รายการห้องเปลี่ยนไปแล้ว กรุณาโหลดหน้าใหม่",
+      message:
+        plan.error === "stale"
+          ? "รายการห้องมีการเปลี่ยนแปลง โหลดหน้าใหม่แล้วลองอีกครั้ง"
+          : "ข้อมูลไม่ถูกต้อง",
     };
+  if (rooms.length > 0 && target.role === "executive")
+    return { ok: false, message: "ผู้บริหารเป็นครูที่ปรึกษาไม่ได้ (ถอดห้องออกได้อย่างเดียว)" };
+  if (rooms.length > 0 && !target.is_active)
+    return { ok: false, message: "บัญชีนี้ปิดใช้งานอยู่ เพิ่มห้องไม่ได้ (ถอดห้องออกได้อย่างเดียว)" };
 
-  const done = await setUserRooms(session.supabase, user[0], [...known], rooms);
+  const done = await setUserRooms(session.supabase, user[0], shown, rooms);
   if ("code" in done) {
     console.error("advisor rooms failed", { code: done.code });
-    return { ok: false, message: "บันทึกไม่สำเร็จ" };
+    return {
+      ok: false,
+      message: "บันทึกไม่สำเร็จ อาจบันทึกไปบางส่วน กรุณากดบันทึกอีกครั้ง",
+    };
   }
   revalidatePath("/users");
   revalidatePath("/cleaning/manage");

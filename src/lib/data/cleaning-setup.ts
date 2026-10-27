@@ -19,7 +19,7 @@ export type CleaningSetup = {
   terms: string[];
   /** The newest term with active classrooms: the only one whose advisors this page edits. */
   liveTerm: string | null;
-  /** Active accounts, for picking an advisor. */
+  /** Active non-executive accounts, for picking an advisor. */
   people: { name: string; email: string }[];
   /** Every classroom of every term (active or not), sorted by room name. */
   rooms: SetupRoom[];
@@ -51,7 +51,7 @@ export async function getCleaningSetup(): Promise<CleaningSetup | { failed: true
         .select("day, reason")
         .gte("day", addDays(bangkokYmd(new Date()), -14))
         .order("day"),
-      s.supabase.from("profiles").select("full_name, email").eq("is_active", true).order("full_name").limit(500),
+      s.supabase.from("profiles").select("full_name, email").eq("is_active", true).neq("role", "executive").order("full_name").limit(500),
     ]);
     if (rooms.error || buildings.error || offDays.error || people.error) return { failed: true };
     const list = (

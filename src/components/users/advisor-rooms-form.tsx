@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 
 export type AdvisorRoom = { id: string; name: string };
 
-/** Homeroom-advisor rooms of the latest term, ticked per level. Saving replaces this term's set only. */
+/** Homeroom-advisor rooms of the latest term, ticked per level. Saving replaces this term's set only; posts the shown room ids so a changed list is refused. */
 export function AdvisorRoomsForm({
   userId,
   term,
@@ -36,7 +36,11 @@ export function AdvisorRoomsForm({
       className="mt-4 space-y-3 border-t border-border pt-4"
     >
       <input type="hidden" name="id" value={userId} />
-      <input type="hidden" name="term" value={term} />
+      {levels.flatMap((g) =>
+        g.rooms.map((r) => (
+          <input key={r.id} type="hidden" name="shown" value={r.id} />
+        )),
+      )}
       <div>
         <h3 className="text-sm font-medium text-muted-foreground">
           ห้องที่ปรึกษา ภาคเรียน {term}

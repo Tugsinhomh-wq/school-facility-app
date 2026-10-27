@@ -14,7 +14,7 @@ export async function latestTermRooms(db: Db): Promise<TermRooms | null> {
 }
 
 /**
- * Make one teacher's advisor rooms in `termRoomIds` exactly `ticked`: add the missing first, then
+ * Make one teacher's advisor rooms in `termRoomIds` (the rooms the admin was shown) exactly `ticked`: add the missing first, then
  * drop the unticked, so a failure in between leaves an extra room, never a lost one. Rooms of other
  * terms are never read or written. Returns the counts, or the database error code.
  */

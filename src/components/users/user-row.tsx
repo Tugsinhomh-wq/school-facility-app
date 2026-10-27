@@ -59,6 +59,13 @@ export function UserRow({
   isSelf: boolean;
   advisor: AdvisorInfo | null;
 }) {
+  // Executives and closed accounts cannot gain rooms; the form stays only to remove leftovers.
+  const blocked =
+    user.role === "executive"
+      ? "ผู้บริหารเป็นครูที่ปรึกษาไม่ได้"
+      : !user.is_active
+        ? "บัญชีนี้ปิดใช้งานอยู่"
+        : null;
   return (
     <li>
       <details className="group">
@@ -111,7 +118,12 @@ export function UserRow({
 
         <div className="border-t border-border bg-muted/30 px-4 py-4">
           <UserEditForm user={user} isSelf={isSelf} />
-          {advisor && (
+          {advisor && blocked && (
+            <p className="mt-4 border-t border-border pt-4 text-sm text-muted-foreground">
+              {blocked}
+            </p>
+          )}
+          {advisor && (!blocked || advisor.selected.length > 0) && (
             <AdvisorRoomsForm
               userId={user.id}
               term={advisor.term}
