@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { POLICY_VERSION } from "@/lib/policy";
 import { createClient } from "@/lib/supabase/server";
 
 export type AuthResult = { ok: boolean; message: string } | null;
@@ -82,7 +83,7 @@ export async function signUp(
       data: {
         full_name: fullName,
         consented_at: new Date().toISOString(),
-        consent_version: "2569-10-02",
+        consent_version: POLICY_VERSION,
       },
       emailRedirectTo: `${proto}://${host}/auth/confirm`,
     },

@@ -3,6 +3,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export interface AuthUser {
   id: string;
   email?: string;
+  /** The policy version stored in the sign-up metadata (email sign-ups only). */
+  consentVersion?: string;
 }
 
 /**
@@ -18,5 +20,14 @@ export async function getAuth(supabase: SupabaseClient): Promise<{ data: { user:
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
   if (!claims?.sub) return { data: { user: null } };
-  return { data: { user: { id: claims.sub, email: typeof claims.email === "string" ? claims.email : undefined } } };
+  const consent = (claims.user_metadata as { consent_version?: unknown } | undefined)?.consent_version;
+  return {
+    data: {
+      user: {
+        id: claims.sub,
+        email: typeof claims.email === "string" ? claims.email : undefined,
+        consentVersion: typeof consent === "string" ? consent : undefined,
+      },
+    },
+  };
 }
