@@ -93,3 +93,13 @@ test("report: a room created mid-period owes nothing before its first day", asyn
   });
   assert.deepEqual([rows[0].due, rows[0].done], [2, 1]);
 });
+
+test("report: days outside the check window are not due", async () => {
+  const { reportRows } = await import("./cleaning-report.ts");
+  const room = { name: "ม.1/1", zone: "z", advisors: "", since: "2026-01-01", confirmed: new Set(["2026-10-06"]) };
+  const base = { rooms: [room], from: "2026-10-05", to: "2026-10-09", today: "2026-10-10", offDays: new Set<string>() };
+  assert.deepEqual([reportRows(base).rows[0].due, reportRows(base).rows[0].done], [5, 1]);
+  const inside = reportRows({ ...base, window: { start: "2026-10-06", end: "2026-10-07" } }).rows[0];
+  assert.deepEqual([inside.due, inside.done, inside.missing], [2, 1, 1]);
+  assert.equal(reportRows({ ...base, rooms: [{ ...room, confirmed: new Set<string>() }], window: { start: "2027-01-01", end: null } }).rows[0].pct, null);
+});

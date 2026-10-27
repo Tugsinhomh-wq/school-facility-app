@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { canCancelDay, compareRoomNames, isPhotoPath, dayState, lateReachable, overviewOrder, weekGrid, weekTally, type Confirmation } from "./cleaning.ts";
+import { canCancelDay, compareRoomNames, inCheckWindow, isPhotoPath, dayState, windowStatus, windowText, lateReachable, overviewOrder, weekGrid, weekTally, type Confirmation } from "./cleaning.ts";
 
 const today = "2026-10-21"; // Wednesday
 const none = new Set<string>();
@@ -98,4 +98,56 @@ test("isPhotoPath: only <uuid>/<file>, never a path that climbs out", () => {
   assert.equal(isPhotoPath("x/1.jpg"), false);
   assert.equal(isPhotoPath(`/${id}/x.jpg`), false);
   assert.equal(isPhotoPath(null), false);
+});
+
+const win = { start: "2026-10-20", end: "2026-10-22" };
+
+test("inCheckWindow: both edges count, an empty side or no window never excludes", () => {
+  assert.equal(inCheckWindow("2026-10-19", win), false);
+  assert.equal(inCheckWindow("2026-10-20", win), true);
+  assert.equal(inCheckWindow("2026-10-22", win), true);
+  assert.equal(inCheckWindow("2026-10-23", win), false);
+  assert.equal(inCheckWindow("2026-01-01", { start: null, end: "2026-10-22" }), true);
+  assert.equal(inCheckWindow("2030-01-01", { start: "2026-10-20", end: null }), true);
+  assert.equal(inCheckWindow("2030-01-01", { start: null, end: null }), true);
+  assert.equal(inCheckWindow("2030-01-01"), true);
+});
+
+test("garbage windows and days never throw and exclude nothing", () => {
+  const junk = [{ start: "x", end: "2026-02-31" }, { start: 5, end: {} }, "oops", 7, null, undefined, {}] as never[];
+  for (const w of junk) {
+    assert.equal(inCheckWindow("2026-10-21", w), true);
+    assert.equal(windowStatus("2026-10-21", w), "none");
+    assert.equal(windowText(w, "2026-10-21"), "เช็กทุกวันทำการ");
+  }
+  assert.doesNotThrow(() => inCheckWindow("not a day", win));
+  assert.doesNotThrow(() => windowText(win, "garbage"));
+});
+
+test("windowStatus and windowText", () => {
+  assert.equal(windowStatus("2026-10-19", win), "before");
+  assert.equal(windowStatus("2026-10-21", win), "inside");
+  assert.equal(windowStatus("2026-10-23", win), "after");
+  assert.equal(windowStatus("2026-10-21", { start: null, end: null }), "none");
+  assert.equal(windowStatus("2026-10-21", { start: null, end: "2026-10-22" }), "inside");
+  assert.equal(windowText(win, "2026-10-19"), "ยังไม่เปิดเช็ก เริ่มวันที่ 20 ต.ค. 2569");
+  assert.equal(windowText(win, "2026-10-23"), "สิ้นสุดการเช็กแล้ว เมื่อ 22 ต.ค. 2569");
+  assert.equal(windowText(win, "2026-10-21"), "เริ่มเช็กวันที่ 20 ต.ค. 2569 ถึง 22 ต.ค. 2569");
+  assert.equal(windowText({ start: "2026-10-20", end: null }, "2026-10-21"), "เริ่มเช็กวันที่ 20 ต.ค. 2569");
+});
+
+test("days outside the window are off, not missed or pending; a confirmation still wins", () => {
+  assert.equal(dayState({ ymd: "2026-10-19", today, offDays: none, confirmation: null, window: win }), "off");
+  assert.equal(dayState({ ymd: today, today, offDays: none, confirmation: null, window: { start: "2026-10-22", end: null } }), "off");
+  assert.equal(dayState({ ymd: today, today, offDays: none, confirmation: null, window: win }), "pending");
+  assert.equal(dayState({ ymd: "2026-10-19", today, offDays: none, confirmation: ok, window: win }), "confirmed");
+});
+
+test("weekGrid and weekTally with a window: only the days inside are due", () => {
+  const grid = weekGrid({ monday: "2026-10-19", today: "2026-10-23", offDays: none, confirmations: new Map([["2026-10-20", ok]]), window: win });
+  assert.deepEqual(grid.map((g) => g.state), ["off", "confirmed", "missed", "missed", "off"]);
+  assert.deepEqual(weekTally(grid), { done: 1, due: 3 });
+  // no window = the same grid as before
+  const plain = weekGrid({ monday: "2026-10-19", today: "2026-10-23", offDays: none, confirmations: new Map([["2026-10-20", ok]]) });
+  assert.deepEqual(plain.map((g) => g.state), ["missed", "confirmed", "missed", "missed", "pending"]);
 });

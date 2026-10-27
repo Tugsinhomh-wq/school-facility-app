@@ -22,7 +22,7 @@ export async function GET(req: Request) {
     return new Response("โหลดข้อมูลไม่สำเร็จ ลองใหม่อีกครั้ง", { status: 500 });
 
   const result = reportRows({
-    ...data,
+    ...data, // rooms, offDays and the check window
     from,
     to,
     today: bangkokYmd(new Date()),

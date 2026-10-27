@@ -8,12 +8,16 @@ import {
 } from "@/components/cleaning/classroom-form";
 import { PEOPLE_LIST } from "@/components/cleaning/advisor-panel";
 import { ImportForm } from "@/components/cleaning/import-form";
+import { CheckWindowForm } from "@/components/cleaning/check-window-form";
 import { chip } from "@/components/cleaning/officer-overview";
 import { OffDaysForm } from "@/components/cleaning/off-days-form";
 import { RolloverForm } from "@/components/cleaning/rollover-form";
 import { EmptyState, LoadError } from "@/components/ui/state-card";
+import type { CheckWindow } from "@/lib/cleaning";
+import { getCheckWindow } from "@/lib/data/cleaning-window";
 import { getCleaningSetup } from "@/lib/data/cleaning-setup";
-import { guardExecutive } from "@/lib/data/session";
+import { getSession, guardExecutive } from "@/lib/data/session";
+import { bangkokYmd } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -30,6 +34,9 @@ export default async function CleaningManagePage({
   const setup = await getCleaningSetup();
   if (!setup) redirect("/cleaning");
   const { term: termParam } = await searchParams;
+  // The check window is the administrator's to set: officers never get the form.
+  const admin = (await getSession())?.viewer.role === "super_admin";
+  const window = admin ? await getCheckWindow() : null;
 
   return (
     <div className="mx-auto max-w-[640px] space-y-6">
@@ -48,6 +55,7 @@ export default async function CleaningManagePage({
       ) : (
         <Setup
           {...setup}
+          window={window}
           termParam={typeof termParam === "string" ? termParam : undefined}
         />
       )}
@@ -62,11 +70,12 @@ function Setup({
   offDays,
   liveTerm,
   people,
+  window,
   termParam,
 }: Exclude<
   Awaited<ReturnType<typeof getCleaningSetup>>,
   null | { failed: true }
-> & { termParam?: string }) {
+> & { termParam?: string; window: CheckWindow | null }) {
   // Default: the latest term, the one the confirm pages use.
   const term = terms.find((t) => t === termParam) ?? terms[0] ?? null;
   const shown = rooms.filter((r) => r.term === term);
@@ -137,6 +146,15 @@ function Setup({
             ขึ้นภาคเรียนใหม่
           </h2>
           <RolloverForm terms={terms} />
+        </section>
+      )}
+
+      {window && (
+        <section aria-labelledby="window-title" className={section}>
+          <h2 id="window-title" className={heading}>
+            ช่วงวันที่เช็ก
+          </h2>
+          <CheckWindowForm window={window} today={bangkokYmd(new Date())} />
         </section>
       )}
 

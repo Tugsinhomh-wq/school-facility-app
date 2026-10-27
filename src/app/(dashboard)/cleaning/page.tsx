@@ -126,6 +126,7 @@ async function TeacherView({
           today,
           offDays: week.offDays,
           confirmations,
+          window: week.window,
         });
         const earlier = lateReachable(
           weekGrid({
@@ -133,13 +134,14 @@ async function TeacherView({
             today,
             offDays: prev.offDays,
             confirmations: prev.confirmations.get(room.id) ?? new Map(),
+            window: prev.window,
           }),
           today,
         );
         const confirmation = confirmations.get(today) ?? null;
         const todayStatus = {
           ymd: today,
-          state: dayState({ ymd: today, today, offDays: week.offDays, confirmation }),
+          state: dayState({ ymd: today, today, offDays: week.offDays, window: week.window, confirmation }),
           confirmation,
         };
         return (
@@ -150,6 +152,7 @@ async function TeacherView({
             todayStatus={todayStatus}
             days={days}
             earlier={earlier}
+            window={week.window}
           />
         );
       })}
@@ -222,7 +225,7 @@ async function OfficerView({ today, params }: { today: string; params: Params })
     return {
       room,
       confirmation,
-      state: dayState({ ymd: today, today, offDays: now.offDays, confirmation }),
+      state: dayState({ ymd: today, today, offDays: now.offDays, window: now.window, confirmation }),
     };
   });
   const weekRows = scoped.map((room) => ({
@@ -232,6 +235,7 @@ async function OfficerView({ today, params }: { today: string; params: Params })
       today,
       offDays: shown.offDays,
       confirmations: shown.confirmations.get(room.id) ?? new Map(),
+      window: shown.window,
     }),
   }));
 
@@ -243,9 +247,11 @@ async function OfficerView({ today, params }: { today: string; params: Params })
       buildings={buildings}
       tiles={tiles}
       weekRows={weekRows}
+      // Weekend or school off day only; the check window is shown separately.
       offToday={
         dayState({ ymd: today, today, offDays: now.offDays, confirmation: null }) === "off"
       }
+      window={now.window}
       showMyRooms={!mine.failed && mine.rows.length > 0}
       reportBad={param(params.report) === "bad"}
     />

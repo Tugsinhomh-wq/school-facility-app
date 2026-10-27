@@ -21,6 +21,7 @@ export const BACKUP_TABLES = [
   "school_off_days",
   "cleaning_confirmations",
   "cleaning_cancellations",
+  "cleaning_settings",
   "control_missions",
   "control_projects",
   "control_actions",
@@ -32,6 +33,8 @@ export const BACKUP_TABLES = [
 const ORDER_BY: Record<string, string[]> = {
   classroom_advisors: ["classroom_id", "user_id"],
   school_off_days: ["day"],
+  // One row, no id column.
+  cleaning_settings: ["updated_at"],
 };
 
 const PAGE = 1000;

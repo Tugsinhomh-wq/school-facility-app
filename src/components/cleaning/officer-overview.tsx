@@ -5,7 +5,7 @@ import { ReportForm } from "@/components/cleaning/report-form";
 import { RoomGrid, type RoomToday } from "@/components/cleaning/room-grid";
 import { WeeklyTable, type WeekRow } from "@/components/cleaning/weekly-table";
 import { EmptyState } from "@/components/ui/state-card";
-import { overviewOrder } from "@/lib/cleaning";
+import { inCheckWindow, overviewOrder, windowText, type CheckWindow } from "@/lib/cleaning";
 import { addDays, formatDayShort, mondayOf } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
@@ -68,6 +68,7 @@ export function OfficerOverview({
   tiles,
   weekRows,
   offToday,
+  window,
   showMyRooms,
   reportBad,
 }: {
@@ -80,7 +81,9 @@ export function OfficerOverview({
   /** Today's state of every room in the selected building (or all). */
   tiles: RoomToday[];
   weekRows: WeekRow[];
+  /** Today is a weekend or a school off day. */
   offToday: boolean;
+  window: CheckWindow;
   showMyRooms: boolean;
   /** The report form was sent with a bad range. */
   reportBad?: boolean;
@@ -88,6 +91,7 @@ export function OfficerOverview({
   const thisMonday = mondayOf(today);
   const { building } = filters;
   const onlyMissing = filters.only === "missing";
+  const outside = !inCheckWindow(today, window);
   const confirmed = tiles.filter((t) => t.confirmation).length;
   const missing = tiles.filter((t) => t.state === "pending").length;
   const visible = overviewOrder(
@@ -110,7 +114,11 @@ export function OfficerOverview({
             <p className="text-2xl font-bold tabular-nums">
               ยืนยันแล้ว {confirmed} / {tiles.length} ห้อง
             </p>
-            {offToday ? (
+            {outside ? (
+              <p className="text-sm text-muted-foreground">
+                ยังไม่อยู่ในช่วงเช็ก · {windowText(window, today)}
+              </p>
+            ) : offToday ? (
               <p className="text-sm text-muted-foreground">วันนี้เป็นวันหยุด ไม่ต้องยืนยัน</p>
             ) : (
               missing > 0 && (
@@ -162,15 +170,21 @@ export function OfficerOverview({
         </nav>
 
         {visible.length > 0 ? (
-          <RoomGrid rooms={visible} today={today} />
+          <RoomGrid
+            rooms={visible}
+            today={today}
+            offLabel={outside && !offToday ? "ยังไม่อยู่ในช่วงเช็ก" : "วันหยุด"}
+          />
         ) : (
           <EmptyState
-            tone="good"
-            title={offToday ? "วันนี้เป็นวันหยุด" : "ทุกห้องยืนยันแล้ว"}
+            tone={outside ? "neutral" : "good"}
+            title={outside ? "ยังไม่อยู่ในช่วงเช็ก" : offToday ? "วันนี้เป็นวันหยุด" : "ทุกห้องยืนยันแล้ว"}
             hint={
-              offToday
-                ? "วันหยุดไม่ต้องยืนยันเขต"
-                : "ไม่มีห้องที่ยังไม่ยืนยันเขตวันนี้"
+              outside
+                ? windowText(window, today)
+                : offToday
+                  ? "วันหยุดไม่ต้องยืนยันเขต"
+                  : "ไม่มีห้องที่ยังไม่ยืนยันเขตวันนี้"
             }
           >
             <Link
@@ -221,7 +235,7 @@ export function OfficerOverview({
         </div>
         <WeeklyTable rows={weekRows} monday={monday} />
         <p className="text-xs text-muted-foreground">
-          รวม = วันที่ยืนยันแล้ว / วันที่ต้องยืนยัน (ไม่นับวันหยุด วันที่ยังไม่ถึง และวันนี้ถ้ายังไม่ยืนยัน)
+          รวม = วันที่ยืนยันแล้ว / วันที่ต้องยืนยัน (ไม่นับวันหยุด วันนอกช่วงเช็ก วันที่ยังไม่ถึง และวันนี้ถ้ายังไม่ยืนยัน)
         </p>
       </section>
 
