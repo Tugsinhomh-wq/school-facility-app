@@ -98,7 +98,7 @@ async function setAdvisors(db: Db, sets: { classroomId: string; ids: string[] }[
 
 /**
  * Add a classroom (no `id`) or edit one: name, building, zone, advisors (and active, on edit).
- * Advisors are optional: blank on add = none; blank on edit removes them all (the field is prefilled).
+ * Advisors and zone are optional: blank on add = none / ""; blank on edit clears them (the fields are prefilled).
  */
 export async function saveClassroom(_prev: SetupResult, formData: FormData): Promise<SetupResult> {
   const id = field(formData, "id");
@@ -197,7 +197,7 @@ export async function changeRoomAdvisor(_prev: SetupResult, formData: FormData):
  * Upload the classroom spreadsheet for a term. Everything is checked first (rows, buildings,
  * emails); any error writes nothing. Then each room is upserted by (term, name). A room with emails
  * gets exactly those advisors; a blank email cell leaves its advisors as they are (a new room has
- * none). Rooms not in the file are left as they are.
+ * none). Likewise a blank zone cell leaves an existing room's zone as it is (a new room gets ""). Rooms not in the file are left as they are.
  */
 export async function importClassrooms(_prev: SetupResult, formData: FormData): Promise<SetupResult> {
   const term = field(formData, "term");
@@ -252,6 +252,11 @@ export async function importClassrooms(_prev: SetupResult, formData: FormData): 
     };
   if (parsed.ok.length === 0) return { ok: false, message: "ไม่พบข้อมูลห้องในไฟล์ (มีแต่แถวหัวตาราง)" };
 
+  // A blank zone cell keeps the room's current zone; the column is NOT NULL, so a new room gets "".
+  const current = await db.from("classrooms").select("name, zone").eq("term", term);
+  if (current.error) return { ok: false, message: "บันทึกไม่สำเร็จ ยังไม่ได้บันทึกข้อมูลใด ลองใหม่อีกครั้ง" };
+  const zoneOf = new Map((current.data as { name: string; zone: string }[]).map((r) => [r.name, r.zone]));
+
   const { data: saved, error } = await db
     .from("classrooms")
     .upsert(
@@ -259,7 +264,7 @@ export async function importClassrooms(_prev: SetupResult, formData: FormData): 
         term,
         name: r.name,
         building_id: r.building ? buildingIds.get(r.building)![0] : null,
-        zone: r.zone,
+        zone: r.zone || zoneOf.get(r.name) || "",
         is_active: true,
       })),
       { onConflict: "term,name" },

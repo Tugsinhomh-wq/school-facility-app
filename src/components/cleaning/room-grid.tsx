@@ -72,7 +72,11 @@ export function RoomGrid({ rooms, today }: { rooms: RoomToday[]; today: string }
                 )
               )}
             </div>
-            <p className="text-sm leading-snug break-words">{room.zone}</p>
+            {room.zone ? (
+              <p className="text-sm leading-snug break-words">{room.zone}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">ยังไม่กำหนดเขต</p>
+            )}
             {advisors ? (
               <p className="text-xs text-muted-foreground break-words">ครูที่ปรึกษา: {advisors}</p>
             ) : (

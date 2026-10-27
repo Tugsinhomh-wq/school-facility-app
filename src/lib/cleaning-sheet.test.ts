@@ -35,7 +35,7 @@ test("csv: BOM, Thai digits, two emails in one cell, blank line keeps row number
   ]);
   assert.deepEqual(
     r.errors.map((e) => e.row),
-    [4, 4], // duplicate of row 2 + blank zone, on spreadsheet row 4
+    [4], // duplicate of row 2 (the blank zone is fine), on spreadsheet row 4
   );
 });
 
