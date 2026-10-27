@@ -1,9 +1,11 @@
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { Fragment } from "react";
 
 import { placeOf } from "@/components/tickets/ticket-table";
 import { ApprovalPill, UrgencyMark } from "@/components/tickets/status-mark";
 import { Button } from "@/components/ui/button";
+import { DeleteMemoButton, DeleteMemoPanel, DeleteMemos } from "@/components/memos/delete-memo";
 import { EmptyState, LoadError } from "@/components/ui/state-card";
 import {
   createMemoFromTicket,
@@ -40,6 +42,8 @@ export default async function MemosPage({
   const { error } = await searchParams;
   const list = await getMemoList();
   const allowed = !list.viewer || isRoomManager(list.viewer.role);
+  // Only the system administrator deletes memos; the action checks the role again.
+  const canDelete = list.viewer?.role === "super_admin";
 
   return (
     <>
@@ -79,13 +83,13 @@ export default async function MemosPage({
                 hint="เลือกงานซ่อมที่ยังไม่มีบันทึกเพื่อสร้างร่างแรก"
               />
             ) : (
-              <>
+              <DeleteMemos>
                 <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border md:hidden">
                   {list.memos.map((m) => (
-                    <li key={m.id}>
+                    <li key={m.id} className="flex flex-wrap items-center">
                       <Link
                         href={`/memos/${m.id}`}
-                        className={`flex min-h-16 items-center gap-3 py-3.5 pr-4 pl-4 transition-colors hover:bg-muted/60 ${focusRing}`}
+                        className={`flex min-h-16 min-w-0 flex-1 items-center gap-3 py-3.5 pr-4 pl-4 transition-colors hover:bg-muted/60 ${focusRing}`}
                       >
                         <span className="min-w-0 flex-1 leading-snug">
                           <span className="block font-semibold">
@@ -111,6 +115,17 @@ export default async function MemosPage({
                           aria-hidden
                         />
                       </Link>
+                      {canDelete && (
+                        <DeleteMemoButton id={m.id} refNo={m.doc_ref_no} className="mr-2" />
+                      )}
+                      {canDelete && (
+                        <DeleteMemoPanel
+                          id={m.id}
+                          refNo={m.doc_ref_no}
+                          subject={m.subject}
+                          className="basis-full px-4 pb-3"
+                        />
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -130,11 +145,17 @@ export default async function MemosPage({
                         >
                           สร้างเมื่อ
                         </th>
+                        {canDelete && (
+                          <th scope="col" className="sr-only">
+                            จัดการ
+                          </th>
+                        )}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                       {list.memos.map((m) => (
-                        <tr key={m.id} className="hover:bg-muted/40">
+                        <Fragment key={m.id}>
+                        <tr className="hover:bg-muted/40">
                           <td className="px-4 py-4">
                             <Link
                               href={`/memos/${m.id}`}
@@ -152,12 +173,21 @@ export default async function MemosPage({
                           <td className="px-4 py-4 text-right whitespace-nowrap text-muted-foreground tabular-nums">
                             {formatDateTh(m.created_at)}
                           </td>
+                          {canDelete && (
+                            <td className="py-2 pr-2 text-right">
+                              <DeleteMemoButton id={m.id} refNo={m.doc_ref_no} />
+                            </td>
+                          )}
                         </tr>
+                        {canDelete && (
+                          <DeleteMemoPanel id={m.id} refNo={m.doc_ref_no} subject={m.subject} row />
+                        )}
+                        </Fragment>
                       ))}
                     </tbody>
                   </table>
                 </div>
-              </>
+              </DeleteMemos>
             )}
           </section>
 

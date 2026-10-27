@@ -9,6 +9,8 @@ import { draftFromSummary } from "@/lib/memo/draft-summary";
 import { resolvePeriod } from "@/lib/summary-period";
 import { MOCK_MEMOS } from "@/lib/mock-data";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getSession } from "@/lib/data/session";
 import type { TicketRow } from "@/types/tickets";
 import { getAuth } from "@/lib/supabase/auth";
 
@@ -173,4 +175,41 @@ export async function saveMemo(
   revalidatePath("/memos");
   revalidatePath(`/memos/${id}`);
   return { ok: true, message: "บันทึกแล้ว" };
+}
+
+const UUID = /^[0-9a-f-]{36}$/i;
+
+/**
+ * Hard delete of one memo, system administrator only (role re-checked here, not trusted from the page).
+ * There is no DELETE policy on memorandums on purpose, so this uses the service-role client; its
+ * approval_records go with it (ON DELETE CASCADE) and a memo has no uploaded files. From the detail
+ * page (`back`) a delete sends the viewer to the list, the memo's own page would be a 404.
+ */
+export async function deleteMemo(formData: FormData): Promise<SaveResult> {
+  const id = String(formData.get("id") ?? "");
+  if (!UUID.test(id)) return { ok: false, message: "ข้อมูลไม่ถูกต้อง ลองโหลดหน้าใหม่" };
+  if (demo()) return { ok: false, message: "โหมดสาธิต: ยังไม่ได้ตั้งค่า Supabase จึงลบไม่ได้" };
+
+  const session = await getSession();
+  if (!session) return { ok: false, message: "เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่" };
+  if (session.viewer.role !== "super_admin")
+    return { ok: false, message: "เฉพาะผู้ดูแลระบบที่ลบบันทึกข้อความได้" };
+
+  let gone: number;
+  try {
+    const { data, error } = await createAdminClient().from("memorandums").delete().eq("id", id).select("id");
+    if (error) {
+      console.error("delete memo failed", { code: error.code });
+      return { ok: false, message: "ลบไม่สำเร็จ ลองใหม่อีกครั้ง" };
+    }
+    gone = data.length;
+  } catch {
+    console.error("delete memo failed", { code: "client" });
+    return { ok: false, message: "ลบไม่สำเร็จ ลองใหม่อีกครั้ง" };
+  }
+
+  revalidatePath("/memos");
+  if (!gone) return { ok: false, message: "ไม่พบบันทึกข้อความนี้ อาจถูกลบไปแล้ว" };
+  if (formData.get("back") === "1") redirect("/memos");
+  return { ok: true, message: "ลบบันทึกข้อความแล้ว" };
 }

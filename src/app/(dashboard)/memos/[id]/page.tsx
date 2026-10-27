@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { ApprovalPill } from "@/components/tickets/status-mark";
 import { Button } from "@/components/ui/button";
 import { LoadError } from "@/components/ui/state-card";
+import { DeleteMemoButton, DeleteMemoPanel, DeleteMemos } from "@/components/memos/delete-memo";
 import { MemoEditor } from "@/components/memos/memo-editor";
 import { getMemo } from "@/lib/data/memos";
 
@@ -23,13 +24,16 @@ export default async function MemoPage({
 }) {
   await guardExecutive();
   const { id } = await params;
-  const { memo, failed } = await getMemo(id);
+  const { memo, failed, viewer } = await getMemo(id);
   // Row Level Security only returns memos the viewer wrote, or any memo for staff.
   if (failed) return <LoadError what="บันทึกข้อความ" retryHref={`/memos/${id}`} />;
   if (!memo) notFound();
 
+  // Only the system administrator deletes memos; the action checks the role again.
+  const canDelete = viewer?.role === "super_admin";
+
   return (
-    <>
+    <DeleteMemos back>
       <Link
         href="/memos"
         className="mb-3 inline-flex min-h-11 items-center gap-1.5 text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
@@ -63,13 +67,17 @@ export default async function MemoPage({
             >
               <Download aria-hidden /> Export PDF
             </Button>
+            {canDelete && <DeleteMemoButton id={memo.id} refNo={memo.doc_ref_no} />}
           </div>
           <p className="mt-1.5 text-sm text-muted-foreground sm:text-right">
             ไฟล์ใช้ข้อความที่บันทึกล่าสุด กดบันทึกร่างก่อนส่งออก
           </p>
         </div>
       </div>
+      {canDelete && (
+        <DeleteMemoPanel id={memo.id} refNo={memo.doc_ref_no} subject={memo.subject} className="mb-6" />
+      )}
       <MemoEditor memo={memo} fontClass={sarabun.className} />
-    </>
+    </DeleteMemos>
   );
 }
