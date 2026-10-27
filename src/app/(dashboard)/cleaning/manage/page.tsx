@@ -6,6 +6,7 @@ import {
   AddClassroomForm,
   ClassroomForm,
 } from "@/components/cleaning/classroom-form";
+import { PEOPLE_LIST } from "@/components/cleaning/advisor-panel";
 import { ImportForm } from "@/components/cleaning/import-form";
 import { chip } from "@/components/cleaning/officer-overview";
 import { OffDaysForm } from "@/components/cleaning/off-days-form";
@@ -59,6 +60,8 @@ function Setup({
   rooms,
   buildings,
   offDays,
+  liveTerm,
+  people,
   termParam,
 }: Exclude<
   Awaited<ReturnType<typeof getCleaningSetup>>,
@@ -99,7 +102,12 @@ function Setup({
         {term ? (
           <div className="divide-y divide-border">
             {shown.map((r) => (
-              <ClassroomForm key={r.id} room={r} buildings={buildings} />
+              <ClassroomForm
+                key={r.id}
+                room={r}
+                buildings={buildings}
+                editAdvisors={r.isActive && r.term === liveTerm}
+              />
             ))}
           </div>
         ) : (
@@ -108,6 +116,11 @@ function Setup({
             hint="นำเข้าจากไฟล์ Excel ด้านล่าง หรือเพิ่มทีละห้อง"
           />
         )}
+        <datalist id={PEOPLE_LIST}>
+          {people.map((p) => (
+            <option key={p.email} value={p.email} label={p.name} />
+          ))}
+        </datalist>
         <AddClassroomForm key={term} term={term} buildings={buildings} />
       </section>
 

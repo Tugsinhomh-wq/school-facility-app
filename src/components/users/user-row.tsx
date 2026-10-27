@@ -12,8 +12,13 @@ import {
 import { setUserActive } from "@/app/(dashboard)/users/actions";
 import { TONE } from "@/components/dashboard/home-actions";
 import { Pill } from "@/components/tickets/status-mark";
+import {
+  AdvisorRoomsForm,
+  type AdvisorRoom,
+} from "@/components/users/advisor-rooms-form";
 import { UserEditForm } from "@/components/users/user-edit-form";
 import { Button } from "@/components/ui/button";
+import type { LevelGroup } from "@/lib/advisors";
 import { ROLE_LABEL } from "@/lib/ticket-meta";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@/types/database";
@@ -37,7 +42,23 @@ const ROLE_ICON: Record<UserRole, LucideIcon> = {
   user: UserRound,
 };
 
-export function UserRow({ user, isSelf }: { user: UserItem; isSelf: boolean }) {
+/** The latest term's rooms by level, and the ones this user advises (null: no rooms yet). */
+export interface AdvisorInfo {
+  term: string;
+  levels: LevelGroup<AdvisorRoom>[];
+  selected: string[];
+  names: string[];
+}
+
+export function UserRow({
+  user,
+  isSelf,
+  advisor,
+}: {
+  user: UserItem;
+  isSelf: boolean;
+  advisor: AdvisorInfo | null;
+}) {
   return (
     <li>
       <details className="group">
@@ -57,6 +78,16 @@ export function UserRow({ user, isSelf }: { user: UserItem; isSelf: boolean }) {
                 <span className="md:hidden"> · {user.position}</span>
               )}
             </span>
+            {advisor && advisor.names.length > 0 && (
+              <span className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
+                ครูที่ปรึกษา:
+                {advisor.names.map((n) => (
+                  <span key={n} className="rounded-md bg-muted px-1.5 py-0.5">
+                    {n}
+                  </span>
+                ))}
+              </span>
+            )}
             <span className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1.5 md:hidden">
               <RolePill role={user.role} />
               <ActivePill active={user.is_active} />
@@ -80,6 +111,14 @@ export function UserRow({ user, isSelf }: { user: UserItem; isSelf: boolean }) {
 
         <div className="border-t border-border bg-muted/30 px-4 py-4">
           <UserEditForm user={user} isSelf={isSelf} />
+          {advisor && (
+            <AdvisorRoomsForm
+              userId={user.id}
+              term={advisor.term}
+              levels={advisor.levels}
+              selected={advisor.selected}
+            />
+          )}
 
           {!isSelf && (
             <form
