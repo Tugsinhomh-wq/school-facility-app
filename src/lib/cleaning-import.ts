@@ -1,12 +1,13 @@
 // Pure parser for the classroom spreadsheet (rows already read from .xlsx/.csv).
-// No I/O. Advisor emails are only validated for shape here; matching them to
-// profiles happens in the upload action.
+// No I/O. Advisor emails are optional (a room may have none yet) and only validated for shape
+// here; matching them to profiles happens in the upload action.
 
 export type ParsedClassroom = {
   /** 1-based spreadsheet row, for errors found later (unknown email or building). */
   row: number;
   name: string;
   building: string | null;
+  /** Empty = none given (optional column). */
   advisorEmails: string[];
   zone: string;
 };
@@ -86,12 +87,8 @@ export function parseClassroomRows(rows: string[][]): { ok: ParsedClassroom[]; e
 
     const emailTokens = rawEmails.split(/[\s,;，；]+/).filter(Boolean).map((e) => e.toLowerCase());
     const advisorEmails = [...new Set(emailTokens)];
-    if (advisorEmails.length === 0) {
-      problems.push("ไม่ได้ระบุอีเมลครูที่ปรึกษา");
-    } else {
-      for (const e of advisorEmails) {
-        if (!EMAIL_RE.test(e)) problems.push(`รูปแบบอีเมลไม่ถูกต้อง: ${e}`);
-      }
+    for (const e of advisorEmails) {
+      if (!EMAIL_RE.test(e)) problems.push(`รูปแบบอีเมลไม่ถูกต้อง: ${e}`);
     }
 
     if (!zone) problems.push("ไม่ได้ระบุเขตทำความสะอาด");

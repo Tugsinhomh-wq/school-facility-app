@@ -96,7 +96,10 @@ async function setAdvisors(db: Db, sets: { classroomId: string; ids: string[] }[
   return true;
 }
 
-/** Add a classroom (no `id`) or edit one: name, building, zone, advisors (and active, on edit). */
+/**
+ * Add a classroom (no `id`) or edit one: name, building, zone, advisors (and active, on edit).
+ * Advisors are optional: blank on add = none; blank on edit removes them all (the field is prefilled).
+ */
 export async function saveClassroom(_prev: SetupResult, formData: FormData): Promise<SetupResult> {
   const id = field(formData, "id");
   const term = field(formData, "term");
@@ -192,8 +195,9 @@ export async function changeRoomAdvisor(_prev: SetupResult, formData: FormData):
 
 /**
  * Upload the classroom spreadsheet for a term. Everything is checked first (rows, buildings,
- * emails); any error writes nothing. Then each room is upserted by (term, name) and its advisors
- * become exactly the file's. Rooms not in the file are left as they are.
+ * emails); any error writes nothing. Then each room is upserted by (term, name). A room with emails
+ * gets exactly those advisors; a blank email cell leaves its advisors as they are (a new room has
+ * none). Rooms not in the file are left as they are.
  */
 export async function importClassrooms(_prev: SetupResult, formData: FormData): Promise<SetupResult> {
   const term = field(formData, "term");
@@ -266,7 +270,10 @@ export async function importClassrooms(_prev: SetupResult, formData: FormData): 
   const idOfRoom = new Map((saved as { id: string; name: string }[]).map((r) => [r.name, r.id]));
   const advisorsOk = await setAdvisors(
     db,
-    parsed.ok.map((r) => ({ classroomId: idOfRoom.get(r.name)!, ids: r.advisorEmails.map(people.idOf) })),
+    // A blank email cell leaves the room's current advisors alone; only a filled one replaces them.
+    parsed.ok
+      .filter((r) => r.advisorEmails.length > 0)
+      .map((r) => ({ classroomId: idOfRoom.get(r.name)!, ids: r.advisorEmails.map(people.idOf) })),
   );
   revalidate();
   if (!advisorsOk)
@@ -310,7 +317,9 @@ export async function rolloverTerm(_prev: SetupResult, formData: FormData): Prom
   const existing = target.data as { id: string; name: string; advisors: unknown[] | null }[];
   const present = new Set(existing.map((r) => r.name));
   const missing = rooms.filter((r) => !present.has(r.name));
-  const bare = existing.filter((r) => (r.advisors ?? []).length === 0);
+  // An advisor-less source room has nothing to copy, so it never counts as unfinished.
+  const advisorsOf = new Map(rooms.map((r) => [r.name, (r.advisors ?? []).map((a) => a.user_id)]));
+  const bare = existing.filter((r) => (r.advisors ?? []).length === 0 && (advisorsOf.get(r.name)?.length ?? 0) > 0);
   if (missing.length === 0 && bare.length === 0)
     return { ok: true, message: `ภาคเรียน ${to} มีครบทุกห้องแล้ว (ข้าม ${rooms.length} ห้อง)` };
 
@@ -327,7 +336,6 @@ export async function rolloverTerm(_prev: SetupResult, formData: FormData): Prom
           .select("id, name");
   if (error || !created) return { ok: false, message: "คัดลอกไม่สำเร็จ ยังไม่ได้บันทึกข้อมูลใด ลองใหม่อีกครั้ง" };
 
-  const advisorsOf = new Map(rooms.map((r) => [r.name, (r.advisors ?? []).map((a) => a.user_id)]));
   const advisorsOk = await setAdvisors(
     db,
     [...(created as { id: string; name: string }[]), ...bare].map((r) => ({

@@ -77,16 +77,29 @@ test("blank zone is a row-numbered error", () => {
   assert.equal(r.errors[0].row, 2);
 });
 
-test("blank name, no email and malformed email are row-numbered errors", () => {
+test("blank advisor email is accepted: the room has no advisors", () => {
+  const r = parseClassroomRows([header, ["ม.1/1", "", "", "ก"], ["ม.1/2", "A", "   ", "ข"], ["ม.1/3", "", " , ; "]]);
+  assert.equal(r.ok[0].advisorEmails.length, 0);
+  assert.equal(r.ok[1].advisorEmails.length, 0);
+  assert.deepEqual(r.errors.map((e) => e.row), [4]); // short row: only the zone is missing
+  assert.equal(r.ok.length, 2);
+});
+
+test("blank name, malformed email and a bad one among good ones are row-numbered errors", () => {
   const r = parseClassroomRows([
     header,
     ["", "", "a@lrp.ac.th", "ก"],
-    ["ม.1/1", "", "", "ก"],
     ["ม.1/2", "", "not-an-email", "ก"],
     ["ม.1/3", "", "a@lrp.ac.th, bad@", "ก"],
   ]);
   assert.equal(r.ok.length, 0);
-  assert.deepEqual(r.errors.map((e) => e.row), [2, 3, 4, 5]);
+  assert.deepEqual(r.errors.map((e) => e.row), [2, 3, 4]);
+});
+
+test("duplicate room still errors when both rows have no email", () => {
+  const r = parseClassroomRows([header, ["ม.1/1", "", "", "ก"], ["ม.1/1", "", "", "ก"]]);
+  assert.equal(r.ok.length, 1);
+  assert.deepEqual(r.errors.map((e) => e.row), [3]);
 });
 
 test("empty rows are skipped silently but keep row numbers", () => {

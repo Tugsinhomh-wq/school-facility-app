@@ -123,19 +123,23 @@ function Fields({
       </div>
       <div className="space-y-1.5">
         <Label htmlFor={`${idp}-e`}>
-          อีเมลครูที่ปรึกษา (หลายคนคั่นด้วยจุลภาค)
+          อีเมลครูที่ปรึกษา (ไม่บังคับ หลายคนคั่นด้วยจุลภาค)
         </Label>
         <Input
           id={`${idp}-e`}
           name="advisor_emails"
           defaultValue={room?.advisorEmails.join(", ")}
-          required
           inputMode="email"
           autoComplete="off"
           spellCheck={false}
           placeholder="somying@lrp.ac.th, somchai@lrp.ac.th"
           className={field}
         />
+        {room && (
+          <p className="text-xs text-muted-foreground">
+            ลบอีเมลออกให้ว่างแล้วบันทึก จะเป็นการถอดครูที่ปรึกษาทุกคนของห้องนี้
+          </p>
+        )}
       </div>
     </>
   );

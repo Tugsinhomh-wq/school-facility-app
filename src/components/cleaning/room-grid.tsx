@@ -1,4 +1,4 @@
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, UserX } from "lucide-react";
 
 import { PhotoPeek } from "@/components/cleaning/photo-peek";
 import type { DayState } from "@/lib/cleaning";
@@ -73,9 +73,14 @@ export function RoomGrid({ rooms, today }: { rooms: RoomToday[]; today: string }
               )}
             </div>
             <p className="text-sm leading-snug break-words">{room.zone}</p>
-            <p className="text-xs text-muted-foreground break-words">
-              {advisors ? `ครูที่ปรึกษา: ${advisors}` : "ยังไม่มีครูที่ปรึกษา"}
-            </p>
+            {advisors ? (
+              <p className="text-xs text-muted-foreground break-words">ครูที่ปรึกษา: {advisors}</p>
+            ) : (
+              <p className="inline-flex w-fit items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                <UserX className="size-3.5" aria-hidden />
+                ยังไม่มีครูที่ปรึกษา
+              </p>
+            )}
             {c && (
               <div className="mt-auto space-y-0.5 border-t border-border pt-1.5">
                 <p className="text-xs text-emerald-800 dark:text-emerald-300">

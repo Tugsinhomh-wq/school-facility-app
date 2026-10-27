@@ -80,7 +80,7 @@ export function WeeklyTable({ rows, monday }: { rows: WeekRow[]; monday: string 
                   {room.name}
                 </th>
                 <td className="max-w-48 px-3 py-2 text-xs text-muted-foreground">
-                  {room.advisors.map((a) => a.name).join(", ") || "–"}
+                  {room.advisors.map((a) => a.name).join(", ") || "ยังไม่มีครูที่ปรึกษา"}
                 </td>
                 {days.map((d) => {
                   const look = CELL[d.state];
