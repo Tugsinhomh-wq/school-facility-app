@@ -43,8 +43,9 @@ pip install -r scripts/requirements.txt
 5. `supabase/control_02.sql` (ผลประเมิน ปค.4) รันหลัง control_01 แล้ววางทั้งไฟล์รันครั้งเดียว ส่วน "ชุดตรวจสอบ" ท้ายไฟล์เป็นคอมเมนต์ ให้คัดลอกไปรันทีละชุดภายหลัง
 6. `supabase/census_01.sql` (ทะเบียนรายชื่อนักเรียนรายห้อง: เลขประจำตัวกับชื่อ-สกุล) รันหลัง control_02 แล้ววางทั้งไฟล์รันครั้งเดียว ส่วน "ชุดตรวจสอบ" ท้ายไฟล์เป็นคอมเมนต์ ให้คัดลอกไปรันทีละชุดภายหลัง ผู้ดูแลข้อมูลส่วนบุคคลของโรงเรียนควรอนุมัติก่อนนำเข้าข้อมูลจริง
 7. `supabase/consent_01.sql` (บันทึกการยอมรับนโยบายความเป็นส่วนตัว: คอลัมน์ `consent_version`, `consented_at` ในตาราง profiles และฟังก์ชัน `accept_policy`) รันหลัง census_01 แล้ววางทั้งไฟล์รันครั้งเดียว ส่วน "ชุดตรวจสอบ" ท้ายไฟล์เป็นคอมเมนต์ ให้คัดลอกไปรันทีละชุดภายหลัง
-8. ชุดตรวจสอบ (check sets) ของ `facility_02_cleaning.sql`, `control_01.sql`, `control_02.sql`, `census_01.sql` และ `consent_01.sql`
-9. `supabase/facility_99_reset_old_data.sql` รันเฉพาะตอนสลับขึ้นระบบจริง หลังสำรองข้อมูลด้วย `/api/cron/backup` แล้ว (ลบเฉพาะแถวข้อมูลเก่า)
+8. `supabase/profiles_lockdown_01.sql` (ปิดช่องโหว่ตาราง profiles: ลบนโยบายที่ให้ผู้ใช้แก้แถวตัวเอง และให้ `current_role_is` ไม่นับบัญชีที่ปิดแล้ว) รันหลัง consent_01 ไม่กระทบการทำงานของแอป (แอปไม่เคยให้ผู้ใช้แก้โปรไฟล์ตัวเอง) รันได้ทุกเวลา
+9. ชุดตรวจสอบ (check sets) ของ `facility_02_cleaning.sql`, `control_01.sql`, `control_02.sql`, `census_01.sql`, `consent_01.sql` และ `profiles_lockdown_01.sql`
+10. `supabase/facility_99_reset_old_data.sql` รันเฉพาะตอนสลับขึ้นระบบจริง หลังสำรองข้อมูลด้วย `/api/cron/backup` แล้ว (ลบเฉพาะแถวข้อมูลเก่า)
 
 **คำเตือน:** `src/lib/backup.ts` อ่านตารางของโมดูลควบคุมภายใน (`control_missions`, `control_projects`, `control_actions`) ด้วย ต้องรัน `supabase/control_01.sql` **ก่อน** deploy โค้ดชุดนี้ (หรือรันทันทีที่ deploy เสร็จ) ถ้ายังไม่มีตาราง การสำรองข้อมูลประจำคืนจะล้มเหลวจนกว่าจะรันไฟล์นี้ เช่นเดียวกัน `src/lib/backup.ts` อ่านตาราง `control_assessments` ด้วย ต้องรัน `supabase/control_02.sql` **ก่อน** deploy โค้ดที่อ่านตารางนี้ (หรือรันทันทีที่ deploy เสร็จ) ไม่งั้นการสำรองข้อมูลประจำคืนจะล้มเหลวเช่นกัน และ `src/lib/backup.ts` อ่านตาราง `census_students` ด้วย ต้องรัน `supabase/census_01.sql` **ก่อน** deploy โค้ดที่อ่านตารางนี้ (หรือรันทันทีที่ deploy เสร็จ) ไม่งั้นการสำรองข้อมูลประจำคืนจะล้มเหลวเช่นกัน
 
