@@ -1,6 +1,5 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
 import { startTransition, useActionState, useRef, type FormEvent } from "react";
 
 import {
@@ -149,8 +148,8 @@ function Fields({
   );
 }
 
-/** One classroom, folded to a summary line; open it to edit name, building, zone and advisors. */
-export function ClassroomForm({
+/** The edit body of one classroom: advisors and the details form. Used folded (ClassroomForm) and in the side panel. */
+export function RoomEditor({
   room,
   buildings,
   editAdvisors,
@@ -161,31 +160,8 @@ export function ClassroomForm({
   editAdvisors: boolean;
 }) {
   const { ref, state, pending, onSubmit } = useSave(false);
-  const building = buildings.find((b) => b.id === room.buildingId)?.name;
   return (
-    <details className={cn("group", !room.isActive && "opacity-70")}>
-      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 rounded-lg px-2 py-3 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 [&::-webkit-details-marker]:hidden">
-        <span className="min-w-0 flex-1">
-          <span className="font-medium">{room.name}</span>
-          {!room.isActive && (
-            <span className="ml-2 text-xs text-muted-foreground">
-              (ปิดใช้งาน)
-            </span>
-          )}
-          <span className="block truncate text-sm text-muted-foreground">
-            {[building, room.zone || "ยังไม่กำหนดเขต"].filter(Boolean).join(" · ")}
-          </span>
-          <span className="block truncate text-xs text-muted-foreground">
-            {room.advisorEmails.length > 0
-              ? room.advisorEmails.join(", ")
-              : "ยังไม่มีครูที่ปรึกษา"}
-          </span>
-        </span>
-        <ChevronDown
-          className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
-          aria-hidden
-        />
-      </summary>
+    <>
       {editAdvisors && <AdvisorPanel room={room} />}
       <form
         key={room.advisorEmails.join()}
@@ -214,7 +190,7 @@ export function ClassroomForm({
           {pending ? "กำลังบันทึก..." : "บันทึก"}
         </Button>
       </form>
-    </details>
+    </>
   );
 }
 
