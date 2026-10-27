@@ -1,17 +1,19 @@
 "use client";
 
 import { AlertCircle, Check, CheckCircle2, ImageIcon, Minus } from "lucide-react";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 import {
+  cancelCleaning,
   confirmCleaning,
   type ConfirmResult,
 } from "@/app/(dashboard)/cleaning/actions";
+import { CancelConfirmation } from "@/components/cleaning/cancel-confirmation";
 import { WeekStrip, type WeekDay } from "@/components/cleaning/week-strip";
 import { ImagePicker } from "@/components/tickets/image-picker";
 import { Button } from "@/components/ui/button";
 import type { ClassroomRow } from "@/lib/data/cleaning";
-import { formatDayShort } from "@/lib/time";
+import { addDays, formatDayShort } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
 const PILL: Record<string, { label: string; icon: typeof Check; className: string }> = {
@@ -44,6 +46,17 @@ export function ConfirmCard({
     ConfirmResult | null,
     FormData
   >(confirmCleaning, null);
+  const [cancelState, cancelAction, cancelPending] = useActionState<
+    ConfirmResult | null,
+    FormData
+  >(cancelCleaning, null);
+  // Only the newest result is shown, and a successful cancel takes focus (its button is gone by then).
+  const [last, setLast] = useState<"confirm" | "cancel">("confirm");
+  const shown = last === "confirm" ? state : cancelState;
+  const resultRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (last === "cancel" && cancelState?.ok) resultRef.current?.focus();
+  }, [last, cancelState]);
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -57,6 +70,9 @@ export function ConfirmCard({
   const hasMissed = earlier.length > 0 || days.some((d) => d.state === "missed");
   const pill = PILL[todayStatus.state] ?? PILL.off;
   const done = todayStatus.confirmation;
+  // Yesterday sits in this week's strip whenever it was a school day; only a confirmed one can be undone.
+  const yesterday = addDays(today, -1);
+  const prevDone = days.find((d) => d.ymd === yesterday)?.confirmation ?? null;
 
   return (
     <section aria-labelledby={`zone-${classroom.id}`} className="space-y-5">
@@ -113,23 +129,64 @@ export function ConfirmCard({
         </p>
       )}
 
-      {state && (
+      {done && (
+        <CancelConfirmation
+          classroomId={classroom.id}
+          day={today}
+          dayWord="วันนี้"
+          hasPhotos={done.photos > 0}
+          action={(fd) => {
+            setLast("cancel");
+            cancelAction(fd);
+          }}
+          pending={cancelPending}
+        />
+      )}
+      {prevDone && (
+        <div className="space-y-1">
+          <p className="text-sm text-muted-foreground">
+            เมื่อวาน ({formatDayShort(yesterday)}) ยืนยันแล้วโดย {prevDone.byName}
+          </p>
+          <CancelConfirmation
+            classroomId={classroom.id}
+            day={yesterday}
+            dayWord="เมื่อวาน"
+            hasPhotos={prevDone.photos > 0}
+            action={(fd) => {
+              setLast("cancel");
+              cancelAction(fd);
+            }}
+            pending={cancelPending}
+          />
+        </div>
+      )}
+
+      {shown && (
         <p
-          role={state.ok ? "status" : "alert"}
+          ref={resultRef}
+          tabIndex={-1}
+          role={shown.ok ? "status" : "alert"}
           className={cn(
-            "rounded-lg p-3 text-sm",
-            state.ok
+            "rounded-lg p-3 text-sm outline-none",
+            shown.ok
               ? "border border-emerald-500/40 bg-emerald-500/10"
               : "border border-destructive/40 bg-destructive/5 text-destructive",
           )}
         >
-          {state.message}
+          {shown.message}
         </p>
       )}
 
       {target && (
         // Keyed by day so switching days starts with an empty photo list.
-        <form key={target} action={action} className="space-y-3">
+        <form
+          key={target}
+          action={(fd) => {
+            setLast("confirm");
+            action(fd);
+          }}
+          className="space-y-3"
+        >
           <input type="hidden" name="classroom_id" value={classroom.id} />
           {/* Only a late confirmation names its day; for today the server uses its own Bangkok date. */}
           {late && <input type="hidden" name="day" value={late} />}

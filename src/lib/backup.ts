@@ -20,6 +20,7 @@ export const BACKUP_TABLES = [
   "classroom_advisors",
   "school_off_days",
   "cleaning_confirmations",
+  "cleaning_cancellations",
   "control_missions",
   "control_projects",
   "control_actions",
