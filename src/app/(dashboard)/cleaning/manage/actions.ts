@@ -40,7 +40,7 @@ function revalidate() {
 }
 
 /**
- * Advisor emails to profile ids. Every email must belong to an active account: a teacher gets a
+ * Advisor emails to profile ids. Every email must belong to an active, non-executive account (an advisor row opens the student roster, which executives must not see): a teacher gets a
  * profile only after signing in once. Returns the ids, or one message per bad email.
  */
 async function resolveEmails(db: Db, emails: string[]) {
@@ -48,15 +48,16 @@ async function resolveEmails(db: Db, emails: string[]) {
   const { data, error } =
     emails.length === 0
       ? { data: [], error: null }
-      : await db.from("profiles").select("id, email, is_active").in("email", [...new Set(emails)]);
+      : await db.from("profiles").select("id, email, is_active, role").in("email", [...new Set(emails)]);
   if (error) return null;
   const byEmail = new Map(
-    (data as { id: string; email: string; is_active: boolean }[]).map((p) => [p.email.toLowerCase(), p]),
+    (data as { id: string; email: string; is_active: boolean; role: string }[]).map((p) => [p.email.toLowerCase(), p]),
   );
   const problem = (e: string) => {
     const p = byEmail.get(e);
     if (!p) return `ไม่พบบัญชีของ ${e} (ครูต้องเข้าสู่ระบบด้วยอีเมลนี้อย่างน้อยหนึ่งครั้งก่อน)`;
     if (!p.is_active) return `บัญชีของ ${e} ถูกปิดใช้งาน`;
+    if (p.role === "executive") return `${e} เป็นผู้บริหาร เป็นครูที่ปรึกษาไม่ได้`;
     return null;
   };
   return { idOf: (e: string) => byEmail.get(e)!.id, problem };

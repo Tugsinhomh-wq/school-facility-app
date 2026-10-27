@@ -44,3 +44,23 @@ export function advisorDiff(ticked: string[], current: string[], termRoomIds: st
     remove: [...have].filter((id) => !want.has(id)),
   };
 }
+
+/** True when both lists hold the same ids, ignoring order, case and duplicates. */
+export function sameIdSet(a: string[], b: string[]) {
+  const x = new Set(a.map((id) => id.toLowerCase()));
+  const y = new Set(b.map((id) => id.toLowerCase()));
+  return x.size === y.size && [...x].every((id) => y.has(id));
+}
+
+/**
+ * What saving the advisor form changes, judged against the rooms the admin was actually shown.
+ * Refuses (writes nothing) when `shown` is not exactly the current latest-term room set (a room was
+ * added, removed or reactivated, or the term changed since the page loaded) or a ticked id was not
+ * shown. Otherwise the diff covers only the shown rooms, so other rooms are never touched.
+ */
+export function planAdvisorSave(shown: string[], ticked: string[], current: string[], latestIds: string[]) {
+  if (shown.length === 0 || !sameIdSet(shown, latestIds)) return { error: "stale" as const };
+  const seen = new Set(shown.map((id) => id.toLowerCase()));
+  if (ticked.some((id) => !seen.has(id.toLowerCase()))) return { error: "unshown" as const };
+  return advisorDiff(ticked, current, shown);
+}
