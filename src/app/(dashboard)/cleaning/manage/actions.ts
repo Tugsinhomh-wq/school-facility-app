@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 
+import { parseUuidList } from "@/lib/advisors";
+import { latestTermRooms } from "@/lib/data/advisors";
 import { HEADERS, parseClassroomRows, type ImportError } from "@/lib/cleaning-import";
 import { readSheet } from "@/lib/cleaning-sheet";
 import { getSession, hasSupabase, isFacilityOfficer } from "@/lib/data/session";
@@ -137,6 +139,54 @@ export async function saveClassroom(_prev: SetupResult, formData: FormData): Pro
   if (!advisorsOk)
     return { ok: false, message: `บันทึกห้อง ${room.name} แล้ว แต่บันทึกครูที่ปรึกษาไม่สำเร็จ กรุณากดบันทึกอีกครั้ง` };
   return { ok: true, message: id ? `บันทึกห้อง ${room.name} แล้ว` : `เพิ่มห้อง ${room.name} แล้ว` };
+}
+
+/**
+ * Add one teacher to, or remove one from, a room's advisors (latest term, active rooms only).
+ * Fields: classroom_id plus either `add` (the teacher's email) or `remove` (the teacher's id).
+ * The last advisor cannot be removed: add the new teacher first.
+ */
+export async function changeRoomAdvisor(_prev: SetupResult, formData: FormData): Promise<SetupResult> {
+  const room = parseUuidList([field(formData, "classroom_id")]);
+  const email = field(formData, "add").toLowerCase();
+  const removeId = field(formData, "remove");
+  const drop = removeId ? parseUuidList([removeId]) : null;
+  if (room?.length !== 1 || (removeId ? drop?.length !== 1 : !email))
+    return { ok: false, message: email || removeId ? "ข้อมูลไม่ถูกต้อง ลองโหลดหน้าใหม่" : "พิมพ์ชื่อหรืออีเมลของครู แล้วเลือกจากรายการ" };
+
+  const db = await officerDb();
+  if (!isDb(db)) return db;
+  const latest = await latestTermRooms(db);
+  if (!latest) return { ok: false, message: "ตรวจสอบห้องไม่สำเร็จ ลองใหม่อีกครั้ง" };
+  const target = latest.rooms.find((r) => r.id === room[0]);
+  if (!target) return { ok: false, message: "ห้องนี้ไม่อยู่ในภาคเรียนล่าสุดหรือปิดใช้งานแล้ว ลองโหลดหน้าใหม่" };
+
+  if (drop) {
+    const { data, error } = await db.from("classroom_advisors").select("user_id").eq("classroom_id", target.id);
+    if (error) return { ok: false, message: "ถอดครูไม่สำเร็จ ลองใหม่อีกครั้ง" };
+    const ids = (data as { user_id: string }[]).map((a) => a.user_id);
+    if (!ids.includes(drop[0])) return { ok: true, message: `ห้อง ${target.name} ไม่มีครูคนนี้แล้ว` };
+    if (ids.length === 1)
+      return { ok: false, message: `ห้อง ${target.name} ต้องมีครูที่ปรึกษาอย่างน้อยหนึ่งคน เพิ่มครูคนใหม่ก่อนแล้วจึงถอด` };
+    const del = await db.from("classroom_advisors").delete().eq("classroom_id", target.id).eq("user_id", drop[0]);
+    if (del.error) return { ok: false, message: "ถอดครูไม่สำเร็จ ลองใหม่อีกครั้ง" };
+    revalidate();
+    return { ok: true, message: `ถอดครูออกจากห้อง ${target.name} แล้ว` };
+  }
+
+  const people = await resolveEmails(db, [email]);
+  if (!people) return { ok: false, message: "ตรวจสอบอีเมลครูไม่สำเร็จ ลองใหม่อีกครั้ง" };
+  const bad = people.problem(email);
+  if (bad) return { ok: false, message: bad };
+  const add = await db
+    .from("classroom_advisors")
+    .upsert([{ classroom_id: target.id, user_id: people.idOf(email) }], {
+      onConflict: "classroom_id,user_id",
+      ignoreDuplicates: true,
+    });
+  if (add.error) return { ok: false, message: "เพิ่มครูไม่สำเร็จ ลองใหม่อีกครั้ง" };
+  revalidate();
+  return { ok: true, message: `เพิ่มครูที่ปรึกษาห้อง ${target.name} แล้ว` };
 }
 
 /**

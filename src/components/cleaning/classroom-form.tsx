@@ -7,6 +7,7 @@ import {
   saveClassroom,
   type SetupResult,
 } from "@/app/(dashboard)/cleaning/manage/actions";
+import { AdvisorPanel } from "@/components/cleaning/advisor-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -144,9 +145,12 @@ function Fields({
 export function ClassroomForm({
   room,
   buildings,
+  editAdvisors,
 }: {
   room: SetupRoom;
   buildings: Building[];
+  /** True for active rooms of the latest term: advisors can be added and removed one by one. */
+  editAdvisors: boolean;
 }) {
   const { ref, state, pending, onSubmit } = useSave(false);
   const building = buildings.find((b) => b.id === room.buildingId)?.name;
@@ -174,7 +178,13 @@ export function ClassroomForm({
           aria-hidden
         />
       </summary>
-      <form ref={ref} onSubmit={onSubmit} className="space-y-3 px-2 pb-4 pt-1">
+      {editAdvisors && <AdvisorPanel room={room} />}
+      <form
+        key={room.advisorEmails.join()}
+        ref={ref}
+        onSubmit={onSubmit}
+        className="space-y-3 px-2 pb-4 pt-1"
+      >
         <input type="hidden" name="id" value={room.id} />
         <Fields room={room} buildings={buildings} idp={room.id} />
         <label className="flex min-h-11 items-center gap-2 text-sm">

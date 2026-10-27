@@ -2,7 +2,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { EmptyState, LoadError } from "@/components/ui/state-card";
-import { UserRow, type UserItem } from "@/components/users/user-row";
+import {
+  UserRow,
+  type AdvisorInfo,
+  type UserItem,
+} from "@/components/users/user-row";
+import { groupRoomsByLevel } from "@/lib/advisors";
+import { compareRoomNames } from "@/lib/cleaning";
+import { latestTermRooms } from "@/lib/data/advisors";
 import { getSession } from "@/lib/data/session";
 import { ROLE_LABEL } from "@/lib/ticket-meta";
 import { cn } from "@/lib/utils";
@@ -38,6 +45,34 @@ export default async function UsersPage({
   const { data, error } = await query;
   const users = (data ?? []) as UserItem[];
 
+  // Latest term's rooms and who advises them. A failed lookup only hides the advisor parts.
+  const latest = await latestTermRooms(session.supabase);
+  const roomIds = latest?.rooms.map((r) => r.id) ?? [];
+  const advised =
+    roomIds.length > 0
+      ? await session.supabase
+          .from("classroom_advisors")
+          .select("user_id, classroom_id")
+          .in("classroom_id", roomIds)
+      : null;
+  const roomName = new Map(latest?.rooms.map((r) => [r.id, r.name]));
+  const advisorOf = (userId: string): AdvisorInfo | null => {
+    if (!latest?.term || latest.rooms.length === 0 || advised?.error)
+      return null;
+    // shortcut: every row carries the full room list (about 40 rooms each); fetch it on open if the user list grows past a few hundred.
+    const selected = (advised?.data ?? [])
+      .filter((a) => a.user_id === userId)
+      .map((a) => a.classroom_id as string);
+    return {
+      term: latest.term,
+      levels: groupRoomsByLevel(latest.rooms),
+      selected,
+      names: selected
+        .map((id) => roomName.get(id) ?? "")
+        .sort(compareRoomNames),
+    };
+  };
+
   const chip = (key: string, label: string) => (
     <Link
       key={key}
@@ -60,7 +95,8 @@ export default async function UsersPage({
         จัดการผู้ใช้
       </h1>
       <p className="mt-1 text-muted-foreground">
-        เปลี่ยนบทบาท แก้ชื่อและตำแหน่ง หรือปิดบัญชี เห็นเฉพาะผู้ดูแลระบบ
+        เปลี่ยนบทบาท แก้ชื่อและตำแหน่ง กำหนดห้องที่ปรึกษา หรือปิดบัญชี
+        เห็นเฉพาะผู้ดูแลระบบ
       </p>
 
       <form className="mt-6 flex gap-2" role="search">
@@ -95,7 +131,12 @@ export default async function UsersPage({
           </p>
           <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border">
             {users.map((u) => (
-              <UserRow key={u.id} user={u} isSelf={u.id === session.userId} />
+              <UserRow
+                key={u.id}
+                user={u}
+                isSelf={u.id === session.userId}
+                advisor={advisorOf(u.id)}
+              />
             ))}
           </ul>
         </>
