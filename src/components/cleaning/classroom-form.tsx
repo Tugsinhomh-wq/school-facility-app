@@ -231,7 +231,7 @@ export function AddClassroomForm({
     <form
       ref={ref}
       onSubmit={onSubmit}
-      className="space-y-3 border-t border-border pt-6"
+      className="space-y-3"
     >
       <h3 className="text-sm font-medium text-muted-foreground">
         เพิ่มห้องเรียน{term && ` ในภาคเรียน ${term}`}
