@@ -33,16 +33,28 @@ export const getSession = cache(async () => {
   const supabase = await createClient();
   const { data: auth } = await getAuth(supabase);
   if (!auth.user) return null;
-  const { data: profile } = await supabase
+  let { data: profile, error } = await supabase
     .from("profiles")
-    .select("full_name, role")
+    .select("full_name, role, consent_version")
     .eq("id", auth.user.id)
     .maybeSingle();
+  // consent_01.sql not run yet: read the profile without the column and let the consent gate fail open.
+  if (error?.code === "42703") {
+    console.error("consent gate open: profiles.consent_version missing", error.code);
+    ({ data: profile } = await supabase
+      .from("profiles")
+      .select("full_name, role")
+      .eq("id", auth.user.id)
+      .maybeSingle());
+    error = null;
+  }
   const viewer: Viewer = {
     name: profile?.full_name ?? auth.user.email ?? "ผู้ใช้",
     role: (profile?.role as UserRole | undefined) ?? "user",
   };
-  return { supabase, viewer, userId: auth.user.id };
+  // undefined = could not read it (column missing, query failed, no profile row): the gate lets the user through.
+  const consentVersion = error || !profile ? undefined : ((profile.consent_version as string | null) ?? null);
+  return { supabase, viewer, userId: auth.user.id, consentVersion, metaConsentVersion: auth.user.consentVersion };
 });
 
 /** Executives see the summary page only: any other page sends them there. */

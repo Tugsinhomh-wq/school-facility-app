@@ -1,9 +1,11 @@
+import { POLICY_VERSION, policyDateThai } from "@/lib/policy";
+
 export const metadata = {
   title: "นโยบายความเป็นส่วนตัว | สำนักงานออนไลน์ โรงเรียนละหานทรายรัชดาภิเษก",
 };
 
-// Revise this date whenever the text changes; sign-up stores the version the user accepted.
-export const POLICY_UPDATED = "22 ตุลาคม 2569";
+// Raise POLICY_VERSION (src/lib/policy.ts) whenever the text changes: everyone is asked to accept again.
+const POLICY_UPDATED = policyDateThai(POLICY_VERSION);
 
 export default function PrivacyPage() {
   return (

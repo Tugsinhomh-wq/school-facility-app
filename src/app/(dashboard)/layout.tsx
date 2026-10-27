@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { AppSidebar } from "@/components/layout/app-sidebar";
@@ -7,6 +8,7 @@ import { LastPageTracker } from "@/components/layout/last-page-tracker";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { QuickReportFab } from "@/components/layout/quick-report-fab";
 import { getSession } from "@/lib/data/session";
+import { needsConsent } from "@/lib/policy";
 
 /**
  * Shared frame for every signed-in page: sidebar on desktop, tab bar on phones. Living in a
@@ -18,6 +20,10 @@ export default async function DashboardLayout({
   children: ReactNode;
 }) {
   const session = await getSession();
+  // Consent record, not an authorization boundary. undefined = unreadable (SQL not run yet): fail open.
+  // /consent lives outside this layout and applies the same test, so the two cannot loop.
+  if (session && session.consentVersion !== undefined && needsConsent(session.consentVersion, session.metaConsentVersion))
+    redirect("/consent");
   const viewer = session?.viewer ?? null;
   return (
     <div className="min-h-screen md:flex">
