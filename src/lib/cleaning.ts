@@ -1,4 +1,4 @@
-import { addDays, weekdayIndex } from "./time.ts";
+import { addDays, isYmd, weekdayIndex } from "./time.ts";
 
 export type DayState = "confirmed" | "late" | "pending" | "missed" | "off" | "future";
 export type Confirmation = { isLate: boolean; byName: string };
@@ -62,3 +62,11 @@ export function weekTally(days: { state: DayState }[]) {
   }
   return { done, due };
 }
+
+/** A confirmation can be cancelled only on its own day or the next (the `cancel_cleaning` RPC enforces it). */
+export const canCancelDay = (day: string, today: string) =>
+  isYmd(day) && isYmd(today) && (day === today || day === addDays(today, -1));
+
+/** A storage path the app may delete after a cancellation: "<uuid>/<file>" in the bucket, nothing that climbs out of it. */
+export const isPhotoPath = (p: unknown): p is string =>
+  typeof p === "string" && !p.includes("..") && /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}\/[^/\s]+$/i.test(p);
