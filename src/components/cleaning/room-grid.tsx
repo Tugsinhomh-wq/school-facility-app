@@ -27,12 +27,21 @@ const CONFIRMED_PILL =
  * Today's status of every room, in the order given (the page puts unconfirmed rooms first).
  * A room still waiting for today's confirmation has a red border.
  */
-export function RoomGrid({ rooms, today }: { rooms: RoomToday[]; today: string }) {
+export function RoomGrid({
+  rooms,
+  today,
+  offLabel = "วันหยุด",
+}: {
+  rooms: RoomToday[];
+  today: string;
+  /** What a not-due day is called: "วันหยุด", or "ยังไม่อยู่ในช่วงเช็ก" outside the check window. */
+  offLabel?: string;
+}) {
   return (
     <ul className="grid grid-cols-1 gap-2.5 min-[480px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {rooms.map(({ room, state, confirmation: c }) => {
         const missing = state === "pending";
-        const pill = c ? null : PILL[state];
+        const pill = c ? null : state === "off" ? { ...PILL.off!, label: offLabel } : PILL[state];
         const advisors = room.advisors.map((a) => a.name).join(", ");
         return (
           <li

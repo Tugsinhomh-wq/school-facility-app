@@ -1,4 +1,5 @@
-import { compareRoomNames, type Confirmation } from "@/lib/cleaning";
+import { compareRoomNames, NO_WINDOW, type CheckWindow, type Confirmation } from "@/lib/cleaning";
+import { getCheckWindow } from "@/lib/data/cleaning-window";
 import { getSession } from "@/lib/data/session";
 import { addDays, bangkokYmd } from "@/lib/time";
 
@@ -19,6 +20,8 @@ export type CleaningWeek = {
   /** Outer key classroom id, inner key YYYY-MM-DD. */
   confirmations: Map<string, Map<string, WeekConfirmation>>;
   offDays: Set<string>;
+  /** The check window: days outside it are not due (no window = every school day). */
+  window: CheckWindow;
   /** Signed in, but loading failed: show an error with a retry instead of sample data. */
   failed?: boolean;
 };
@@ -77,7 +80,7 @@ export const DEMO_ROWS: ClassroomRow[] = [
   },
 ];
 
-/** Confirmations and off days for Mon-Fri of the week starting at `monday`. */
+/** Confirmations, off days and the check window for Mon-Fri of the week starting at `monday`. */
 export async function getWeek(
   classroomIds: string[],
   monday: string,
@@ -86,7 +89,7 @@ export async function getWeek(
   try {
     const s = await getSession();
     if (!s) return demoWeek(monday);
-    const [confirmations, offDays] = await Promise.all([
+    const [confirmations, offDays, window] = await Promise.all([
       classroomIds.length === 0
         ? Promise.resolve({ data: [], error: null })
         : s.supabase
@@ -102,9 +105,10 @@ export async function getWeek(
         .select("day")
         .gte("day", monday)
         .lte("day", friday),
+      getCheckWindow(),
     ]);
     if (confirmations.error || offDays.error) return emptyWeek(true);
-    const week = emptyWeek();
+    const week = { ...emptyWeek(), window };
     for (const c of confirmations.data as {
       classroom_id: string;
       day: string;
@@ -132,6 +136,7 @@ export async function getWeek(
 const emptyWeek = (failed?: boolean): CleaningWeek => ({
   confirmations: new Map(),
   offDays: new Set(),
+  window: NO_WINDOW,
   ...(failed ? { failed } : {}),
 });
 

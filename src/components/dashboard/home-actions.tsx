@@ -65,7 +65,7 @@ export function buildRows({ base, repairs, rooms, counts, mine, followUp }: Home
       key: "mine-cleaning",
       icon: Sparkles,
       title: open.length > 0 ? `ยืนยันเขตทำความสะอาด ${open.length} ห้อง` : "เขตทำความสะอาดวันนี้",
-      status: open.length > 0 ? { label: "ยังไม่ยืนยัน", tone: "alert" } : done ? { label: "ยืนยันแล้ว", tone: "ok" } : { label: "วันหยุด", tone: "quiet" },
+      status: open.length > 0 ? { label: "ยังไม่ยืนยัน", tone: "alert" } : done ? { label: "ยืนยันแล้ว", tone: "ok" } : { label: mine.outside ? "ยังไม่อยู่ในช่วงเช็ก" : "วันหยุด", tone: "quiet" },
       detail: (open.length > 0 ? open : mine.rows).map((r) => r.name).join(" · "),
       href: counts ? "/cleaning?view=mine" : "/cleaning",
       todo: open.length,
@@ -124,17 +124,20 @@ export function buildRows({ base, repairs, rooms, counts, mine, followUp }: Home
     if ("failed" in counts) {
       rows.push({ key: "cleaning", icon: Sparkles, title: "เขตทำความสะอาด", status: { label: "โหลดไม่สำเร็จ แตะเพื่อลองใหม่", tone: "alert" }, href: "/cleaning", todo: 0 });
     } else {
-      const missing = counts.off ? 0 : Math.max(0, counts.total - counts.confirmed);
+      const quiet = counts.off || counts.outside;
+      const missing = quiet ? 0 : Math.max(0, counts.total - counts.confirmed);
       rows.push({
         key: "cleaning",
         icon: Sparkles,
-        title: counts.off || counts.total === 0 ? "เขตทำความสะอาด" : `ห้องเรียนยังไม่ยืนยันเขต ${missing} ห้อง`,
+        title: quiet || counts.total === 0 ? "เขตทำความสะอาด" : `ห้องเรียนยังไม่ยืนยันเขต ${missing} ห้อง`,
         detail:
           counts.total === 0
             ? "ยังไม่มีห้องเรียนในภาคเรียนนี้"
-            : counts.off
-              ? "วันนี้เป็นวันหยุด ไม่ต้องยืนยัน"
-              : `ยืนยันแล้ว ${counts.confirmed} / ${counts.total} ห้อง`,
+            : counts.outside
+              ? "ยังไม่อยู่ในช่วงเช็ก ไม่ต้องยืนยัน"
+              : counts.off
+                ? "วันนี้เป็นวันหยุด ไม่ต้องยืนยัน"
+                : `ยืนยันแล้ว ${counts.confirmed} / ${counts.total} ห้อง`,
         href: "/cleaning?only=missing",
         todo: missing,
       });

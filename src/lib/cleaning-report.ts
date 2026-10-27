@@ -1,4 +1,4 @@
-import { compareRoomNames, dayState, weekTally } from "./cleaning.ts";
+import { compareRoomNames, dayState, weekTally, type CheckWindow } from "./cleaning.ts";
 import { addDays } from "./time.ts";
 
 export type ReportRoom = {
@@ -32,12 +32,15 @@ export function reportRows({
   to,
   today,
   offDays,
+  window,
 }: {
   rooms: ReportRoom[];
   from: string;
   to: string;
   today: string;
   offDays: ReadonlySet<string>;
+  /** Days outside the check window are not due, like off days. */
+  window?: CheckWindow | null;
 }) {
   const last = to < today ? to : today;
 
@@ -52,6 +55,7 @@ export function reportRows({
           ymd,
           today,
           offDays,
+          window,
           confirmation: confirmed.has(ymd)
             ? { isLate: false, byName: "" }
             : null,

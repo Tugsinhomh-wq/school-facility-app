@@ -5,7 +5,9 @@ import {
   toRows,
   type ClassroomRow,
 } from "@/lib/data/cleaning";
+import { getCheckWindow } from "@/lib/data/cleaning-window";
 import { getSession, isFacilityOfficer } from "@/lib/data/session";
+import { inCheckWindow, type CheckWindow } from "@/lib/cleaning";
 import type { ReportRoom } from "@/lib/cleaning-report";
 import { bangkokYmd, weekdayIndex } from "@/lib/time";
 
@@ -34,10 +36,11 @@ export async function getAllClassrooms(): Promise<{
 /**
  * Today's progress across the latest term's active classrooms. null = not an officer (show nothing);
  * `{ failed: true }` = an officer whose data failed to load (show an error with retry).
- * `off` = today is a weekend or a school off day, so nobody has to confirm.
+ * `off` = today is a weekend or a school off day, so nobody has to confirm; `outside` = today is
+ * outside the check window, so nobody has to either.
  */
 export type TodayCounts =
-  | { confirmed: number; total: number; off: boolean }
+  | { confirmed: number; total: number; off: boolean; outside: boolean }
   | { failed: true }
   | null;
 
@@ -48,23 +51,25 @@ export async function getTodayCounts(): Promise<TodayCounts> {
     if (!s || !isFacilityOfficer(s.viewer.role)) return null;
     officer = true;
     const today = bangkokYmd(new Date());
-    const [rooms, offDay] = await Promise.all([
+    const [rooms, offDay, window] = await Promise.all([
       s.supabase.from("classrooms").select("id, term").eq("is_active", true),
       s.supabase.from("school_off_days").select("day").eq("day", today),
+      getCheckWindow(),
     ]);
     if (rooms.error || offDay.error) return { failed: true };
     const off = weekdayIndex(today) >= 5 || offDay.data.length > 0;
+    const outside = !inCheckWindow(today, window);
     const current = latestTerm(
       rooms.data as { id: string; term: string }[],
     ).map((r) => r.id);
-    if (current.length === 0) return { confirmed: 0, total: 0, off };
+    if (current.length === 0) return { confirmed: 0, total: 0, off, outside };
     const { count, error } = await s.supabase
       .from("cleaning_confirmations")
       .select("id", { count: "exact", head: true })
       .eq("day", today)
       .in("classroom_id", current);
     if (error) return { failed: true };
-    return { confirmed: count ?? 0, total: current.length, off };
+    return { confirmed: count ?? 0, total: current.length, off, outside };
   } catch {
     // Failing before the role is known means we cannot tell; show nothing rather than a false error.
     return officer ? { failed: true } : null;
@@ -107,13 +112,13 @@ const PAGE = 1000;
 
 /**
  * Inputs of the Excel summary for `from`..`to`: the latest term's active rooms, the days each was
- * confirmed, and the school off days. Officers only; null = not an officer.
+ * confirmed, the school off days and the check window. Officers only; null = not an officer.
  */
 export async function getReportData(
   from: string,
   to: string,
 ): Promise<
-  { rooms: ReportRoom[]; offDays: Set<string> } | { failed: true } | null
+  { rooms: ReportRoom[]; offDays: Set<string>; window: CheckWindow } | { failed: true } | null
 > {
   try {
     const s = await getSession();
@@ -168,6 +173,7 @@ export async function getReportData(
         confirmed: confirmed.get(r.id) ?? new Set<string>(),
       })),
       offDays: new Set((off.data as { day: string }[]).map((o) => o.day)),
+      window: await getCheckWindow(),
     };
   } catch {
     return { failed: true };

@@ -7,7 +7,7 @@ import { latestTermRooms } from "@/lib/data/advisors";
 import { HEADERS, parseClassroomRows, type ImportError } from "@/lib/cleaning-import";
 import { readSheet } from "@/lib/cleaning-sheet";
 import { getSession, hasSupabase, isFacilityOfficer } from "@/lib/data/session";
-import { isYmd } from "@/lib/time";
+import { addDays, bangkokYmd, isYmd } from "@/lib/time";
 
 export type SetupResult = { ok: boolean; message: string; errors?: ImportError[] } | null;
 
@@ -381,4 +381,44 @@ export async function removeOffDay(formData: FormData): Promise<SetupResult> {
   if (error) return { ok: false, message: "ลบวันหยุดไม่สำเร็จ ลองใหม่อีกครั้ง" };
   revalidate();
   return { ok: true, message: "ลบวันหยุดแล้ว" };
+}
+
+/** ±2 years around today: far enough for a school year, close enough to catch a typo in the year. */
+const WINDOW_SPAN_DAYS = 730;
+
+/**
+ * Set (or clear) the cleaning check window. super_admin only, checked here and again by RLS on
+ * cleaning_settings. Both dates are optional; "clear" (intent=clear) or two empty dates = every school day.
+ */
+export async function saveCheckWindow(_prev: SetupResult, formData: FormData): Promise<SetupResult> {
+  if (!hasSupabase()) return DEMO;
+  const s = await getSession();
+  if (!s) return { ok: false, message: "เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่" };
+  if (s.viewer.role !== "super_admin") return { ok: false, message: "เฉพาะผู้ดูแลระบบเท่านั้นที่ตั้งช่วงวันที่เช็กได้" };
+
+  const clear = field(formData, "intent") === "clear";
+  const start = clear ? "" : field(formData, "check_start");
+  const end = clear ? "" : field(formData, "check_end");
+  if ((start && !isYmd(start)) || (end && !isYmd(end))) return { ok: false, message: "วันที่ไม่ถูกต้อง เลือกวันที่ใหม่อีกครั้ง" };
+  if (start && end && end < start) return { ok: false, message: "วันสิ้นสุดต้องไม่ก่อนวันเริ่ม" };
+  const today = bangkokYmd(new Date());
+  const [min, max] = [addDays(today, -WINDOW_SPAN_DAYS), addDays(today, WINDOW_SPAN_DAYS)];
+  if ([start, end].some((d) => d && (d < min || d > max)))
+    return { ok: false, message: "วันที่ห่างจากวันนี้เกิน 2 ปี ตรวจสอบปีอีกครั้ง" };
+
+  const { error } = await s.supabase
+    .from("cleaning_settings")
+    .upsert({ id: true, check_start: start || null, check_end: end || null }, { onConflict: "id" });
+  if (error) {
+    console.error("saveCheckWindow failed", error.code);
+    if (error.code === "PGRST205" || error.code === "42P01")
+      return { ok: false, message: "ระบบยังไม่พร้อม แจ้งผู้ดูแลระบบรันไฟล์ cleaning_03.sql" };
+    if (error.code === "42501") return { ok: false, message: "ไม่มีสิทธิ์ตั้งช่วงวันที่เช็ก" };
+    return { ok: false, message: "บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง" };
+  }
+  revalidate();
+  return {
+    ok: true,
+    message: !start && !end ? "ล้างช่วงแล้ว เช็กทุกวันทำการ" : "บันทึกช่วงวันที่เช็กแล้ว",
+  };
 }

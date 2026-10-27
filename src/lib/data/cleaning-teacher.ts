@@ -1,4 +1,4 @@
-import { dayState, type DayState } from "@/lib/cleaning";
+import { dayState, inCheckWindow, type DayState } from "@/lib/cleaning";
 import {
   CLASSROOM_SELECT,
   DEMO_ROWS,
@@ -40,10 +40,11 @@ export async function getMyClassrooms(): Promise<{
 
 /**
  * Today's state of each classroom the signed-in user advises, for the one-line status on the home
- * page. Empty rows = not an advisor (show nothing); `failed` = show an error with retry.
+ * page. Empty rows = not an advisor (show nothing); `failed` = show an error with retry;
+ * `outside` = today is outside the check window (nothing to confirm).
  */
 export async function getMyToday(): Promise<
-  { rows: { id: string; name: string; state: DayState }[]; failed?: undefined } | { failed: true }
+  { rows: { id: string; name: string; state: DayState }[]; outside?: boolean; failed?: undefined } | { failed: true }
 > {
   const mine = await getMyClassrooms();
   if (mine.failed) return { failed: true };
@@ -55,6 +56,7 @@ export async function getMyToday(): Promise<
   );
   if (week.failed) return { failed: true };
   return {
+    outside: !inCheckWindow(today, week.window),
     rows: mine.rows.map((r) => ({
       id: r.id,
       name: r.name,
@@ -62,6 +64,7 @@ export async function getMyToday(): Promise<
         ymd: today,
         today,
         offDays: week.offDays,
+        window: week.window,
         confirmation: week.confirmations.get(r.id)?.get(today) ?? null,
       }),
     })),

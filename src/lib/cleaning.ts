@@ -1,32 +1,77 @@
-import { addDays, isYmd, weekdayIndex } from "./time.ts";
+import { addDays, formatDateShort, isYmd, weekdayIndex } from "./time.ts";
 
 export type DayState = "confirmed" | "late" | "pending" | "missed" | "off" | "future";
 export type Confirmation = { isLate: boolean; byName: string };
 
-/** A confirmation always wins, even on a holiday; otherwise weekends/holidays are off. */
-export function dayState({ ymd, today, offDays, confirmation }: {
+/** The days the cleaning checks apply to (set by the administrator); null = no limit on that side. */
+export type CheckWindow = { start: string | null; end: string | null };
+export const NO_WINDOW: CheckWindow = { start: null, end: null };
+
+/** A date that is not a real YYYY-MM-DD counts as not set, so garbage never turns the checks off. */
+const edge = (d: unknown) => (isYmd(d) ? d : null);
+
+/** Is `day` inside the window? No window, or an empty side, never excludes anything. */
+export function inCheckWindow(day: string, w?: CheckWindow | null) {
+  const start = edge(w?.start);
+  const end = edge(w?.end);
+  return !((start && day < start) || (end && day > end));
+}
+
+/** Where `today` stands: no window set, before it opens, inside it, or after it ended. */
+export function windowStatus(today: string, w?: CheckWindow | null): "none" | "before" | "inside" | "after" {
+  const start = edge(w?.start);
+  const end = edge(w?.end);
+  if (!start && !end) return "none";
+  if (start && today < start) return "before";
+  return end && today > end ? "after" : "inside";
+}
+
+/** The window in words, for the banner and the settings form. */
+export function windowText(w: CheckWindow | null | undefined, today: string) {
+  const start = edge(w?.start);
+  const end = edge(w?.end);
+  switch (windowStatus(today, w)) {
+    case "none":
+      return "เช็กทุกวันทำการ";
+    case "before":
+      return `ยังไม่เปิดเช็ก เริ่มวันที่ ${formatDateShort(start!)}`;
+    case "after":
+      return `สิ้นสุดการเช็กแล้ว เมื่อ ${formatDateShort(end!)}`;
+    default:
+      return start && end
+        ? `เริ่มเช็กวันที่ ${formatDateShort(start)} ถึง ${formatDateShort(end)}`
+        : start
+          ? `เริ่มเช็กวันที่ ${formatDateShort(start)}`
+          : `เช็กถึงวันที่ ${formatDateShort(end!)}`;
+  }
+}
+
+/** A confirmation always wins, even on a holiday; otherwise weekends, holidays and days outside the window are off. */
+export function dayState({ ymd, today, offDays, confirmation, window }: {
   ymd: string;
   today: string;
   offDays: ReadonlySet<string>;
   confirmation: Confirmation | null;
+  window?: CheckWindow | null;
 }): DayState {
   if (confirmation) return confirmation.isLate ? "late" : "confirmed";
-  if (weekdayIndex(ymd) >= 5 || offDays.has(ymd)) return "off";
+  if (weekdayIndex(ymd) >= 5 || offDays.has(ymd) || !inCheckWindow(ymd, window)) return "off";
   if (ymd > today) return "future";
   return ymd === today ? "pending" : "missed";
 }
 
 /** Mon-Fri of the week starting at `monday`. Extra fields on the confirmations are passed through. */
-export function weekGrid<C extends Confirmation>({ monday, today, offDays, confirmations }: {
+export function weekGrid<C extends Confirmation>({ monday, today, offDays, confirmations, window }: {
   monday: string;
   today: string;
   offDays: ReadonlySet<string>;
   confirmations: ReadonlyMap<string, C>;
+  window?: CheckWindow | null;
 }) {
   return Array.from({ length: 5 }, (_, i) => {
     const ymd = addDays(monday, i);
     const confirmation = confirmations.get(ymd) ?? null;
-    return { ymd, state: dayState({ ymd, today, offDays, confirmation }), confirmation };
+    return { ymd, state: dayState({ ymd, today, offDays, confirmation, window }), confirmation };
   });
 }
 

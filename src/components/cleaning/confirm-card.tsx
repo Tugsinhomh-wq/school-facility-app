@@ -10,6 +10,7 @@ import {
 } from "@/app/(dashboard)/cleaning/actions";
 import { CancelConfirmation } from "@/components/cleaning/cancel-confirmation";
 import { WeekStrip, type WeekDay } from "@/components/cleaning/week-strip";
+import { inCheckWindow, windowText, type CheckWindow } from "@/lib/cleaning";
 import { ImagePicker } from "@/components/tickets/image-picker";
 import { Button } from "@/components/ui/button";
 import type { ClassroomRow } from "@/lib/data/cleaning";
@@ -33,6 +34,7 @@ export function ConfirmCard({
   todayStatus,
   days,
   earlier,
+  window,
 }: {
   classroom: ClassroomRow;
   /** Bangkok date, computed on the server. */
@@ -41,6 +43,8 @@ export function ConfirmCard({
   days: WeekDay[];
   /** Missed days of last week that are still within the 7-day late window. */
   earlier: WeekDay[];
+  /** The check window: outside it nothing can be confirmed (the database refuses too). */
+  window: CheckWindow;
 }) {
   const [state, action, pending] = useActionState<
     ConfirmResult | null,
@@ -68,7 +72,11 @@ export function ConfirmCard({
       : null;
   const target = late ?? (todayStatus.state === "pending" ? today : null);
   const hasMissed = earlier.length > 0 || days.some((d) => d.state === "missed");
-  const pill = PILL[todayStatus.state] ?? PILL.off;
+  const outside = !inCheckWindow(today, window);
+  const pill =
+    outside && todayStatus.state === "off"
+      ? { ...PILL.off, label: "ยังไม่อยู่ในช่วงเช็ก" }
+      : (PILL[todayStatus.state] ?? PILL.off);
   const done = todayStatus.confirmation;
   // Yesterday sits in this week's strip whenever it was a school day; only a confirmed one can be undone.
   const yesterday = addDays(today, -1);
@@ -123,7 +131,12 @@ export function ConfirmCard({
           )}
         </p>
       )}
-      {todayStatus.state === "off" && !late && (
+      {outside && (
+        <p role="status" className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
+          {windowText(window, today)}
+        </p>
+      )}
+      {todayStatus.state === "off" && !late && !outside && (
         <p className="text-sm text-muted-foreground">
           วันนี้เป็นวันหยุด ไม่ต้องยืนยัน
         </p>
