@@ -70,19 +70,30 @@ test("duplicate room errors on the second row number", () => {
   assert.equal(r.errors[0].row, 4);
 });
 
-test("blank zone is a row-numbered error", () => {
-  const r = parseClassroomRows([header, ["ม.1/1", "", "a@lrp.ac.th", "   "]]);
-  assert.equal(r.ok.length, 0);
-  assert.equal(r.errors.length, 1);
-  assert.equal(r.errors[0].row, 2);
+test("blank zone is accepted: the room has no zone", () => {
+  const r = parseClassroomRows([header, ["ม.1/1", "", "a@lrp.ac.th", "   "], ["ม.1/2", "", "a@lrp.ac.th"]]);
+  assert.deepEqual(r.errors, []);
+  assert.deepEqual(r.ok.map((x) => x.zone), ["", ""]);
+});
+
+test("blank zone and blank advisors together are fine", () => {
+  const r = parseClassroomRows([header, ["ม.1/1", "", "", ""]]);
+  assert.deepEqual(r.errors, []);
+  assert.equal(r.ok.length, 1);
+});
+
+test("blank zone does not hide other errors or duplicates", () => {
+  const r = parseClassroomRows([header, ["ม.1/1", "", "", ""], ["ม.๑/๑", "", "", ""], ["ม.1/2", "", "bad", ""]]);
+  assert.equal(r.ok.length, 1);
+  assert.deepEqual(r.errors.map((e) => e.row), [3, 4]);
 });
 
 test("blank advisor email is accepted: the room has no advisors", () => {
   const r = parseClassroomRows([header, ["ม.1/1", "", "", "ก"], ["ม.1/2", "A", "   ", "ข"], ["ม.1/3", "", " , ; "]]);
   assert.equal(r.ok[0].advisorEmails.length, 0);
   assert.equal(r.ok[1].advisorEmails.length, 0);
-  assert.deepEqual(r.errors.map((e) => e.row), [4]); // short row: only the zone is missing
-  assert.equal(r.ok.length, 2);
+  assert.deepEqual(r.errors, []); // short row: advisors and zone both absent
+  assert.equal(r.ok.length, 3);
 });
 
 test("blank name, malformed email and a bad one among good ones are row-numbered errors", () => {
@@ -115,7 +126,7 @@ test("empty rows are skipped silently but keep row numbers", () => {
 });
 
 test("short rows (missing trailing cells) are handled", () => {
-  const r = parseClassroomRows([header, ["ม.1/1", "A"]]);
-  assert.equal(r.ok.length, 0);
-  assert.equal(r.errors[0].row, 2);
+  const r = parseClassroomRows([header, ["ม.1/1", "A"], ["", "A"]]);
+  assert.equal(r.ok.length, 1);
+  assert.equal(r.errors[0].row, 3); // only the missing name is an error
 });

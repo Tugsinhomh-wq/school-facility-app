@@ -33,6 +33,7 @@ export async function templateXlsx(): Promise<Buffer> {
   ws.addRow(HEADERS).font = { bold: true };
   ws.addRow(TEMPLATE_EXAMPLE);
   ws.getCell("C1").note = "ไม่บังคับ เว้นว่างได้ (ห้องเดิมจะคงครูที่ปรึกษาไว้ตามเดิม)";
+  ws.getCell("D1").note = "ไม่บังคับ เว้นว่างได้ (ห้องเดิมจะคงเขตไว้ตามเดิม)";
   ws.columns.forEach((col, i) => (col.width = [12, 16, 40, 40][i]));
   return Buffer.from(await wb.xlsx.writeBuffer());
 }

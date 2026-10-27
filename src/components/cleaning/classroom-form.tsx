@@ -110,16 +110,20 @@ function Fields({
         </div>
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor={`${idp}-z`}>เขตทำความสะอาด</Label>
+        <Label htmlFor={`${idp}-z`}>เขตทำความสะอาด (ไม่บังคับ)</Label>
         <Input
           id={`${idp}-z`}
           name="zone"
           defaultValue={room?.zone}
-          required
           maxLength={200}
           placeholder="เช่น ทางเดินหน้าอาคาร 2 ชั้น 1"
           className={field}
         />
+        {room && (
+          <p className="text-xs text-muted-foreground">
+            ลบชื่อเขตออกให้ว่างแล้วบันทึก จะเป็นการล้างเขตของห้องนี้
+          </p>
+        )}
       </div>
       <div className="space-y-1.5">
         <Label htmlFor={`${idp}-e`}>
@@ -169,7 +173,7 @@ export function ClassroomForm({
             </span>
           )}
           <span className="block truncate text-sm text-muted-foreground">
-            {[building, room.zone].filter(Boolean).join(" · ")}
+            {[building, room.zone || "ยังไม่กำหนดเขต"].filter(Boolean).join(" · ")}
           </span>
           <span className="block truncate text-xs text-muted-foreground">
             {room.advisorEmails.length > 0

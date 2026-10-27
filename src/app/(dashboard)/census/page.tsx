@@ -92,7 +92,7 @@ export default async function CensusPage({ searchParams }: { searchParams: Promi
                     >
                       <span className="min-w-0 flex-1 leading-snug">
                         <span className="block font-semibold break-words">{r.name}</span>
-                        <span className="mt-0.5 block text-sm break-words text-muted-foreground">{r.zone}</span>
+                        <span className="mt-0.5 block text-sm break-words text-muted-foreground">{r.zone || "ยังไม่กำหนดเขต"}</span>
                       </span>
                       <span className="shrink-0 text-sm tabular-nums">{r.students} คน</span>
                       <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />

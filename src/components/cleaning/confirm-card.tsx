@@ -61,7 +61,9 @@ export function ConfirmCard({
   return (
     <section aria-labelledby={`zone-${classroom.id}`} className="space-y-5">
       <header>
-        <p className="text-sm text-muted-foreground">เขตทำความสะอาด</p>
+        <p className="text-sm text-muted-foreground">
+          {classroom.zone ? "เขตทำความสะอาด" : "ยังไม่กำหนดเขต"}
+        </p>
         <h2
           id={`zone-${classroom.id}`}
           className="font-display text-2xl font-medium break-words"
@@ -75,9 +77,11 @@ export function ConfirmCard({
           )}
         </h2>
       </header>
-      <p className="rounded-xl border border-border p-4 font-semibold leading-snug break-words">
-        {classroom.zone}
-      </p>
+      {classroom.zone && (
+        <p className="rounded-xl border border-border p-4 font-semibold leading-snug break-words">
+          {classroom.zone}
+        </p>
+      )}
       <div className="flex min-h-11 items-center justify-between gap-3">
         <span>วันนี้</span>
         <span
