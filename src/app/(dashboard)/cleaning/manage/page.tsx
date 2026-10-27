@@ -121,16 +121,16 @@ function Setup({
   const tabs = MANAGE_TABS.filter((t) => t.key !== "rollover" || terms.length > 0);
 
   return (
-    <div className="grid gap-6 md:grid-cols-[13rem_1fr] md:items-start">
-      <nav aria-label="หมวดการตั้งค่า" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:sticky md:top-4 md:mx-0 md:flex-col md:gap-1 md:overflow-visible md:px-0 md:pb-0">
+    <div className="space-y-5">
+      <nav aria-label="หมวดการตั้งค่า" className="-mx-4 flex gap-1 overflow-x-auto border-b border-border px-4 md:mx-0 md:px-0">
         {tabs.map((t) => (
           <Link
             key={t.key}
             href={href({ term, tab: t.key })}
             aria-current={t.key === tab ? "page" : undefined}
             className={cn(
-              "inline-flex min-h-11 shrink-0 items-center rounded-lg px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-              t.key === tab ? "bg-primary/10 font-semibold text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              "inline-flex min-h-11 shrink-0 items-center px-4 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+              t.key === tab ? "font-semibold text-primary shadow-[inset_0_-3px_0_var(--primary)]" : "text-muted-foreground hover:text-foreground",
             )}
           >
             {t.label}
@@ -197,7 +197,7 @@ function Setup({
                   </Link>
                   {groups.map((g) => (
                     <Link key={g.level} href={href({ ...keep, level: g.level })} aria-current={level === g.level ? "page" : undefined} className={chip(level === g.level)}>
-                      {g.level} <span className="tabular-nums opacity-70">{g.rooms.length}</span>
+                      {g.level}<span className="ml-1.5 tabular-nums opacity-70">{g.rooms.length}</span>
                     </Link>
                   ))}
                 </nav>
@@ -212,15 +212,14 @@ function Setup({
               </p>
             )}
             {term ? (
-              <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
                 <div className="min-w-0 overflow-x-auto rounded-xl border border-border">
-                  <table className="w-full min-w-[34rem] text-left text-sm">
+                  <table className="w-full text-left text-sm">
                     <caption className="sr-only">ห้องเรียนภาคเรียน {term}</caption>
                     <thead className="bg-muted/50 text-muted-foreground">
                       <tr>
                         <th scope="col" className="px-4 py-2.5 font-medium">ห้อง</th>
-                        <th scope="col" className="px-4 py-2.5 font-medium">อาคาร</th>
-                        <th scope="col" className="px-4 py-2.5 font-medium">เขต</th>
+                                                <th scope="col" className="px-4 py-2.5 font-medium">เขต</th>
                         <th scope="col" className="px-4 py-2.5 font-medium">ครูที่ปรึกษา</th>
                       </tr>
                     </thead>
@@ -235,11 +234,13 @@ function Setup({
                             >
                               {r.name}
                               {!r.isActive && <span className="ml-2 text-xs font-normal text-muted-foreground">(ปิดใช้งาน)</span>}
+                              {buildings.find((b) => b.id === r.buildingId) && (
+                                <span className="ml-2 text-xs font-normal text-muted-foreground">{buildings.find((b) => b.id === r.buildingId)?.name}</span>
+                              )}
                             </Link>
                           </td>
-                          <td className="px-4">{buildings.find((b) => b.id === r.buildingId)?.name ?? <span className="text-muted-foreground">—</span>}</td>
-                          <td className="px-4">{r.zone || <span className="text-muted-foreground">ยังไม่กำหนด</span>}</td>
-                          <td className="px-4">
+                          <td className="px-4 py-2">{r.zone || <span className="text-muted-foreground">ยังไม่กำหนด</span>}</td>
+                          <td className="px-4 py-2">
                             {r.advisors.length > 0 ? r.advisors.map((a) => a.name).join(", ") : <span className="text-muted-foreground">ยังไม่มี</span>}
                           </td>
                         </tr>
@@ -251,7 +252,7 @@ function Setup({
                     แสดง {shown.length} จาก {inTerm.length} ห้อง · กดชื่อห้องเพื่อแก้ไข
                   </p>
                 </div>
-                <aside aria-label="แก้ไขห้อง" className="rounded-xl border border-border p-3 xl:sticky xl:top-4">
+                <aside aria-label="แก้ไขห้อง" className="rounded-xl border border-border p-3 lg:sticky lg:top-4">
                   {selected ? (
                     <>
                       <h3 className="px-2 pt-1 pb-2 text-lg font-semibold">แก้ไข {selected.name}</h3>
