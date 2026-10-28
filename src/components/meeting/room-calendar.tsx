@@ -16,6 +16,7 @@ import { RoomOverview } from "@/components/meeting/room-overview";
 import { Button } from "@/components/ui/button";
 import type { Booking, RoomInfo } from "@/lib/data/rooms";
 import { DAY_END, DAY_START, segmentOn, STEP } from "@/lib/meeting";
+import { shortRoomName } from "@/lib/room-label";
 import {
   addDays,
   atBangkok,
@@ -23,6 +24,7 @@ import {
   bangkokYmd,
   formatDayShort,
   formatHm,
+  mondayOf,
 } from "@/lib/time";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -163,6 +165,13 @@ export function RoomCalendar({
     [roomBookings, day, earliest],
   );
 
+  /** Phone: one day back or forward; past the edge of the week it loads the neighbouring week. */
+  function stepDay(n: number) {
+    const next = addDays(day, n);
+    setPicked(next);
+    if (!days.includes(next)) router.push(href(mondayOf(next)));
+  }
+
   function openBooking(ymd: string, start: number) {
     if (room) setDefaults({ roomId: room.id, ymd, start });
   }
@@ -195,7 +204,7 @@ export function RoomCalendar({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+      <div className="hidden flex-wrap items-center gap-3 md:flex">
         <div
           role="tablist"
           aria-label="เลือกห้อง"
@@ -261,7 +270,7 @@ export function RoomCalendar({
         </div>
       </div>
 
-      <p className="text-sm text-muted-foreground">
+      <p className="hidden text-sm text-muted-foreground md:block">
         {room.name}
         {room.building_name !== room.name ? ` · ${room.building_name}` : ""}
         {room.capacity ? ` · ${room.capacity} ที่นั่ง` : ""} ·{" "}
@@ -322,12 +331,41 @@ export function RoomCalendar({
         />
       </div>
 
-      <div className="space-y-3 md:hidden">
-        <div
-          role="tablist"
-          aria-label="เลือกวัน"
-          className="grid grid-cols-7 gap-1"
+      <div className="space-y-4 md:hidden">
+        <nav
+          aria-label="เลือกห้อง"
+          className={cn("grid gap-2", rooms.length > 3 ? "grid-cols-2" : "grid-cols-3")}
         >
+          {rooms.map((r) => (
+            <Link
+              key={r.id}
+              href={href(weekStart, r.id)}
+              aria-current={r.id === room.id ? "page" : undefined}
+              className={cn(
+                "flex min-h-20 flex-col items-center justify-center gap-0.5 rounded-xl border px-2 py-3 text-center leading-snug outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+                r.id === room.id ? "border-2 border-primary bg-primary/10 text-primary" : "border-border",
+              )}
+            >
+              <span className="text-base font-semibold">{shortRoomName(r.name)}</span>
+              {r.capacity ? (
+                <span className="text-xs font-normal text-muted-foreground">{r.capacity} ที่นั่ง</span>
+              ) : null}
+            </Link>
+          ))}
+        </nav>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" className="size-11" onClick={() => stepDay(-1)} aria-label="วันก่อนหน้า">
+            <ChevronLeft aria-hidden />
+          </Button>
+          <p className="flex-1 text-center text-xl font-semibold" aria-live="polite">
+            {day === today && "วันนี้ "}
+            {formatDayShort(day)}
+          </p>
+          <Button variant="outline" size="icon" className="size-11" onClick={() => stepDay(1)} aria-label="วันถัดไป">
+            <ChevronRight aria-hidden />
+          </Button>
+        </div>
+        <div role="tablist" aria-label="เลือกวัน" className="grid grid-cols-7 gap-1">
           {days.map((ymd) => {
             const has = roomBookings.some((b) => segmentOn(b, ymd) !== null);
             return (
@@ -339,25 +377,17 @@ export function RoomCalendar({
                 onClick={() => setPicked(ymd)}
                 className={cn(
                   "flex min-h-14 flex-col items-center justify-center rounded-lg border text-xs outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-                  ymd === day
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border",
+                  ymd === day ? "border-primary bg-primary text-primary-foreground" : "border-border",
                   ymd === today && ymd !== day && "border-primary",
                 )}
               >
                 <span>{formatDayShort(ymd).split(" ")[0]}</span>
-                <span className="text-base font-semibold tabular-nums">
-                  {Number(ymd.slice(8))}
-                </span>
+                <span className="text-base font-semibold tabular-nums">{Number(ymd.slice(8))}</span>
                 <span
                   aria-hidden
                   className={cn(
                     "mt-0.5 size-1.5 rounded-full",
-                    has
-                      ? ymd === day
-                        ? "bg-primary-foreground"
-                        : "bg-primary"
-                      : "bg-transparent",
+                    has ? (ymd === day ? "bg-primary-foreground" : "bg-primary") : "bg-transparent",
                   )}
                 />
               </button>
@@ -369,6 +399,8 @@ export function RoomCalendar({
           userId={userId}
           onBook={(start) => setDefaults({ roomId: room.id, ymd: day, start })}
           onOpen={setDetailId}
+          bookLabel={`${shortRoomName(room.name)} ${day === today ? "วันนี้" : formatDayShort(day)}`}
+          note={`${room.requires_approval ? "ต้องให้ ผอ. อนุมัติ" : "จองแล้วได้ทันที"}${room.capacity ? ` · ${room.capacity} ที่นั่ง` : ""}`}
         />
       </div>
 
