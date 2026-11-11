@@ -5,11 +5,11 @@ import { ReportForm } from "@/components/cleaning/report-form";
 import { RoomGrid, type RoomToday } from "@/components/cleaning/room-grid";
 import { WeeklyTable, type WeekRow } from "@/components/cleaning/weekly-table";
 import { EmptyState } from "@/components/ui/state-card";
-import { inCheckWindow, overviewOrder, windowText, type CheckWindow } from "@/lib/cleaning";
-import { addDays, formatDayShort, mondayOf } from "@/lib/time";
+import { inCheckWindow, overviewOrder, stepSchoolDay, windowText, type CheckWindow } from "@/lib/cleaning";
+import { addDays, formatDateShort, formatDayLong, formatDayShort, mondayOf } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
-export type Filters = { building?: string; only?: "missing"; week?: string };
+export type Filters = { building?: string; only?: "missing"; week?: string; day?: string };
 
 /** /cleaning with these filters; the default values are left out so the URL stays short. */
 export function cleaningHref(f: Filters, hash = "") {
@@ -17,9 +17,13 @@ export function cleaningHref(f: Filters, hash = "") {
   if (f.building) q.set("building", f.building);
   if (f.only) q.set("only", f.only);
   if (f.week) q.set("week", f.week);
+  if (f.day) q.set("day", f.day);
   const s = q.toString();
   return `/cleaning${s ? `?${s}` : ""}${hash}`;
 }
+
+const dayLink =
+  "inline-flex min-h-11 items-center gap-1 rounded-lg border border-border bg-card px-3 text-sm outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 sm:min-h-9";
 
 export const chip = (active: boolean) =>
   cn(
@@ -62,27 +66,30 @@ export function ManageLink() {
  */
 export function OfficerOverview({
   today,
+  day,
   monday,
   filters,
   buildings,
   tiles,
   weekRows,
-  offToday,
+  offDay,
   window,
   showMyRooms,
   reportBad,
 }: {
   today: string;
+  /** The day the room cards show: today, or an earlier day the officer paged back to. */
+  day: string;
   /** Monday of the week shown in the table. */
   monday: string;
   filters: Filters;
   /** [building id, name], sorted. */
   buildings: (readonly [string, string])[];
-  /** Today's state of every room in the selected building (or all). */
+  /** The state of every room on `day` in the selected building (or all). */
   tiles: RoomToday[];
   weekRows: WeekRow[];
-  /** Today is a weekend or a school off day. */
-  offToday: boolean;
+  /** `day` is a weekend or a school off day. */
+  offDay: boolean;
   window: CheckWindow;
   showMyRooms: boolean;
   /** The report form was sent with a bad range. */
@@ -91,12 +98,17 @@ export function OfficerOverview({
   const thisMonday = mondayOf(today);
   const { building } = filters;
   const onlyMissing = filters.only === "missing";
-  const outside = !inCheckWindow(today, window);
+  const outside = !inCheckWindow(day, window);
+  const isToday = day === today;
+  const dayLabel = isToday ? "วันนี้" : formatDateShort(day);
+  const isMissing = (t: RoomToday) => t.state === "pending" || t.state === "missed";
   const confirmed = tiles.filter((t) => t.confirmation).length;
-  const missing = tiles.filter((t) => t.state === "pending").length;
+  const missing = tiles.filter(isMissing).length;
+  const prevDay = stepSchoolDay(day, -1);
+  const nextDay = stepSchoolDay(day, 1);
   const visible = overviewOrder(
-    onlyMissing ? tiles.filter((t) => t.state === "pending") : tiles,
-    (t) => t.state === "pending",
+    onlyMissing ? tiles.filter(isMissing) : tiles,
+    isMissing,
     (t) => t.room.name,
   );
   const friday = addDays(monday, 4);
@@ -108,7 +120,7 @@ export function OfficerOverview({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 id="today-title" className="text-sm font-semibold text-muted-foreground">
-              วันนี้
+              {isToday ? "วันนี้" : formatDayLong(day)}
               {building && ` · ${buildings.find(([id]) => id === building)?.[1]}`}
             </h2>
             <p className="text-2xl font-bold tabular-nums">
@@ -116,14 +128,14 @@ export function OfficerOverview({
             </p>
             {outside ? (
               <p className="text-sm text-muted-foreground">
-                ยังไม่อยู่ในช่วงเช็ก · {windowText(window, today)}
+                ยังไม่อยู่ในช่วงเช็ก · {windowText(window, day)}
               </p>
-            ) : offToday ? (
-              <p className="text-sm text-muted-foreground">วันนี้เป็นวันหยุด ไม่ต้องยืนยัน</p>
+            ) : offDay ? (
+              <p className="text-sm text-muted-foreground">{dayLabel}เป็นวันหยุด ไม่ต้องยืนยัน</p>
             ) : (
               missing > 0 && (
                 <p className="text-sm font-medium text-red-700 dark:text-red-300">
-                  ยังไม่ยืนยัน {missing} ห้อง
+                  {isToday ? "ยังไม่ยืนยัน" : "ไม่ได้ยืนยัน"} {missing} ห้อง
                 </p>
               )
             )}
@@ -133,6 +145,24 @@ export function OfficerOverview({
             <ManageLink />
           </div>
         </div>
+
+        <nav aria-label="เลือกวัน" className="flex flex-wrap items-center gap-2">
+          <Link href={cleaningHref({ ...filters, day: prevDay })} className={dayLink}>
+            <ChevronLeft className="size-4" aria-hidden />
+            วันก่อน
+          </Link>
+          {!isToday && nextDay <= today && (
+            <Link href={cleaningHref({ ...filters, day: nextDay === today ? undefined : nextDay })} className={dayLink}>
+              วันถัดไป
+              <ChevronRight className="size-4" aria-hidden />
+            </Link>
+          )}
+          {!isToday && (
+            <Link href={cleaningHref({ ...filters, day: undefined })} className={cn(dayLink, "border-primary text-primary")}>
+              กลับมาวันนี้
+            </Link>
+          )}
+        </nav>
 
         <nav
           aria-label="กรองห้องเรียน"
@@ -172,19 +202,19 @@ export function OfficerOverview({
         {visible.length > 0 ? (
           <RoomGrid
             rooms={visible}
-            today={today}
-            offLabel={outside && !offToday ? "ยังไม่อยู่ในช่วงเช็ก" : "วันหยุด"}
+            day={day}
+            offLabel={outside && !offDay ? "ยังไม่อยู่ในช่วงเช็ก" : "วันหยุด"}
           />
         ) : (
           <EmptyState
             tone={outside ? "neutral" : "good"}
-            title={outside ? "ยังไม่อยู่ในช่วงเช็ก" : offToday ? "วันนี้เป็นวันหยุด" : "ทุกห้องยืนยันแล้ว"}
+            title={outside ? "ยังไม่อยู่ในช่วงเช็ก" : offDay ? `${dayLabel}เป็นวันหยุด` : "ทุกห้องยืนยันแล้ว"}
             hint={
               outside
-                ? windowText(window, today)
-                : offToday
+                ? windowText(window, day)
+                : offDay
                   ? "วันหยุดไม่ต้องยืนยันเขต"
-                  : "ไม่มีห้องที่ยังไม่ยืนยันเขตวันนี้"
+                  : `ไม่มีห้องที่ยังไม่ยืนยันเขต${dayLabel}`
             }
           >
             <Link

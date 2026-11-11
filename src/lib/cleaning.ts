@@ -115,3 +115,10 @@ export const canCancelDay = (day: string, today: string) =>
 /** A storage path the app may delete after a cancellation: "<uuid>/<file>" in the bucket, nothing that climbs out of it. */
 export const isPhotoPath = (p: unknown): p is string =>
   typeof p === "string" && !p.includes("..") && /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}\/[^/\s]+$/i.test(p);
+
+/** The school day before (-1) or after (+1) `ymd`, skipping Saturday and Sunday. */
+export function stepSchoolDay(ymd: string, dir: -1 | 1) {
+  let d = addDays(ymd, dir);
+  while (weekdayIndex(d) >= 5) d = addDays(d, dir);
+  return d;
+}

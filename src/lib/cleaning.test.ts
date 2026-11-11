@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { canCancelDay, compareRoomNames, inCheckWindow, isPhotoPath, dayState, windowStatus, windowText, lateReachable, overviewOrder, weekGrid, weekTally, type Confirmation } from "./cleaning.ts";
+import { stepSchoolDay, canCancelDay, compareRoomNames, inCheckWindow, isPhotoPath, dayState, windowStatus, windowText, lateReachable, overviewOrder, weekGrid, weekTally, type Confirmation } from "./cleaning.ts";
 
 const today = "2026-10-21"; // Wednesday
 const none = new Set<string>();
@@ -150,4 +150,11 @@ test("weekGrid and weekTally with a window: only the days inside are due", () =>
   // no window = the same grid as before
   const plain = weekGrid({ monday: "2026-10-19", today: "2026-10-23", offDays: none, confirmations: new Map([["2026-10-20", ok]]) });
   assert.deepEqual(plain.map((g) => g.state), ["missed", "confirmed", "missed", "missed", "pending"]);
+});
+
+test("stepSchoolDay skips weekends", () => {
+  assert.equal(stepSchoolDay("2026-10-19", -1), "2026-10-16"); // Monday -> previous Friday
+  assert.equal(stepSchoolDay("2026-10-16", 1), "2026-10-19"); // Friday -> next Monday
+  assert.equal(stepSchoolDay("2026-10-21", -1), "2026-10-20");
+  assert.equal(stepSchoolDay("2026-10-24", -1), "2026-10-23"); // from a Saturday
 });
