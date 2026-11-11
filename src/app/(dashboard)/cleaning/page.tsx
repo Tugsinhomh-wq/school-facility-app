@@ -161,12 +161,16 @@ async function TeacherView({
 }
 
 /**
- * Loads the officer overview. Params: `building` (building id), `only=missing`, `week` (any day of
+ * Loads the officer overview. Params: `building` (building id), `only=missing`, `day` (a past day for
+ * the room cards), `week` (any day of
  * a past week; the table shows that Mon-Fri). Unknown or future values fall back to the default.
  */
 async function OfficerView({ today, params }: { today: string; params: Params }) {
   const thisMonday = mondayOf(today);
   const weekParam = param(params.week);
+  // The room cards show today, or an earlier day (?day=); a future or invalid day means today.
+  const dayParam = param(params.day);
+  const day = dayParam && isYmd(dayParam) && dayParam < today ? dayParam : today;
   // Any day of a past week is accepted and moved to its Monday; future weeks fall back to this one.
   const monday =
     weekParam && isYmd(weekParam) && mondayOf(weekParam) < thisMonday
@@ -190,6 +194,7 @@ async function OfficerView({ today, params }: { today: string; params: Params })
     building,
     only: param(params.only) === "missing" ? "missing" : undefined,
     week: monday === thisMonday ? undefined : monday,
+    day: day === today ? undefined : day,
   };
   const retryHref = cleaningHref(filters);
 
@@ -212,20 +217,23 @@ async function OfficerView({ today, params }: { today: string; params: Params })
 
   const scoped = building ? all.rows.filter((r) => r.buildingId === building) : all.rows;
   const ids = scoped.map((r) => r.id);
-  const [now, picked] = await Promise.all([
+  const dayMonday = mondayOf(day);
+  const [now, picked, dayWeekData] = await Promise.all([
     getWeek(ids, thisMonday),
     monday === thisMonday ? null : getWeek(ids, monday),
+    dayMonday === thisMonday || dayMonday === monday ? null : getWeek(ids, dayMonday),
   ]);
   const shown = picked ?? now;
-  if (now.failed || shown.failed)
+  const dayWeek = dayMonday === thisMonday ? now : dayMonday === monday ? shown : dayWeekData;
+  if (now.failed || shown.failed || !dayWeek || dayWeek.failed)
     return <LoadError what="สถานะการยืนยัน" retryHref={retryHref} />;
 
   const tiles: RoomToday[] = scoped.map((room) => {
-    const confirmation = now.confirmations.get(room.id)?.get(today) ?? null;
+    const confirmation = dayWeek.confirmations.get(room.id)?.get(day) ?? null;
     return {
       room,
       confirmation,
-      state: dayState({ ymd: today, today, offDays: now.offDays, window: now.window, confirmation }),
+      state: dayState({ ymd: day, today, offDays: dayWeek.offDays, window: dayWeek.window, confirmation }),
     };
   });
   const weekRows = scoped.map((room) => ({
@@ -242,16 +250,17 @@ async function OfficerView({ today, params }: { today: string; params: Params })
   return (
     <OfficerOverview
       today={today}
+      day={day}
       monday={monday}
       filters={filters}
       buildings={buildings}
       tiles={tiles}
       weekRows={weekRows}
       // Weekend or school off day only; the check window is shown separately.
-      offToday={
-        dayState({ ymd: today, today, offDays: now.offDays, confirmation: null }) === "off"
+      offDay={
+        dayState({ ymd: day, today, offDays: dayWeek.offDays, confirmation: null }) === "off"
       }
-      window={now.window}
+      window={dayWeek.window}
       showMyRooms={!mine.failed && mine.rows.length > 0}
       reportBad={param(params.report) === "bad"}
     />

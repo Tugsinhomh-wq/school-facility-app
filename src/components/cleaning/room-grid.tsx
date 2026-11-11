@@ -17,6 +17,10 @@ const PILL: Partial<Record<DayState, { label: string; className: string }>> = {
     label: "ยังไม่ยืนยัน",
     className: "bg-red-500/10 text-red-800 ring-1 ring-red-500/40 dark:text-red-300",
   },
+  missed: {
+    label: "ไม่ได้ยืนยัน",
+    className: "bg-red-500/10 text-red-800 ring-1 ring-red-500/40 dark:text-red-300",
+  },
   off: { label: "วันหยุด", className: "bg-muted text-muted-foreground" },
 };
 
@@ -24,23 +28,23 @@ const CONFIRMED_PILL =
   "bg-emerald-500/10 text-emerald-800 ring-1 ring-emerald-600/30 dark:text-emerald-300";
 
 /**
- * Today's status of every room, in the order given (the page puts unconfirmed rooms first).
- * A room still waiting for today's confirmation has a red border.
+ * The status of every room on `day` (today or a past day), in the order given (the page puts
+ * unconfirmed rooms first). A room with no confirmation on a day it was due has a red border.
  */
 export function RoomGrid({
   rooms,
-  today,
+  day,
   offLabel = "วันหยุด",
 }: {
   rooms: RoomToday[];
-  today: string;
+  day: string;
   /** What a not-due day is called: "วันหยุด", or "ยังไม่อยู่ในช่วงเช็ก" outside the check window. */
   offLabel?: string;
 }) {
   return (
     <ul className="grid grid-cols-1 gap-2.5 min-[480px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {rooms.map(({ room, state, confirmation: c }) => {
-        const missing = state === "pending";
+        const missing = state === "pending" || state === "missed";
         const pill = c ? null : state === "off" ? { ...PILL.off!, label: offLabel } : PILL[state];
         const advisors = room.advisors.map((a) => a.name).join(", ");
         return (
@@ -101,7 +105,7 @@ export function RoomGrid({
                   {c.isLate && " (ย้อนหลัง)"}
                 </p>
                 {c.photos > 0 && (
-                  <PhotoPeek classroomId={room.id} day={today} count={c.photos} />
+                  <PhotoPeek classroomId={room.id} day={day} count={c.photos} />
                 )}
               </div>
             )}
