@@ -357,10 +357,24 @@ export function RoomCalendar({
           <Button variant="outline" size="icon" className="size-11" onClick={() => stepDay(-1)} aria-label="วันก่อนหน้า">
             <ChevronLeft aria-hidden />
           </Button>
-          <p className="flex-1 text-center text-xl font-semibold" aria-live="polite">
-            {day === today && "วันนี้ "}
-            {formatDayShort(day)}
-          </p>
+          <div className="flex flex-1 flex-col items-center">
+            <p className="text-xl font-semibold" aria-live="polite">
+              {day === today && "วันนี้ "}
+              {formatDayShort(day)}
+            </p>
+            {today && day !== today && (
+              <button
+                type="button"
+                onClick={() => {
+                  setPicked(today);
+                  if (!days.includes(today)) router.push(href(thisWeek));
+                }}
+                className="min-h-11 px-3 text-sm font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                กลับมาวันนี้
+              </button>
+            )}
+          </div>
           <Button variant="outline" size="icon" className="size-11" onClick={() => stepDay(1)} aria-label="วันถัดไป">
             <ChevronRight aria-hidden />
           </Button>
