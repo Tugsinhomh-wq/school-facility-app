@@ -1,10 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import JSZip from "jszip";
 import { AlignmentType, BorderStyle, Document, ImageRun, LeaderType, Packer, Paragraph, type IParagraphOptions, Table, TableCell, TableRow, TabStopType, TextRun, WidthType } from "docx";
 
 import { BUILDING_HEAD, DIRECTOR, SCHOOL_NAME, type MemoDoc } from "./model.ts";
-import { withBreakHints } from "./thai-text.ts";
 
 const CM = 567; // twips per centimetre
 const SIZE = 28; // 14 pt, in half-points
@@ -14,10 +14,26 @@ interface Options {
   fontName?: string;
 }
 
+/**
+ * docx-js writes empty folder entries into the package (e.g. "docProps/"). Some phone and cloud viewers
+ * refuse a .docx that has them, so the package is rewritten with files only, in the same order.
+ */
+async function withoutFolderEntries(buf: Buffer): Promise<Buffer> {
+  const from = await JSZip.loadAsync(buf);
+  const to = new JSZip();
+  for (const entry of Object.values(from.files)) {
+    if (entry.dir) continue;
+    to.file(entry.name, await entry.async("nodebuffer"), { createFolders: false });
+  }
+  return to.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
+}
+
 export async function memoToDocx(doc: MemoDoc, { fontName = "TH Sarabun New" }: Options = {}): Promise<Buffer> {
   const run = (text: string, bold = false, size = SIZE) =>
     new TextRun({
-      text: withBreakHints(text),
+      // No zero-width break hints: Word and LibreOffice break Thai themselves, and the hints showed as boxes
+      // (formatting marks on) and could hang past the right margin.
+      text,
       bold,
       boldComplexScript: bold,
       size,
@@ -142,5 +158,5 @@ export async function memoToDocx(doc: MemoDoc, { fontName = "TH Sarabun New" }: 
       },
     ],
   });
-  return Packer.toBuffer(file);
+  return withoutFolderEntries(await Packer.toBuffer(file));
 }

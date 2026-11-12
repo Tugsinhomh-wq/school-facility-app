@@ -43,3 +43,13 @@ test("only the title and the field labels are bold, never the body paragraphs", 
   for (const t of boldTexts) assert.ok(allowed.some((a) => t === a) || t.startsWith("ความเห็นของ") || t.startsWith("คำสั่งการ"), `unexpected bold text: ${t}`);
   assert.ok(boldTexts.includes("บันทึกข้อความ"));
 });
+
+test("no zero-width spaces: they show as boxes with formatting marks on and can hang past the right margin", async () => {
+  assert.equal((await xmlOf(doc)).includes("​"), false);
+});
+
+test("the Word package has no folder entries, which some phone and cloud viewers refuse to open", async () => {
+  const zip = await JSZip.loadAsync(await memoToDocx(doc));
+  const folders = Object.values(zip.files).filter((f) => f.dir).map((f) => f.name);
+  assert.deepEqual(folders, []);
+});
