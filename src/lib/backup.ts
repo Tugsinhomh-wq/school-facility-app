@@ -11,6 +11,7 @@ export const BACKUP_TABLES = [
   "rooms",
   "profiles",
   "repair_tickets",
+  "repair_ticket_events",
   "facility_reservations",
   "memorandums",
   "memo_tickets",

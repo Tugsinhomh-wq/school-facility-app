@@ -7,8 +7,11 @@ export type TicketRow = RepairTicketWithLocation & {
 };
 
 export interface TicketFilters {
-  /** "open" = pending + in progress, listed most urgent first, then oldest first (the staff work queue). */
-  status?: TicketStatus | "open";
+  /**
+   * "open" = pending + in progress, listed most urgent first, then oldest first (the staff work queue).
+   * "mine" = the same queue, only the tickets assigned to the signed-in staff member.
+   */
+  status?: TicketStatus | "open" | "mine";
   urgency?: UrgencyLevel;
   building?: string;
   q?: string;
