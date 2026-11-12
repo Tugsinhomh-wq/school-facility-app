@@ -84,11 +84,12 @@ export async function getTicketList(f: TicketFilters): Promise<TicketList> {
     const { data: auth } = await getAuth(supabase);
     if (!auth.user) return mockList(f);
 
-    // Merged duplicates stay out of the list (the main ticket carries their count), except your own.
+    // Merged duplicates stay out of the plain list (the main ticket carries their count), except
+    // your own. A search looks through them too, so a merged report can still be found by number.
     let query = supabase
       .from("repair_tickets")
-      .select(SELECT, { count: "exact" })
-      .or(`duplicate_of.is.null,reporter_id.eq.${auth.user.id}`);
+      .select(SELECT, { count: "exact" });
+    if (!f.q) query = query.or(`duplicate_of.is.null,reporter_id.eq.${auth.user.id}`);
     if (f.status) query = query.eq("status", f.status);
     if (f.urgency) query = query.eq("urgency", f.urgency);
     if (f.building) query = query.eq("building_id", f.building);
