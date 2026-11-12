@@ -15,9 +15,12 @@ const selectClass =
 export function TicketFiltersBar({
   filters,
   buildings,
+  showOpenView = false,
 }: {
   filters: TicketFilters;
   buildings: BuildingOption[];
+  /** Staff only: a "งานค้าง" chip listing open jobs, most urgent first. */
+  showOpenView?: boolean;
 }) {
   const statusHref = (status?: string) => {
     const params = new URLSearchParams();
@@ -36,6 +39,7 @@ export function TicketFiltersBar({
 
   const chips: [string | undefined, string][] = [
     [undefined, "ทั้งหมด"],
+    ...(showOpenView ? ([["open", "งานค้าง"]] as [string, string][]) : []),
     ...Object.entries(STATUS_LABEL),
   ];
 

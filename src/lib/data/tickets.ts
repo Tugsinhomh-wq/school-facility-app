@@ -13,6 +13,7 @@ const STATUSES: TicketStatus[] = [
   "cancelled",
 ];
 const URGENCIES: UrgencyLevel[] = ["low", "medium", "high", "emergency"];
+const OPEN: TicketStatus[] = ["pending", "in_progress"];
 
 /** Reads and validates the list filters from URL search params. */
 export function parseFilters(
@@ -20,11 +21,11 @@ export function parseFilters(
 ): TicketFilters {
   const one = (k: string) =>
     (Array.isArray(sp[k]) ? sp[k]![0] : sp[k]) ?? undefined;
-  const status = one("status") as TicketStatus | undefined;
+  const status = one("status") as TicketFilters["status"];
   const urgency = one("urgency") as UrgencyLevel | undefined;
   const page = Number.parseInt(one("page") ?? "1", 10);
   return {
-    status: status && STATUSES.includes(status) ? status : undefined,
+    status: status === "open" || (status && STATUSES.includes(status)) ? status : undefined,
     urgency: urgency && URGENCIES.includes(urgency) ? urgency : undefined,
     building: one("building") || undefined,
     q: one("q")?.trim().slice(0, 80) || undefined,
@@ -49,15 +50,20 @@ const withReporter = (t: (typeof MOCK_TICKETS)[number]): TicketRow => ({
 
 function mockList(f: TicketFilters): TicketList {
   const q = f.q?.toLowerCase();
+  const open = f.status === "open";
   const all = MOCK_TICKETS.filter(
     (t) =>
-      (!f.status || t.status === f.status) &&
+      (!f.status || (open ? OPEN.includes(t.status) : t.status === f.status)) &&
       (!f.urgency || t.urgency === f.urgency) &&
       (!f.building || t.building_id === f.building) &&
       (!q ||
         t.title.toLowerCase().includes(q) ||
         t.ticket_number.toLowerCase().includes(q)),
-  ).sort((a, b) => b.created_at.localeCompare(a.created_at));
+  ).sort((a, b) =>
+    open
+      ? URGENCIES.indexOf(b.urgency) - URGENCIES.indexOf(a.urgency) || a.created_at.localeCompare(b.created_at)
+      : b.created_at.localeCompare(a.created_at),
+  );
   return {
     source: "mock",
     viewer: null,
@@ -88,7 +94,8 @@ export async function getTicketList(f: TicketFilters): Promise<TicketList> {
     let query = supabase
       .from("repair_tickets")
       .select(SELECT, { count: "exact" });
-    if (f.status) query = query.eq("status", f.status);
+    if (f.status === "open") query = query.in("status", OPEN);
+    else if (f.status) query = query.eq("status", f.status);
     if (f.urgency) query = query.eq("urgency", f.urgency);
     if (f.building) query = query.eq("building_id", f.building);
     if (f.q) {
@@ -98,10 +105,13 @@ export async function getTicketList(f: TicketFilters): Promise<TicketList> {
         query = query.or(`title.ilike.%${term}%,ticket_number.ilike.%${term}%`);
     }
     const from = (f.page - 1) * PAGE_SIZE;
+    // The urgency enum is declared low → emergency, so descending puts emergencies first.
+    const ordered =
+      f.status === "open"
+        ? query.order("urgency", { ascending: false }).order("created_at", { ascending: true })
+        : query.order("created_at", { ascending: false });
     const [tickets, buildings, profile] = await Promise.all([
-      query
-        .order("created_at", { ascending: false })
-        .range(from, from + PAGE_SIZE - 1),
+      ordered.range(from, from + PAGE_SIZE - 1),
       supabase
         .from("buildings")
         .select("id, name")

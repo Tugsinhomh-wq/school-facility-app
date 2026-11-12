@@ -76,7 +76,16 @@ export default async function TicketsPage({
           <LoadError what="รายการแจ้งซ่อม" retryHref="/tickets" />
         ) : (
           <>
-            <TicketFiltersBar filters={filters} buildings={list.buildings} />
+            <TicketFiltersBar
+              filters={filters}
+              buildings={list.buildings}
+              showOpenView={isStaff || !list.viewer}
+            />
+            {filters.status === "open" && (
+              <p className="text-sm text-muted-foreground">
+                งานที่ยังไม่ปิด เรียงฉุกเฉินก่อน แล้วงานที่รอนานสุดก่อน
+              </p>
+            )}
             {isAdmin && list.tickets.length > 0 && <BulkTrashBar />}
             <TicketTable
               selectable={isAdmin}

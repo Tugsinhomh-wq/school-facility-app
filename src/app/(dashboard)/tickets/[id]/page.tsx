@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { createMemoFromTicket } from "@/app/(dashboard)/memos/actions";
-import { placeOf } from "@/components/tickets/ticket-table";
+import { OverdueNote, placeOf } from "@/components/tickets/ticket-table";
 import { TicketManageForm } from "@/components/tickets/ticket-manage-form";
 import { StatusPill, UrgencyMark } from "@/components/tickets/status-mark";
 import { Button } from "@/components/ui/button";
@@ -65,6 +65,7 @@ export default async function TicketDetailPage({
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
             <StatusPill status={ticket.status} />
             <UrgencyMark urgency={ticket.urgency} />
+            <OverdueNote t={ticket} />
           </div>
           {ticket.duplicate_of_number && (
             <p className="mt-4 rounded-lg border border-border bg-muted/50 p-3 text-sm">
