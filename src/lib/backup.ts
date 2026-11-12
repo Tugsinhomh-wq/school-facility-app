@@ -13,6 +13,7 @@ export const BACKUP_TABLES = [
   "repair_tickets",
   "facility_reservations",
   "memorandums",
+  "memo_tickets",
   "approval_records",
   "environment_inspections",
   "feedback",
@@ -33,6 +34,7 @@ export const BACKUP_TABLES = [
 const ORDER_BY: Record<string, string[]> = {
   classroom_advisors: ["classroom_id", "user_id"],
   school_off_days: ["day"],
+  memo_tickets: ["memo_id", "ticket_id"],
   // One row, no id column.
   cleaning_settings: ["updated_at"],
 };

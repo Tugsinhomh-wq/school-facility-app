@@ -67,7 +67,7 @@ export async function getMemoList(): Promise<MemoList> {
 
     // The meeting-room officer sees only room memos (row policies enforce it) and no repair tickets.
     const repairsToo = s.viewer.role !== "room_staff";
-    const [memos, tickets] = await Promise.all([
+    const [memos, tickets, combined] = await Promise.all([
       s.supabase
         .from("memorandums")
         .select("*, author:profiles(full_name, position)")
@@ -83,13 +83,18 @@ export async function getMemoList(): Promise<MemoList> {
             .order("created_at", { ascending: false })
             .limit(50)
         : Promise.resolve({ data: [], error: null }),
+      // Tickets already covered by a combined memo (see supabase/memo_tickets.sql).
+      repairsToo
+        ? s.supabase.from("memo_tickets").select("ticket_id")
+        : Promise.resolve({ data: [], error: null }),
     ]);
-    if (memos.error || tickets.error) return failed();
-    const used = new Set(
-      (memos.data ?? [])
+    if (memos.error || tickets.error || combined.error) return failed();
+    const used = new Set<string | null>([
+      ...(memos.data ?? [])
         .filter((m) => m.origin_module === "repair")
         .map((m) => m.reference_id),
-    );
+      ...(combined.data ?? []).map((c: { ticket_id: string }) => c.ticket_id),
+    ]);
     return {
       source: "supabase",
       viewer: s.viewer,
