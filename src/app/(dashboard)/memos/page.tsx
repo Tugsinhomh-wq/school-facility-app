@@ -11,6 +11,7 @@ import { EmptyState, LoadError } from "@/components/ui/state-card";
 import { createSummaryMemo } from "@/app/(dashboard)/memos/actions";
 import { recentPeriods } from "@/lib/summary-period";
 import { getMemoList } from "@/lib/data/memos";
+import { canDeleteMemo } from "@/lib/memo/delete-rule";
 import { formatDateTh } from "@/lib/ticket-meta";
 import type { ModuleType } from "@/types/database";
 
@@ -40,8 +41,10 @@ export default async function MemosPage({
   const { error } = await searchParams;
   const list = await getMemoList();
   const allowed = !list.viewer || isRoomManager(list.viewer.role);
-  // Only the system administrator deletes memos; the action checks the role again.
-  const canDelete = list.viewer?.role === "super_admin";
+  // The administrator deletes any memo, staff their own drafts; the action checks again.
+  const canDelete = (m: { author_id: string; final_status: string }) =>
+    canDeleteMemo(list.viewer?.role, list.userId, m);
+  const anyDelete = list.memos.some(canDelete);
 
   return (
     <>
@@ -113,10 +116,10 @@ export default async function MemosPage({
                           aria-hidden
                         />
                       </Link>
-                      {canDelete && (
+                      {canDelete(m) && (
                         <DeleteMemoButton id={m.id} refNo={m.doc_ref_no} className="mr-2" />
                       )}
-                      {canDelete && (
+                      {canDelete(m) && (
                         <DeleteMemoPanel
                           id={m.id}
                           refNo={m.doc_ref_no}
@@ -143,7 +146,7 @@ export default async function MemosPage({
                         >
                           สร้างเมื่อ
                         </th>
-                        {canDelete && (
+                        {anyDelete && (
                           <th scope="col" className="sr-only">
                             จัดการ
                           </th>
@@ -171,13 +174,13 @@ export default async function MemosPage({
                           <td className="px-4 py-4 text-right whitespace-nowrap text-muted-foreground tabular-nums">
                             {formatDateTh(m.created_at)}
                           </td>
-                          {canDelete && (
+                          {canDelete(m) && (
                             <td className="py-2 pr-2 text-right">
                               <DeleteMemoButton id={m.id} refNo={m.doc_ref_no} />
                             </td>
                           )}
                         </tr>
-                        {canDelete && (
+                        {canDelete(m) && (
                           <DeleteMemoPanel id={m.id} refNo={m.doc_ref_no} subject={m.subject} row />
                         )}
                         </Fragment>

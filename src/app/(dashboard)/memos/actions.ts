@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { fetchSummary } from "@/lib/data/summary";
 import { parseTicketIds } from "@/lib/memo/combine";
+import { canDeleteMemo } from "@/lib/memo/delete-rule";
 import { draftFromTicket, draftFromTickets } from "@/lib/memo/draft";
 import { draftFromSummary } from "@/lib/memo/draft-summary";
 import { resolvePeriod } from "@/lib/summary-period";
@@ -249,7 +250,8 @@ export async function saveMemo(
 const UUID = /^[0-9a-f-]{36}$/i;
 
 /**
- * Hard delete of one memo, system administrator only (role re-checked here, not trusted from the page).
+ * Hard delete of one memo (role and ownership re-checked here, not trusted from the page): the system
+ * administrator any memo, staff only their own draft (see canDeleteMemo).
  * There is no DELETE policy on memorandums on purpose, so this uses the service-role client; its
  * approval_records go with it (ON DELETE CASCADE) and a memo has no uploaded files. From the detail
  * page (`back`) a delete sends the viewer to the list, the memo's own page would be a 404.
@@ -261,12 +263,28 @@ export async function deleteMemo(formData: FormData): Promise<SaveResult> {
 
   const session = await getSession();
   if (!session) return { ok: false, message: "เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่" };
-  if (session.viewer.role !== "super_admin")
-    return { ok: false, message: "เฉพาะผู้ดูแลระบบที่ลบบันทึกข้อความได้" };
-
+  const admin = createAdminClient();
   let gone: number;
   try {
-    const { data, error } = await createAdminClient().from("memorandums").delete().eq("id", id).select("id");
+    const { data: memo, error: readError } = await admin
+      .from("memorandums")
+      .select("author_id, final_status")
+      .eq("id", id)
+      .maybeSingle();
+    if (readError) {
+      console.error("delete memo failed", { code: readError.code });
+      return { ok: false, message: "ลบไม่สำเร็จ ลองใหม่อีกครั้ง" };
+    }
+    if (!memo) {
+      revalidatePath("/memos");
+      return { ok: false, message: "ไม่พบบันทึกข้อความนี้ อาจถูกลบไปแล้ว" };
+    }
+    if (!canDeleteMemo(session.viewer.role, session.userId, memo))
+      return {
+        ok: false,
+        message: "ลบได้เฉพาะร่างของตัวเองที่ยังไม่ผ่านการพิจารณา (ผู้ดูแลระบบลบได้ทุกฉบับ)",
+      };
+    const { data, error } = await admin.from("memorandums").delete().eq("id", id).select("id");
     if (error) {
       console.error("delete memo failed", { code: error.code });
       return { ok: false, message: "ลบไม่สำเร็จ ลองใหม่อีกครั้ง" };

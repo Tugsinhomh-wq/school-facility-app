@@ -10,9 +10,9 @@ type Ctx = { armed: string | null; busy: boolean; arm: (id: string | null) => vo
 const DeleteCtx = createContext<Ctx | null>(null);
 
 /**
- * Wraps a memo list (or a memo page) for the system administrator: holds which memo is asked about and
+ * Wraps a memo list (or a memo page) for whoever may delete memos (the administrator, or staff for their own drafts): holds which memo is asked about and
  * the answer. The answer lives here, not in the row, because the row is gone once the list refreshes.
- * `back` is set on the detail page, where a successful delete goes on to the list. The server checks the role.
+ * `back` is set on the detail page, where a successful delete goes on to the list. The server checks the role and ownership.
  */
 export function DeleteMemos({ back, children }: { back?: boolean; children: ReactNode }) {
   const [armed, setArmed] = useState<string | null>(null);

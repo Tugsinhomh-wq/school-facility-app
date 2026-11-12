@@ -24,6 +24,8 @@ const mockMemos = (): MemoRecord[] =>
 export interface MemoList {
   source: "supabase" | "mock";
   viewer: Viewer | null;
+  /** The signed-in user's id, to tell which memos are theirs. */
+  userId?: string;
   memos: MemoRecord[];
   /** Open repair tickets that do not have a memo yet. */
   candidates: TicketRow[];
@@ -98,6 +100,7 @@ export async function getMemoList(): Promise<MemoList> {
     return {
       source: "supabase",
       viewer: s.viewer,
+      userId: s.userId,
       memos: memos.data as unknown as MemoRecord[],
       candidates: (tickets.data as unknown as TicketRow[]).filter(
         (t) => !used.has(t.id),
@@ -111,6 +114,7 @@ export async function getMemoList(): Promise<MemoList> {
 export interface MemoDetail {
   source: "supabase" | "mock";
   viewer: Viewer | null;
+  userId?: string;
   memo: MemoRecord | null;
   /** Signed in, but loading failed: show an error with a retry instead of "not found". */
   failed?: boolean;
@@ -137,6 +141,7 @@ export async function getMemo(id: string): Promise<MemoDetail> {
     return {
       source: "supabase",
       viewer: s.viewer,
+      userId: s.userId,
       memo: error ? null : ((data as unknown as MemoRecord | null) ?? null),
     };
   } catch {
