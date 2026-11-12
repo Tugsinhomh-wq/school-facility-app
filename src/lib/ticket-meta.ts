@@ -1,3 +1,4 @@
+import { TZ } from "./time.ts";
 import type { ApprovalStatus, TicketStatus, UrgencyLevel, UserRole } from "@/types/database";
 
 export const STATUS_LABEL: Record<TicketStatus, string> = {
@@ -57,5 +58,5 @@ export function timeAgoTh(iso: string, now = Date.now()) {
 }
 
 export function formatDateTh(iso: string) {
-  return new Intl.DateTimeFormat("th-TH", { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
+  return new Intl.DateTimeFormat("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: TZ }).format(new Date(iso));
 }
