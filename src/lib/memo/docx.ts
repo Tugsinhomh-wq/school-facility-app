@@ -104,7 +104,7 @@ export async function memoToDocx(doc: MemoDoc, { fontName = "TH Sarabun New" }: 
     plain(doc.closing, { ...body, spacing: { after: 360 } }),
     ...(repair
       ? [
-          new Paragraph({ ...signer, children: [run("(ลงชื่อ)...................... ผู้รายงาน")] }),
+          new Paragraph({ ...signer, children: [run("ลงชื่อ ...................... ผู้รายงาน")] }),
           new Paragraph({ ...signer, children: [run(`(${doc.signerName || "..........................................."})`)] }),
           new Paragraph({ ...signer, children: [run(`ตำแหน่ง ${doc.signerPosition || ".........................................."}`)] }),
         ]

@@ -133,7 +133,7 @@ def build(memo: dict) -> bytes:
             add_text(para(doc, align=WD_ALIGN_PARAGRAPH.CENTER, left=8), position)
 
     if repair:
-        add_text(para(doc, align=WD_ALIGN_PARAGRAPH.CENTER, left=8), "(ลงชื่อ)...................... ผู้รายงาน")
+        add_text(para(doc, align=WD_ALIGN_PARAGRAPH.CENTER, left=8), "ลงชื่อ ...................... ผู้รายงาน")
         add_text(para(doc, align=WD_ALIGN_PARAGRAPH.CENTER, left=8), f"({memo.get('signerName') or '...........................................'})")
         add_text(para(doc, align=WD_ALIGN_PARAGRAPH.CENTER, left=8), f"ตำแหน่ง {memo.get('signerPosition') or '..........................................'}")
         if memo.get("decisionBlock"):

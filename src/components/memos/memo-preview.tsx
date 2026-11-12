@@ -50,7 +50,7 @@ export function MemoPreview({ doc, fontClass }: { doc: MemoDoc; fontClass: strin
         {repair ? (
           <>
             <div className="text-center" style={{ marginLeft: "38%" }}>
-              <p>(ลงชื่อ)...................... ผู้รายงาน</p>
+              <p>ลงชื่อ ...................... ผู้รายงาน</p>
               <p>({doc.signerName || "..........................................."})</p>
               <p>ตำแหน่ง {doc.signerPosition || ".........................................."}</p>
             </div>

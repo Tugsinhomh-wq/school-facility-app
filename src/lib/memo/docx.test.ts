@@ -53,3 +53,9 @@ test("the Word package has no folder entries, which some phone and cloud viewers
   const folders = Object.values(zip.files).filter((f) => f.dir).map((f) => f.name);
   assert.deepEqual(folders, []);
 });
+
+test('the reporter signature line reads "ลงชื่อ ... ผู้รายงาน" without brackets around ลงชื่อ', async () => {
+  const text = (await xmlOf(doc)).replace(/<[^>]+>/g, "");
+  assert.equal(text.includes("(ลงชื่อ)"), false);
+  assert.ok(text.includes("ลงชื่อ ...................... ผู้รายงาน"));
+});

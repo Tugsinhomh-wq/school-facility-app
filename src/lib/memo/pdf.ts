@@ -142,7 +142,7 @@ export function memoToPdf(doc: MemoDoc): Promise<Buffer> {
     };
     if (repair) {
       ensure(LINE * 4);
-      centred("(ลงชื่อ)...................... ผู้รายงาน");
+      centred("ลงชื่อ ...................... ผู้รายงาน");
       centred(`(${doc.signerName || "..........................................."})`);
       centred(`ตำแหน่ง ${doc.signerPosition || ".........................................."}`);
       if (doc.decisionBlock) {
