@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { Booking, RoomInfo } from "@/lib/data/rooms";
 import { DAY_END, DAY_START, findConflict, latestEnd, STEP } from "@/lib/meeting";
+import { equipmentGroupsFor } from "@/lib/meeting-equipment";
 import { formatDayLong, formatHm } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
@@ -125,16 +126,19 @@ function BookingForm({ rooms, bookings, defaults, onDone }: { rooms: RoomInfo[];
 
       <fieldset className="space-y-1.5">
         <legend className="text-sm font-medium">อุปกรณ์ที่ต้องการ</legend>
-        {room && room.equipment.length > 0 && (
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
-            {room.equipment.map((eq) => (
-              <label key={`${room.id}-${eq}`} className="flex min-h-11 items-center gap-2 text-sm">
-                <input type="checkbox" name="equipment" value={eq} className="size-5 accent-[var(--color-primary)]" />
-                {eq}
-              </label>
-            ))}
+        {room && equipmentGroupsFor(room.room_number, room.equipment).map((group) => (
+          <div key={`${room.id}-${group.title}`} className="space-y-0.5">
+            <p className="text-xs text-muted-foreground">{group.title}</p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              {group.items.map((eq) => (
+                <label key={`${room.id}-${eq}`} className="flex min-h-11 items-center gap-2 text-sm">
+                  <input type="checkbox" name="equipment" value={eq} className="size-5 accent-[var(--color-primary)]" />
+                  {eq}
+                </label>
+              ))}
+            </div>
           </div>
-        )}
+        ))}
         <Textarea name="equipment_other" rows={2} maxLength={200} placeholder="อื่น ๆ (ถ้ามี)" aria-label="อุปกรณ์อื่น ๆ" />
       </fieldset>
 
