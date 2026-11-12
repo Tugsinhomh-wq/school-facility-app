@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { STATUS_LABEL } from "@/lib/ticket-meta";
+import { STATUS_LABEL, URGENCY_LABEL } from "@/lib/ticket-meta";
+import { canChangeUrgency, URGENCY_CHOICES } from "@/lib/ticket-urgency";
 import { cn } from "@/lib/utils";
 import type { TicketRow } from "@/types/tickets";
 
@@ -43,6 +44,32 @@ export function TicketManageForm({ ticket }: { ticket: TicketRow }) {
             </option>
           ))}
         </select>
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="urgency">ความเร่งด่วน</Label>
+        <select
+          id="urgency"
+          name="urgency"
+          defaultValue={ticket.urgency}
+          disabled={!canChangeUrgency(ticket.status)}
+          aria-describedby={canChangeUrgency(ticket.status) ? undefined : "urgency-note"}
+          className={selectClass}
+        >
+          {URGENCY_CHOICES.map((u) => (
+            <option key={u} value={u}>
+              {URGENCY_LABEL[u]}
+            </option>
+          ))}
+        </select>
+        {canChangeUrgency(ticket.status) ? (
+          <p className="text-xs text-muted-foreground">
+            ปรับให้ตรงความจริงได้ถ้าที่ผู้แจ้งเลือกไว้ไม่ตรง
+          </p>
+        ) : (
+          <p id="urgency-note" className="text-xs text-muted-foreground">
+            งานที่ปิดแล้วเปลี่ยนความเร่งด่วนไม่ได้
+          </p>
+        )}
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="estimated_cost">ค่าใช้จ่ายประมาณการ (บาท)</Label>
