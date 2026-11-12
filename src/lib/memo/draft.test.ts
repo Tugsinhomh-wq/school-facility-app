@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { draftFromTickets } from "./draft.ts";
+import { draftFromTicket, draftFromTickets } from "./draft.ts";
 import type { TicketRow } from "../../types/tickets.ts";
 
 const ticket = (over: Partial<TicketRow> & { id: string; created_at: string }): TicketRow =>
@@ -82,4 +82,13 @@ test("the input array is not reordered", () => {
   const input = [t3, t1, t2];
   draftFromTickets(input);
   assert.deepEqual(input.map((t) => t.id), ["3", "1", "2"]);
+});
+
+test("the ticket number is not wrapped in parentheses: LibreOffice splits \"(เลขที่งาน\" mid-syllable at a line end", () => {
+  const combined = draftFromTickets([t1, t2, t3]).body_content;
+  assert.equal(combined.includes("(เลขที่งาน"), false);
+  assert.ok(combined.includes("เลขที่งาน REQ-202611-0001 แจ้งเมื่อ"));
+  const single = draftFromTicket(t1, { full_name: "นายทดสอบ ระบบ", position: "ครู" }).body_content;
+  assert.equal(single.includes("(เลขที่งาน"), false);
+  assert.ok(single.includes("เลขที่งาน REQ-202611-0001"));
 });

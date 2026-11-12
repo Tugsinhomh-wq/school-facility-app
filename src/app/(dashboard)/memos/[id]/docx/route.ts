@@ -15,7 +15,7 @@ export async function GET(
 
   const doc = buildMemoDoc(memo, memo.author);
 
-  // Preferred: python-docx + pythainlp (thai-docx skill). Fallback: the Node builder with
+  // Preferred: python-docx (thai-docx skill, Sarabun embedded). Fallback: the Node builder with
   // ICU word breaks, for hosts without Python.
   let engine = "python-docx";
   let body: Buffer;
