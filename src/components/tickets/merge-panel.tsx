@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 
 import {
@@ -43,8 +44,13 @@ export function MergePanel({
         <ul className="space-y-1 text-sm">
           {ctx.reports.map((r) => (
             <li key={r.id} className="text-muted-foreground">
-              {r.reporter_name ?? "ไม่ระบุ"} · {r.ticket_number} ·{" "}
-              {timeAgoTh(r.created_at)}
+              <Link
+                href={`/tickets/${r.id}`}
+                className="flex min-h-11 items-center underline-offset-2 hover:underline"
+              >
+                {r.reporter_name ?? "ไม่ระบุ"} · {r.ticket_number} ·{" "}
+                {timeAgoTh(r.created_at)}
+              </Link>
             </li>
           ))}
         </ul>
@@ -55,7 +61,14 @@ export function MergePanel({
           <input type="hidden" name="id" value={ticket.id} />
           <input type="hidden" name="split" value="1" />
           <p className="text-sm">
-            รวมอยู่กับ {ticket.duplicate_of_number} สถานะตามงานหลัก
+            รวมอยู่กับ{" "}
+            <Link
+              href={`/tickets/${ticket.duplicate_of}`}
+              className="font-medium underline underline-offset-2"
+            >
+              {ticket.duplicate_of_number}
+            </Link>{" "}
+            สถานะตามงานหลัก
           </p>
           <Button
             type="submit"
