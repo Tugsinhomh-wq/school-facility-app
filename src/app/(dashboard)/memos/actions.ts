@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { fetchSummary } from "@/lib/data/summary";
-import { draftFromTicket } from "@/lib/memo/draft";
+import { parseTicketIds } from "@/lib/memo/combine";
+import { canDeleteMemo } from "@/lib/memo/delete-rule";
+import { draftFromTicket, draftFromTickets } from "@/lib/memo/draft";
 import { draftFromSummary } from "@/lib/memo/draft-summary";
 import { resolvePeriod } from "@/lib/summary-period";
 import { MOCK_MEMOS } from "@/lib/mock-data";
@@ -44,6 +46,14 @@ export async function createMemoFromTicket(formData: FormData) {
     .maybeSingle();
   if (existing) redirect(`/memos/${existing.id}`);
 
+  // The ticket may already be covered by a combined memo: open that one.
+  const { data: combined } = await supabase
+    .from("memo_tickets")
+    .select("memo_id")
+    .eq("ticket_id", ticketId)
+    .maybeSingle();
+  if (combined) redirect(`/memos/${combined.memo_id}`);
+
   const { data: ticket } = await supabase
     .from("repair_tickets")
     .select(
@@ -80,6 +90,66 @@ export async function createMemoFromTicket(formData: FormData) {
   revalidatePath("/memos");
   revalidatePath("/");
   redirect(`/memos/${memo.id}`);
+}
+
+const COMBINE_ERROR: Record<string, string> = {
+  not_staff: "บัญชีนี้ไม่ใช่เจ้าหน้าที่ จึงสร้างบันทึกรวมไม่ได้",
+  count_range: "เลือกงาน 2–20 งานในอาคารเดียวกันก่อน",
+  missing_ticket: "มีงานที่เลือกไม่พบแล้ว (อาจถูกลบ) รีเฟรชหน้าแล้วเลือกใหม่",
+  mixed_buildings: "รวมได้เฉพาะงานในอาคารเดียวกัน",
+  not_open: "มีงานที่ปิดหรือยกเลิกไปแล้ว รีเฟรชหน้าแล้วเลือกใหม่",
+  already_has_memo: "มีงานที่มีบันทึกแล้ว (อาจมีคนอื่นรวมไปก่อน) รีเฟรชหน้าแล้วเลือกใหม่",
+};
+
+/** Drafts one repair memo for several tickets of the same building, to ask the director to approve them together. */
+export async function createCombinedMemo(formData: FormData) {
+  const back = (message: string) =>
+    redirect(`/memos?error=${encodeURIComponent(message)}`);
+
+  const ids = parseTicketIds(formData.getAll("ticket_ids"));
+  if (!ids) back(COMBINE_ERROR.count_range);
+
+  if (demo()) redirect(`/memos/${MOCK_MEMOS[0].id}`);
+
+  const supabase = await createClient();
+  const { data: auth } = await getAuth(supabase);
+  if (!auth.user) redirect("/login");
+
+  const { data: tickets } = await supabase
+    .from("repair_tickets")
+    .select(
+      "*, building:buildings(name), room:rooms(room_number, name), reporter:profiles(full_name)",
+    )
+    .in("id", ids!);
+  if (!tickets || tickets.length !== ids!.length)
+    back(COMBINE_ERROR.missing_ticket);
+
+  const draft = draftFromTickets(tickets as unknown as TicketRow[]);
+  const { data: memoId, error } = await supabase.rpc(
+    "create_combined_repair_memo",
+    {
+      p_ticket_ids: ids,
+      p_subject: draft.subject,
+      p_recipient: draft.recipient,
+      p_body: draft.body_content,
+      p_proposal: draft.proposal,
+    },
+  );
+  if (error || !memoId) {
+    // 23505: someone combined one of these tickets a moment earlier.
+    const code =
+      error?.code === "23505"
+        ? "already_has_memo"
+        : Object.keys(COMBINE_ERROR).find((c) => error?.message.includes(c));
+    back(
+      (code && COMBINE_ERROR[code]) ||
+        "สร้างร่างรวมไม่สำเร็จ ลองใหม่อีกครั้ง",
+    );
+  }
+
+  revalidatePath("/memos");
+  revalidatePath("/");
+  redirect(`/memos/${memoId}`);
 }
 
 /** Drafts the monthly or term summary memo for the director from the live figures. */
@@ -180,7 +250,8 @@ export async function saveMemo(
 const UUID = /^[0-9a-f-]{36}$/i;
 
 /**
- * Hard delete of one memo, system administrator only (role re-checked here, not trusted from the page).
+ * Hard delete of one memo (role and ownership re-checked here, not trusted from the page): the system
+ * administrator any memo, staff only their own draft (see canDeleteMemo).
  * There is no DELETE policy on memorandums on purpose, so this uses the service-role client; its
  * approval_records go with it (ON DELETE CASCADE) and a memo has no uploaded files. From the detail
  * page (`back`) a delete sends the viewer to the list, the memo's own page would be a 404.
@@ -192,12 +263,28 @@ export async function deleteMemo(formData: FormData): Promise<SaveResult> {
 
   const session = await getSession();
   if (!session) return { ok: false, message: "เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่" };
-  if (session.viewer.role !== "super_admin")
-    return { ok: false, message: "เฉพาะผู้ดูแลระบบที่ลบบันทึกข้อความได้" };
-
+  const admin = createAdminClient();
   let gone: number;
   try {
-    const { data, error } = await createAdminClient().from("memorandums").delete().eq("id", id).select("id");
+    const { data: memo, error: readError } = await admin
+      .from("memorandums")
+      .select("author_id, final_status")
+      .eq("id", id)
+      .maybeSingle();
+    if (readError) {
+      console.error("delete memo failed", { code: readError.code });
+      return { ok: false, message: "ลบไม่สำเร็จ ลองใหม่อีกครั้ง" };
+    }
+    if (!memo) {
+      revalidatePath("/memos");
+      return { ok: false, message: "ไม่พบบันทึกข้อความนี้ อาจถูกลบไปแล้ว" };
+    }
+    if (!canDeleteMemo(session.viewer.role, session.userId, memo))
+      return {
+        ok: false,
+        message: "ลบได้เฉพาะร่างของตัวเองที่ยังไม่ผ่านการพิจารณา (ผู้ดูแลระบบลบได้ทุกฉบับ)",
+      };
+    const { data, error } = await admin.from("memorandums").delete().eq("id", id).select("id");
     if (error) {
       console.error("delete memo failed", { code: error.code });
       return { ok: false, message: "ลบไม่สำเร็จ ลองใหม่อีกครั้ง" };

@@ -9,6 +9,7 @@ import { LoadError } from "@/components/ui/state-card";
 import { DeleteMemoButton, DeleteMemoPanel, DeleteMemos } from "@/components/memos/delete-memo";
 import { MemoEditor } from "@/components/memos/memo-editor";
 import { getMemo } from "@/lib/data/memos";
+import { canDeleteMemo } from "@/lib/memo/delete-rule";
 
 import { guardExecutive } from "@/lib/data/session";
 
@@ -24,13 +25,13 @@ export default async function MemoPage({
 }) {
   await guardExecutive();
   const { id } = await params;
-  const { memo, failed, viewer } = await getMemo(id);
+  const { memo, failed, viewer, userId } = await getMemo(id);
   // Row Level Security only returns memos the viewer wrote, or any memo for staff.
   if (failed) return <LoadError what="บันทึกข้อความ" retryHref={`/memos/${id}`} />;
   if (!memo) notFound();
 
-  // Only the system administrator deletes memos; the action checks the role again.
-  const canDelete = viewer?.role === "super_admin";
+  // The administrator deletes any memo, staff their own drafts; the action checks again.
+  const canDelete = canDeleteMemo(viewer?.role, userId, memo);
 
   return (
     <DeleteMemos back>

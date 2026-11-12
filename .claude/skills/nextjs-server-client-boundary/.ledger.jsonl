@@ -1,0 +1,1 @@
+{"action": "create", "reason": "Recurring Next.js App Router pitfall: a client component that imports a shared module can pull in next/headers through a transitive chain. Passing server-rendered ReactNode as a prop is a reusable rule for this repo.", "evidence": "references/evidence-0e11ad3b59ae073973dd5e15cc389360a0de60382385c50a106dfa2bc7c497a8.md"}

@@ -1,5 +1,5 @@
-import { bahtText, formatBahtNumber, formatThaiDate, SCHOOL_NAME } from "@/lib/memo/model";
-import { atBangkok, bangkokYmd, formatInstantHm } from "@/lib/time";
+import { bahtText, formatBahtNumber, formatThaiDate, SCHOOL_NAME } from "./model.ts";
+import { atBangkok, bangkokYmd, formatInstantHm } from "../time.ts";
 import type { TicketRow } from "@/types/tickets";
 
 /**
@@ -25,6 +25,36 @@ export function draftFromTicket(t: TicketRow, author?: { full_name: string; posi
     subject: "ขออนุมัติซ่อมแซมอาคารสถานที่และสิ่งอำนวยความสะดวกที่ชำรุด",
     recipient: `ผู้อำนวยการ${SCHOOL_NAME}`,
     body_content: [reason, facts].join("\n"),
+    // The request itself is the fixed closing paragraph, so the free proposal field stays empty.
+    proposal: "",
+  };
+}
+
+/** Where a ticket is: building, then room or spot; "บริเวณโรงเรียน" when nothing is known. */
+const placeOfTicket = (t: TicketRow) =>
+  [t.building?.name, t.room?.name ?? t.location_detail].filter(Boolean).join(" ") || "บริเวณโรงเรียน";
+
+/**
+ * First draft of one repair memo that covers several tickets of the same building, to ask the director
+ * to approve them together: an opening paragraph, the tickets as numbered items (oldest first) and a
+ * total. No cost section. Staff edit the text before exporting.
+ */
+export function draftFromTickets(tickets: TicketRow[]) {
+  const sorted = [...tickets].sort((a, b) => a.created_at.localeCompare(b.created_at));
+  const building = sorted[0]?.building?.name ?? "บริเวณโรงเรียน";
+  const n = sorted.length;
+  const urgent = sorted.some((t) => t.urgency === "high" || t.urgency === "emergency");
+
+  const opening = `ด้วยงานอาคารสถานที่ได้รับแจ้งความชำรุดเสียหายของอาคารสถานที่ ณ ${building} รวม ${n} รายการ และได้ตรวจสอบสภาพความเสียหายแล้ว พบว่ามีความจำเป็นต้องดำเนินการซ่อมแซม${urgent ? "อย่างเร่งด่วน" : "โดยเร็ว"} เพื่อความปลอดภัยของนักเรียนและครูผู้สอน และไม่ให้เกิดความเสียหายลุกลาม ดังรายการต่อไปนี้`;
+  const items = sorted.map((t, i) => {
+    const damage = [t.title, t.description && t.description !== t.title ? t.description : ""].filter(Boolean).join(" ");
+    return `${i + 1}. ${placeOfTicket(t)}: ${damage} (เลขที่งาน ${t.ticket_number}, แจ้งเมื่อ ${formatThaiDate(t.created_at)})${t.technician_notes ? ` ${t.technician_notes}` : ""}`;
+  });
+
+  return {
+    subject: `ขออนุมัติซ่อมแซมอาคารสถานที่ ${building} จำนวน ${n} รายการ`,
+    recipient: `ผู้อำนวยการ${SCHOOL_NAME}`,
+    body_content: [opening, ...items, `รวมทั้งสิ้น ${n} รายการ`].join("\n"),
     // The request itself is the fixed closing paragraph, so the free proposal field stays empty.
     proposal: "",
   };

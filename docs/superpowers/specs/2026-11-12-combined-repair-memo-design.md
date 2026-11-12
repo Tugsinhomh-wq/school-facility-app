@@ -65,7 +65,7 @@
 
 ## 5. ฝั่งแอป
 
-**`src/lib/memo/draft.ts` — `draftFromTickets(tickets, author)`** (ฟังก์ชันล้วน มีเทสต์)
+**`src/lib/memo/draft.ts` — `draftFromTickets(tickets)`** (ฟังก์ชันล้วน มีเทสต์; ไม่รับข้อมูลผู้เขียน เพราะย่อหน้าเปิดไม่ใช้ "ข้าพเจ้า…")
 - `subject`: `ขออนุมัติซ่อมแซมอาคารสถานที่ {ชื่ออาคาร} จำนวน {N} รายการ`
 - `recipient`: `ผู้อำนวยการ{SCHOOL_NAME}` เหมือนร่างเดี่ยว
 - `body_content` (แต่ละย่อหน้าคั่นด้วย newline เหมือนเดิม):
