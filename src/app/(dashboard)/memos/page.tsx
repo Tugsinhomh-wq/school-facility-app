@@ -5,12 +5,10 @@ import { Fragment } from "react";
 import { placeOf } from "@/components/tickets/ticket-table";
 import { ApprovalPill, UrgencyMark } from "@/components/tickets/status-mark";
 import { Button } from "@/components/ui/button";
+import { CandidateList } from "@/components/memos/candidate-list";
 import { DeleteMemoButton, DeleteMemoPanel, DeleteMemos } from "@/components/memos/delete-memo";
 import { EmptyState, LoadError } from "@/components/ui/state-card";
-import {
-  createMemoFromTicket,
-  createSummaryMemo,
-} from "@/app/(dashboard)/memos/actions";
+import { createSummaryMemo } from "@/app/(dashboard)/memos/actions";
 import { recentPeriods } from "@/lib/summary-period";
 import { getMemoList } from "@/lib/data/memos";
 import { formatDateTh } from "@/lib/ticket-meta";
@@ -201,27 +199,20 @@ export default async function MemosPage({
                   งานที่รอรับเรื่องหรือกำลังดำเนินการทุกงานมีบันทึกแล้ว
                 </p>
               ) : (
-                <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border">
-                  {list.candidates.map((t) => (
-                    <li key={t.id} className="px-4 py-3.5">
-                      <p className="font-semibold leading-snug">{t.title}</p>
+                <CandidateList
+                  candidates={list.candidates.map((t) => ({
+                    id: t.id,
+                    title: t.title,
+                    buildingId: t.building_id,
+                    buildingName: t.building?.name ?? "",
+                    detail: (
                       <p className="mt-0.5 flex flex-wrap items-center gap-x-3 text-sm text-muted-foreground">
                         {placeOf(t)}
                         <UrgencyMark urgency={t.urgency} />
                       </p>
-                      <form action={createMemoFromTicket} className="mt-2">
-                        <input type="hidden" name="ticket_id" value={t.id} />
-                        <Button
-                          type="submit"
-                          variant="outline"
-                          className="h-11 w-full sm:w-auto"
-                        >
-                          ร่างบันทึกข้อความ
-                        </Button>
-                      </form>
-                    </li>
-                  ))}
-                </ul>
+                    ),
+                  }))}
+                />
               )}
             </section>
             {list.viewer?.role !== "room_staff" && (
