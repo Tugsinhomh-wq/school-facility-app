@@ -2,6 +2,7 @@ import { Camera, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
 import { StatusPill, UrgencyMark } from "@/components/tickets/status-mark";
+import { overdueDays } from "@/lib/ticket-aging";
 import { formatBaht, formatDateTh } from "@/lib/ticket-meta";
 import type { TicketRow } from "@/types/tickets";
 
@@ -29,6 +30,13 @@ export function DuplicateNote({ t }: { t: TicketRow }) {
       </span>
     );
   return null;
+}
+
+/** "ค้างเกินกำหนด 3 วัน" on an open ticket that has waited longer than its urgency allows. */
+export function OverdueNote({ t }: { t: TicketRow }) {
+  const days = t.duplicate_of_number ? null : overdueDays(t);
+  if (days === null) return null;
+  return <span className="font-medium text-amber-800">ค้างเกินกำหนด {days} วัน</span>;
 }
 
 /** Checkbox tied to the bulk form (id "bulk-trash") rendered above the list. */
@@ -89,6 +97,7 @@ export function TicketTable({
                 <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
                   <StatusPill status={t.status} />
                   <UrgencyMark urgency={t.urgency} />
+                  <OverdueNote t={t} />
                   <DuplicateNote t={t} />
                   <span>{t.ticket_number}</span>
                   {t.image_urls?.length > 0 && (
@@ -152,6 +161,7 @@ export function TicketTable({
                   </Link>
                   <span className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
                     {t.ticket_number}
+                    <OverdueNote t={t} />
                     <DuplicateNote t={t} />
                     {t.image_urls?.length > 0 && (
                       <span

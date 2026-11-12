@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { hasSupabase, getSession } from "@/lib/data/session";
+import { missingCloseEvidence } from "@/lib/ticket-close";
 import { canChangeUrgency, parseUrgency } from "@/lib/ticket-urgency";
 import { purgeTickets } from "@/lib/trash";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -62,36 +63,34 @@ export async function updateTicket(
   const ownPath = new RegExp(`^${auth.user.id}/[0-9a-f-]{36}\\.jpg$`);
   if (!afterPaths.every((p) => ownPath.test(p)))
     return { ok: false, message: "รูปที่แนบไม่ถูกต้อง ลองแนบใหม่อีกครั้ง" };
+  // What is stored now decides the rules below, not the values in this same submit.
+  const { data: stored } = await supabase
+    .from("repair_tickets")
+    .select("status, urgency, after_image_urls")
+    .eq("id", id)
+    .maybeSingle();
+  if (!stored) return { ok: false, message: "ไม่พบงานซ่อมนี้ หรือไม่มีสิทธิ์แก้ไข" };
+  const storedStatus = stored.status as TicketStatus;
+  const existingAfter = (stored.after_image_urls as string[] | null) ?? [];
+
   let afterAll: string[] | null = null;
   if (afterPaths.length > 0) {
-    const { data: current } = await supabase
-      .from("repair_tickets")
-      .select("after_image_urls")
-      .eq("id", id)
-      .maybeSingle();
-    afterAll = [
-      ...((current?.after_image_urls as string[] | null) ?? []),
-      ...afterPaths,
-    ];
+    afterAll = [...existingAfter, ...afterPaths];
     if (afterAll.length > 4)
       return { ok: false, message: "รูปหลังซ่อมได้ไม่เกิน 4 รูป" };
   }
 
-  // Changing the level is allowed only while the ticket is open, judged on what is stored now (not on the
-  // status in this same submit), so closing a ticket and fixing its level in one save still works.
+  // Closing a job needs something to show for it: technician notes or at least one after photo.
+  if (missingCloseEvidence(storedStatus, status, notes, existingAfter.length + afterPaths.length))
+    return { ok: false, message: "ปิดงานซ่อมต้องมีบันทึกช่างหรือรูปหลังซ่อมอย่างน้อยหนึ่งอย่าง" };
+
+  // Changing the level is allowed only while the ticket is open, so closing a ticket and fixing its level
+  // in one save still works.
   let newUrgency: typeof urgency;
-  if (urgency !== undefined) {
-    const { data: stored } = await supabase
-      .from("repair_tickets")
-      .select("status, urgency")
-      .eq("id", id)
-      .maybeSingle();
-    if (!stored) return { ok: false, message: "ไม่พบงานซ่อมนี้ หรือไม่มีสิทธิ์แก้ไข" };
-    if (stored.urgency !== urgency) {
-      if (!canChangeUrgency(stored.status as TicketStatus))
-        return { ok: false, message: "งานที่ปิดแล้วเปลี่ยนความเร่งด่วนไม่ได้" };
-      newUrgency = urgency;
-    }
+  if (urgency !== undefined && stored.urgency !== urgency) {
+    if (!canChangeUrgency(storedStatus))
+      return { ok: false, message: "งานที่ปิดแล้วเปลี่ยนความเร่งด่วนไม่ได้" };
+    newUrgency = urgency;
   }
 
   // RLS only lets staff and super_admin update; an empty result means the write was refused.
