@@ -3,11 +3,11 @@ import path from "node:path";
 
 import { AlignmentType, BorderStyle, Document, ImageRun, LeaderType, Packer, Paragraph, type IParagraphOptions, Table, TableCell, TableRow, TabStopType, TextRun, WidthType } from "docx";
 
-import { BUILDING_HEAD, DIRECTOR, SCHOOL_NAME, type MemoDoc } from "@/lib/memo/model";
-import { withBreakHints } from "@/lib/memo/thai-text";
+import { BUILDING_HEAD, DIRECTOR, SCHOOL_NAME, type MemoDoc } from "./model.ts";
+import { withBreakHints } from "./thai-text.ts";
 
 const CM = 567; // twips per centimetre
-const SIZE = 32; // 16 pt, in half-points (TH Sarabun New's usual body size)
+const SIZE = 28; // 14 pt, in half-points
 
 interface Options {
   /** Must be installed on the reader's machine; "TH Sarabun New" is the standard for government memos. */
