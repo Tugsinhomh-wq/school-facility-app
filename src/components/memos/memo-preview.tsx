@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import type { MemoDoc } from "@/lib/memo/model";
-import { DEPUTY, DIRECTOR, SCHOOL_NAME } from "@/lib/memo/model";
+import { BUILDING_HEAD, DIRECTOR, SCHOOL_NAME } from "@/lib/memo/model";
 
 /**
  * On-screen A4 page. Sizes are in container-width units so the layout matches
@@ -56,12 +56,12 @@ export function MemoPreview({ doc, fontClass }: { doc: MemoDoc; fontClass: strin
             </div>
             {doc.decisionBlock && (
               <div style={{ marginTop: "3cqw" }}>
-                <p className="font-bold">ความเห็นของ{DEPUTY.position}</p>
+                <p className="font-bold">ความเห็นของ{BUILDING_HEAD.position}</p>
                 <p className="border-b border-dotted border-black" style={{ height: "3.4cqw" }} />
                 <div className="text-center" style={{ marginLeft: "38%", marginTop: "3cqw", marginBottom: "3cqw" }}>
                   <p>ลงชื่อ ..............................</p>
-                  <p>({DEPUTY.name})</p>
-                  <p>{DEPUTY.position}</p>
+                  <p>({BUILDING_HEAD.name})</p>
+                  <p>{BUILDING_HEAD.position}</p>
                 </div>
                 <p className="font-bold">คำสั่งการ / การพิจารณาของผู้อำนวยการโรงเรียน</p>
                 <p style={{ paddingLeft: "3cqw" }}>☐ อนุมัติ &nbsp;&nbsp; ☐ ไม่อนุมัติ</p>
