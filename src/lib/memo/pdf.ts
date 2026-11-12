@@ -3,15 +3,15 @@ import path from "node:path";
 
 import PDFDocument from "pdfkit";
 
-import { BUILDING_HEAD, DIRECTOR, SCHOOL_NAME, type MemoDoc } from "@/lib/memo/model";
-import { thaiWords } from "@/lib/memo/thai-text";
+import { BUILDING_HEAD, DIRECTOR, SCHOOL_NAME, type MemoDoc } from "./model.ts";
+import { thaiWords } from "./thai-text.ts";
 
 const FONT_DIR = path.join(process.cwd(), "src/lib/memo/fonts");
 const cm = (n: number) => (n * 72) / 2.54;
 
 const PAGE = { width: 595.28, height: 841.89 };
 const M = { top: cm(2.5), bottom: cm(2), left: cm(3), right: cm(2) };
-const SIZE = 15;
+const SIZE = 14;
 const LINE = SIZE * 1.35; // single spacing, as in a typed official letter
 
 export function memoToPdf(doc: MemoDoc): Promise<Buffer> {
@@ -142,7 +142,7 @@ export function memoToPdf(doc: MemoDoc): Promise<Buffer> {
     };
     if (repair) {
       ensure(LINE * 4);
-      centred("(ลงชื่อ)...................... ผู้รายงาน");
+      centred("ลงชื่อ ...................... ผู้รายงาน");
       centred(`(${doc.signerName || "..........................................."})`);
       centred(`ตำแหน่ง ${doc.signerPosition || ".........................................."}`);
       if (doc.decisionBlock) {

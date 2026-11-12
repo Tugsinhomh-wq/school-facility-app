@@ -2,8 +2,8 @@
 """Builds the memo (บันทึกข้อความ) as a Word file, following the thai-docx skill.
 
 Reads the memo JSON (the MemoDoc shape from src/lib/memo/model.ts) on stdin and
-writes the .docx bytes to stdout. Uses python-docx with LEFT alignment and
-zero-width-space word breaks so Thai text fills each line.
+writes the .docx bytes to stdout. Uses python-docx with LEFT alignment. No zero-width break
+hints: Word and LibreOffice break Thai themselves, and the hints showed as boxes.
 
     pip install -r scripts/requirements.txt
 """
@@ -24,12 +24,10 @@ from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_TAB_ALIGNMENT, WD_TAB_LEADER
 from docx.shared import Cm, Pt
 
-from thai_zwsp import insert_zwsp
-
 # Sarabun (SIL OFL) is embedded in the file, so the text looks the same on a Mac or any
-# computer without Thai government fonts; 15 pt Sarabun reads like 16 pt TH Sarabun New.
+# computer without Thai government fonts. 14 pt, the same as the PDF and the Node builder.
 FONT = "Sarabun"
-SIZE = 15
+SIZE = 14
 FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src", "lib", "memo", "fonts")
 SCHOOL = "โรงเรียนละหานทรายรัชดาภิเษก"
 
@@ -54,7 +52,7 @@ def style_run(run, bold=False, size=SIZE, font=FONT):
 
 
 def add_text(p, text, bold=False, size=SIZE, font=FONT):
-    run = p.add_run(insert_zwsp(text))
+    run = p.add_run(text)
     style_run(run, bold, size, font)
     return run
 
@@ -135,7 +133,7 @@ def build(memo: dict) -> bytes:
             add_text(para(doc, align=WD_ALIGN_PARAGRAPH.CENTER, left=8), position)
 
     if repair:
-        add_text(para(doc, align=WD_ALIGN_PARAGRAPH.CENTER, left=8), "(ลงชื่อ)...................... ผู้รายงาน")
+        add_text(para(doc, align=WD_ALIGN_PARAGRAPH.CENTER, left=8), "ลงชื่อ ...................... ผู้รายงาน")
         add_text(para(doc, align=WD_ALIGN_PARAGRAPH.CENTER, left=8), f"({memo.get('signerName') or '...........................................'})")
         add_text(para(doc, align=WD_ALIGN_PARAGRAPH.CENTER, left=8), f"ตำแหน่ง {memo.get('signerPosition') or '..........................................'}")
         if memo.get("decisionBlock"):

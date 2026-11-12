@@ -15,7 +15,7 @@ export function draftFromTicket(t: TicketRow, author?: { full_name: string; posi
   const urgent = t.urgency === "high" || t.urgency === "emergency";
   const damage = [t.title, t.description && t.description !== t.title ? t.description : ""].filter(Boolean).join(" ");
 
-  const reason = `ด้วย${who} ${reporter} ถึงความชำรุดเสียหายของอาคารสถานที่ ณ ${where || "บริเวณโรงเรียน"} เมื่อวันที่ ${formatThaiDate(t.created_at)} (เลขที่งาน ${t.ticket_number}) โดยมีสภาพความเสียหายดังนี้ ${damage}`;
+  const reason = `ด้วย${who} ${reporter} ถึงความชำรุดเสียหายของอาคารสถานที่ ณ ${where || "บริเวณโรงเรียน"} เมื่อวันที่ ${formatThaiDate(t.created_at)} เลขที่งาน ${t.ticket_number} โดยมีสภาพความเสียหายดังนี้ ${damage}`;
   const facts =
     `งานอาคารสถานที่ได้ดำเนินการตรวจสอบสภาพความเสียหายดังกล่าวแล้ว พบว่ามีความจำเป็นต้องดำเนินการซ่อมแซม${urgent ? "อย่างเร่งด่วน" : "โดยเร็ว"} เพื่อความปลอดภัยของนักเรียนและครูผู้สอน และไม่ให้เกิดความเสียหายลุกลาม` +
     (t.technician_notes ? ` ${t.technician_notes}` : "") +
@@ -48,7 +48,7 @@ export function draftFromTickets(tickets: TicketRow[]) {
   const opening = `ด้วยงานอาคารสถานที่ได้รับแจ้งความชำรุดเสียหายของอาคารสถานที่ ณ ${building} รวม ${n} รายการ และได้ตรวจสอบสภาพความเสียหายแล้ว พบว่ามีความจำเป็นต้องดำเนินการซ่อมแซม${urgent ? "อย่างเร่งด่วน" : "โดยเร็ว"} เพื่อความปลอดภัยของนักเรียนและครูผู้สอน และไม่ให้เกิดความเสียหายลุกลาม ดังรายการต่อไปนี้`;
   const items = sorted.map((t, i) => {
     const damage = [t.title, t.description && t.description !== t.title ? t.description : ""].filter(Boolean).join(" ");
-    return `${i + 1}. ${placeOfTicket(t)}: ${damage} (เลขที่งาน ${t.ticket_number}, แจ้งเมื่อ ${formatThaiDate(t.created_at)})${t.technician_notes ? ` ${t.technician_notes}` : ""}`;
+    return `${i + 1}. ${placeOfTicket(t)}: ${damage} เลขที่งาน ${t.ticket_number} แจ้งเมื่อ ${formatThaiDate(t.created_at)}${t.technician_notes ? ` ${t.technician_notes}` : ""}`;
   });
 
   return {

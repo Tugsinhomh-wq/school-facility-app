@@ -9,7 +9,7 @@ const GARUDA = path.join(/* turbopackIgnore: true */ process.cwd(), "src/lib/mem
 const SCRIPT_DIR = path.join(/* turbopackIgnore: true */ process.cwd(), "scripts");
 
 /**
- * Builds the Word file with the thai-docx approach (python-docx + pythainlp word breaks).
+ * Builds the Word file with the thai-docx approach (python-docx, Sarabun embedded).
  * Needs Python with `pip install -r scripts/requirements.txt`; rejects if it is not available
  * so the caller can fall back.
  */
