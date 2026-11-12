@@ -17,6 +17,7 @@ interface Photo {
  */
 export function ImagePicker({
   onBusyChange,
+  onCountChange,
   camera = false,
   bucket = BUCKET,
   label = "รูปประกอบ (ไม่บังคับ)",
@@ -25,6 +26,8 @@ export function ImagePicker({
   quiet = false,
 }: {
   onBusyChange?: (busy: boolean) => void;
+  /** Called with the number of photos uploaded so far (used to require at least one). */
+  onCountChange?: (count: number) => void;
   camera?: boolean;
   bucket?: string;
   label?: string;
@@ -41,6 +44,7 @@ export function ImagePicker({
   const previews = useRef<string[]>([]);
 
   useEffect(() => onBusyChange?.(uploading > 0), [uploading, onBusyChange]);
+  useEffect(() => onCountChange?.(photos.length), [photos.length, onCountChange]);
   useEffect(
     () => () => previews.current.forEach((url) => URL.revokeObjectURL(url)),
     [],
