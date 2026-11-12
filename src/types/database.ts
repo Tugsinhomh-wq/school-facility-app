@@ -78,6 +78,10 @@ export interface RepairTicket {
   /** Set when this report repeats another open ticket; status then follows that ticket. */
   duplicate_of?: string | null;
   duplicate_of_number?: string | null;
+  /** The staff member handling it (see supabase/ticket_history.sql). */
+  assignee_id?: string | null;
+  /** When the status became "completed"; cleared if the job is reopened. */
+  completed_at?: string | null;
   created_at: string;
   updated_at: string;
 }

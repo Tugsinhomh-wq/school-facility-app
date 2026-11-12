@@ -80,10 +80,12 @@ export default async function TicketsPage({
               filters={filters}
               buildings={list.buildings}
               showOpenView={isStaff || !list.viewer}
+              showMine={isStaff}
             />
-            {filters.status === "open" && (
+            {(filters.status === "open" || filters.status === "mine") && (
               <p className="text-sm text-muted-foreground">
-                งานที่ยังไม่ปิด เรียงฉุกเฉินก่อน แล้วงานที่รอนานสุดก่อน
+                {filters.status === "mine" ? "งานที่ยังไม่ปิดและมอบหมายให้คุณ" : "งานที่ยังไม่ปิด"}{" "}
+                เรียงฉุกเฉินก่อน แล้วงานที่รอนานสุดก่อน
               </p>
             )}
             {isAdmin && list.tickets.length > 0 && <BulkTrashBar />}
@@ -91,6 +93,7 @@ export default async function TicketsPage({
               selectable={isAdmin}
               tickets={list.tickets}
               showReporter={isStaff}
+              assigneeNames={list.assigneeNames}
               hasFilters={Boolean(
                 filters.status ||
                 filters.urgency ||

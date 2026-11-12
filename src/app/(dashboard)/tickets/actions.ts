@@ -19,6 +19,7 @@ const STATUSES: TicketStatus[] = [
   "cancelled",
 ];
 const MAX_COST = 99_999_999.99; // NUMERIC(10,2)
+const UUID = /^[0-9a-f-]{36}$/i;
 
 export type UpdateResult = { ok: boolean; message: string } | null;
 
@@ -43,6 +44,14 @@ export async function updateTicket(
   const urgencyField = formData.get("urgency");
   const urgency = urgencyField === null ? undefined : parseUrgency(urgencyField);
   if (urgency === null) return { ok: false, message: "ระดับความเร่งด่วนไม่ถูกต้อง" };
+  // Sent by the manage form: "" = no owner, an id = that person; absent = leave the owner alone.
+  const assigneeField = formData.get("assignee_id");
+  let assignee: string | null | undefined;
+  if (assigneeField !== null) {
+    const v = String(assigneeField);
+    if (v !== "" && !UUID.test(v)) return { ok: false, message: "ผู้รับผิดชอบไม่ถูกต้อง" };
+    assignee = v === "" ? null : v;
+  }
 
   if (
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||
@@ -66,7 +75,7 @@ export async function updateTicket(
   // What is stored now decides the rules below, not the values in this same submit.
   const { data: stored } = await supabase
     .from("repair_tickets")
-    .select("status, urgency, after_image_urls")
+    .select("status, urgency, after_image_urls, assignee_id")
     .eq("id", id)
     .maybeSingle();
   if (!stored) return { ok: false, message: "ไม่พบงานซ่อมนี้ หรือไม่มีสิทธิ์แก้ไข" };
@@ -98,6 +107,7 @@ export async function updateTicket(
     .from("repair_tickets")
     .update({
       ...(newUrgency ? { urgency: newUrgency } : {}),
+      ...(assignee !== undefined && assignee !== (stored.assignee_id ?? null) ? { assignee_id: assignee } : {}),
       status,
       estimated_cost: cost,
       technician_notes: notes || null,
@@ -105,6 +115,8 @@ export async function updateTicket(
     })
     .eq("id", id)
     .select("id");
+  if (error?.message.includes("assignee must be"))
+    return { ok: false, message: "มอบหมายได้เฉพาะเจ้าหน้าที่ที่ยังใช้งานอยู่" };
   if (error) return { ok: false, message: `บันทึกไม่สำเร็จ: ${error.message}` };
   if (!data?.length) return { ok: false, message: "ไม่มีสิทธิ์แก้ไขรายการนี้" };
 
@@ -113,8 +125,6 @@ export async function updateTicket(
   revalidatePath("/");
   return { ok: true, message: "บันทึกแล้ว" };
 }
-
-const UUID = /^[0-9a-f-]{36}$/i;
 
 /** Staff only (RLS refuses everyone else): merge this report into another open ticket, or split it out again. */
 export async function mergeTicket(

@@ -1,6 +1,7 @@
 import type { BuildingOption, Viewer } from "@/lib/data/dashboard";
 import { MOCK_BUILDINGS, MOCK_TICKETS } from "@/lib/mock-data";
 import type { TicketStatus, UrgencyLevel, UserRole } from "@/types/database";
+import type { TicketEvent } from "@/lib/ticket-events";
 import type { TicketFilters, TicketRow } from "@/types/tickets";
 import { getAuth } from "@/lib/supabase/auth";
 
@@ -14,6 +15,8 @@ const STATUSES: TicketStatus[] = [
 ];
 const URGENCIES: UrgencyLevel[] = ["low", "medium", "high", "emergency"];
 const OPEN: TicketStatus[] = ["pending", "in_progress"];
+/** Roles that handle repairs (same set as isStaffRole in session.ts, which this file does not import). */
+const STAFF_ROLES: UserRole[] = ["staff", "head", "super_admin"];
 
 /** Reads and validates the list filters from URL search params. */
 export function parseFilters(
@@ -25,7 +28,7 @@ export function parseFilters(
   const urgency = one("urgency") as UrgencyLevel | undefined;
   const page = Number.parseInt(one("page") ?? "1", 10);
   return {
-    status: status === "open" || (status && STATUSES.includes(status)) ? status : undefined,
+    status: status === "open" || status === "mine" || (status && STATUSES.includes(status as TicketStatus)) ? status : undefined,
     urgency: urgency && URGENCIES.includes(urgency) ? urgency : undefined,
     building: one("building") || undefined,
     q: one("q")?.trim().slice(0, 80) || undefined,
@@ -39,6 +42,8 @@ export interface TicketList {
   tickets: TicketRow[];
   total: number;
   buildings: BuildingOption[];
+  /** Staff only: names of the assignees of the tickets on this page, by profile id. */
+  assigneeNames: Record<string, string>;
   /** Signed in, but loading failed: show an error with a retry instead of sample data. */
   failed?: boolean;
 }
@@ -53,7 +58,8 @@ function mockList(f: TicketFilters): TicketList {
   const open = f.status === "open";
   const all = MOCK_TICKETS.filter(
     (t) =>
-      (!f.status || (open ? OPEN.includes(t.status) : t.status === f.status)) &&
+      (!f.status ||
+        (open ? OPEN.includes(t.status) : f.status === "mine" ? false : t.status === f.status)) &&
       (!f.urgency || t.urgency === f.urgency) &&
       (!f.building || t.building_id === f.building) &&
       (!q ||
@@ -72,6 +78,7 @@ function mockList(f: TicketFilters): TicketList {
       .map(withReporter),
     total: all.length,
     buildings: MOCK_BUILDINGS,
+    assigneeNames: {},
   };
 }
 
@@ -94,8 +101,10 @@ export async function getTicketList(f: TicketFilters): Promise<TicketList> {
     let query = supabase
       .from("repair_tickets")
       .select(SELECT, { count: "exact" });
-    if (f.status === "open") query = query.in("status", OPEN);
+    const queue = f.status === "open" || f.status === "mine";
+    if (queue) query = query.in("status", OPEN);
     else if (f.status) query = query.eq("status", f.status);
+    if (f.status === "mine") query = query.eq("assignee_id", auth.user.id);
     if (f.urgency) query = query.eq("urgency", f.urgency);
     if (f.building) query = query.eq("building_id", f.building);
     if (f.q) {
@@ -107,7 +116,7 @@ export async function getTicketList(f: TicketFilters): Promise<TicketList> {
     const from = (f.page - 1) * PAGE_SIZE;
     // The urgency enum is declared low → emergency, so descending puts emergencies first.
     const ordered =
-      f.status === "open"
+      queue
         ? query.order("urgency", { ascending: false }).order("created_at", { ascending: true })
         : query.order("created_at", { ascending: false });
     const [tickets, buildings, profile] = await Promise.all([
@@ -133,17 +142,28 @@ export async function getTicketList(f: TicketFilters): Promise<TicketList> {
         tickets: [],
         total: 0,
         buildings: [],
+        assigneeNames: {},
         failed: true,
       };
+    const rows = tickets.data as unknown as TicketRow[];
+    // Staff see who is handling each ticket; teachers cannot read other people's profiles, so skip them.
+    const isStaff = STAFF_ROLES.includes(profile.data?.role as UserRole);
+    const assigneeIds = [...new Set(rows.flatMap((t) => (t.assignee_id ? [t.assignee_id] : [])))];
+    const assigneeNames: Record<string, string> = {};
+    if (isStaff && assigneeIds.length > 0) {
+      const { data: people } = await supabase.from("profiles").select("id, full_name").in("id", assigneeIds);
+      for (const p of people ?? []) assigneeNames[p.id as string] = p.full_name as string;
+    }
     return {
       source: "supabase",
       viewer: {
         name: profile.data?.full_name ?? auth.user.email ?? "ผู้ใช้",
         role: (profile.data?.role as UserRole | undefined) ?? "user",
       },
-      tickets: tickets.data as unknown as TicketRow[],
+      tickets: rows,
       total: tickets.count ?? tickets.data.length,
       buildings: (buildings.data ?? []) as BuildingOption[],
+      assigneeNames,
     };
   } catch {
     return {
@@ -152,6 +172,7 @@ export async function getTicketList(f: TicketFilters): Promise<TicketList> {
       tickets: [],
       total: 0,
       buildings: [],
+      assigneeNames: {},
       failed: true,
     };
   }
@@ -165,6 +186,14 @@ export interface TicketDetail {
   imageUrls: string[];
   /** Signed URLs for ticket.after_image_urls. */
   afterImageUrls: string[];
+  /** The signed-in user's profile id (null in the sample-data mode). */
+  viewerId: string | null;
+  /** Status / owner / urgency changes, oldest first. Empty if the history table is not set up yet. */
+  events: TicketEvent[];
+  /** Staff only: people a ticket can be assigned to. */
+  staffOptions: { id: string; name: string }[];
+  /** Staff only: the current assignee's name. */
+  assigneeName: string | null;
 }
 
 export async function getTicketDetail(id: string): Promise<TicketDetail> {
@@ -176,6 +205,10 @@ export async function getTicketDetail(id: string): Promise<TicketDetail> {
       ticket: t ? withReporter(t) : null,
       imageUrls: [],
       afterImageUrls: [],
+      viewerId: null,
+      events: [],
+      staffOptions: [],
+      assigneeName: null,
     };
   };
   if (
@@ -217,6 +250,27 @@ export async function getTicketDetail(id: string): Promise<TicketDetail> {
         s.signedUrl ? [s.signedUrl] : [],
       );
     }
+    const isStaff = STAFF_ROLES.includes(profile.data?.role as UserRole);
+    const [eventRows, staffRows, assigneeRow] = await Promise.all([
+      row
+        ? supabase
+            .from("repair_ticket_events")
+            .select("id, kind, from_value, to_value, actor_name, created_at")
+            .eq("ticket_id", row.id)
+            .order("created_at")
+        : null,
+      isStaff
+        ? supabase
+            .from("profiles")
+            .select("id, full_name")
+            .in("role", STAFF_ROLES)
+            .eq("is_active", true)
+            .order("full_name")
+        : null,
+      isStaff && row?.assignee_id
+        ? supabase.from("profiles").select("full_name").eq("id", row.assignee_id).maybeSingle()
+        : null,
+    ]);
     return {
       source: "supabase",
       viewer: {
@@ -227,6 +281,11 @@ export async function getTicketDetail(id: string): Promise<TicketDetail> {
       ticket: row,
       imageUrls,
       afterImageUrls,
+      viewerId: auth.user.id,
+      // If supabase/ticket_history.sql has not been run yet the query errors: show no history instead of failing the page.
+      events: eventRows && !eventRows.error ? ((eventRows.data ?? []) as TicketEvent[]) : [],
+      staffOptions: (staffRows?.data ?? []).map((p) => ({ id: p.id as string, name: p.full_name as string })),
+      assigneeName: (assigneeRow?.data?.full_name as string | undefined) ?? null,
     };
   } catch {
     return mock();

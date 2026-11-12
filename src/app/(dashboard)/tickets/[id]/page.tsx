@@ -5,11 +5,13 @@ import { notFound } from "next/navigation";
 import { createMemoFromTicket } from "@/app/(dashboard)/memos/actions";
 import { OverdueNote, placeOf } from "@/components/tickets/ticket-table";
 import { TicketManageForm } from "@/components/tickets/ticket-manage-form";
+import { TicketTimeline } from "@/components/tickets/ticket-timeline";
 import { StatusPill, UrgencyMark } from "@/components/tickets/status-mark";
 import { Button } from "@/components/ui/button";
 import { MergePanel } from "@/components/tickets/merge-panel";
 import { TrashButton } from "@/components/tickets/trash-button";
 import { getDuplicateContext, getTicketDetail } from "@/lib/data/tickets";
+import { repairDuration } from "@/lib/ticket-events";
 import { formatBaht, formatDateTh } from "@/lib/ticket-meta";
 
 import { guardExecutive, isStaffRole } from "@/lib/data/session";
@@ -38,7 +40,7 @@ export default async function TicketDetailPage({
 }) {
   await guardExecutive();
   const { id } = await params;
-  const { ticket, viewer, imageUrls, afterImageUrls } =
+  const { ticket, viewer, imageUrls, afterImageUrls, viewerId, events, staffOptions, assigneeName } =
     await getTicketDetail(id);
   if (!ticket) notFound();
   const isStaff = isStaffRole(viewer?.role);
@@ -79,6 +81,17 @@ export default async function TicketDetailPage({
             <Field label="แจ้งเมื่อ">{formatDateTh(ticket.created_at)}</Field>
             {isStaff && (
               <Field label="ผู้แจ้ง">{ticket.reporter?.full_name ?? "-"}</Field>
+            )}
+            {isStaff && (
+              <Field label="ผู้รับผิดชอบ">{assigneeName ?? "ยังไม่มีผู้รับผิดชอบ"}</Field>
+            )}
+            {ticket.completed_at && (
+              <Field label="ซ่อมเสร็จเมื่อ">
+                {formatDateTh(ticket.completed_at)}
+                <span className="block text-sm font-normal text-muted-foreground">
+                  ใช้เวลา {repairDuration(ticket.created_at, ticket.completed_at)}
+                </span>
+              </Field>
             )}
             <Field label="ค่าใช้จ่ายประมาณการ">
               {Number(ticket.estimated_cost) > 0
@@ -155,12 +168,13 @@ export default async function TicketDetailPage({
               {formatDateTh(ticket.updated_at)}
             </Field>
           </dl>
+          <TicketTimeline createdAt={ticket.created_at} events={events} />
         </article>
 
         {isStaff && (
           <aside className="h-fit rounded-xl border border-border p-5">
             <h2 className="mb-4 font-semibold">จัดการงานซ่อม</h2>
-            <TicketManageForm ticket={ticket} />
+            <TicketManageForm ticket={ticket} staff={staffOptions} viewerId={viewerId} />
             <form
               action={createMemoFromTicket}
               className="mt-4 border-t border-border pt-4"

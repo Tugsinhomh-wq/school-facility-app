@@ -19,12 +19,24 @@ import type { TicketRow } from "@/types/tickets";
 const selectClass =
   "h-11 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
-export function TicketManageForm({ ticket }: { ticket: TicketRow }) {
+export function TicketManageForm({
+  ticket,
+  staff,
+  viewerId,
+}: {
+  ticket: TicketRow;
+  /** People the job can be handed to. */
+  staff: { id: string; name: string }[];
+  /** The signed-in staff member, for the "รับงานนี้" shortcut. */
+  viewerId: string | null;
+}) {
   const [state, action, pending] = useActionState<UpdateResult, FormData>(
     updateTicket,
     null,
   );
   const [busy, setBusy] = useState(false);
+  const [assignee, setAssignee] = useState(ticket.assignee_id ?? "");
+  const canClaim = viewerId !== null && staff.some((p) => p.id === viewerId) && assignee !== viewerId;
   const existing = ticket.after_image_urls?.length ?? 0;
 
   return (
@@ -44,6 +56,35 @@ export function TicketManageForm({ ticket }: { ticket: TicketRow }) {
             </option>
           ))}
         </select>
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="assignee_id">ผู้รับผิดชอบ</Label>
+        <div className="flex gap-2">
+          <select
+            id="assignee_id"
+            name="assignee_id"
+            value={assignee}
+            onChange={(e) => setAssignee(e.target.value)}
+            className={selectClass}
+          >
+            <option value="">ยังไม่มีผู้รับผิดชอบ</option>
+            {/* A person who left the list (made inactive) stays visible while they still hold the job. */}
+            {ticket.assignee_id && !staff.some((p) => p.id === ticket.assignee_id) && (
+              <option value={ticket.assignee_id}>ผู้รับผิดชอบเดิม</option>
+            )}
+            {staff.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+                {p.id === viewerId ? " (ฉัน)" : ""}
+              </option>
+            ))}
+          </select>
+          {canClaim && (
+            <Button type="button" variant="outline" className="h-11 shrink-0" onClick={() => viewerId && setAssignee(viewerId)}>
+              รับงานนี้
+            </Button>
+          )}
+        </div>
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="urgency">ความเร่งด่วน</Label>

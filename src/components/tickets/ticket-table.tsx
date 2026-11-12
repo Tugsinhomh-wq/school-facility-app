@@ -60,13 +60,17 @@ export function TicketTable({
   showReporter,
   hasFilters,
   selectable = false,
+  assigneeNames = {},
 }: {
   tickets: TicketRow[];
   showReporter: boolean;
   hasFilters: boolean;
   /** Administrator only: a checkbox on every row for moving several tickets to the trash at once. */
   selectable?: boolean;
+  /** Staff only: who is handling each ticket, by profile id. */
+  assigneeNames?: Record<string, string>;
 }) {
+  const handler = (t: TicketRow) => (t.assignee_id ? (assigneeNames[t.assignee_id] ?? "-") : null);
   if (tickets.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-border p-10 text-center text-muted-foreground">
@@ -94,6 +98,11 @@ export function TicketTable({
                   <time dateTime={t.created_at}>{formatDateTh(t.created_at)}</time>
                   {showReporter && t.reporter?.full_name && ` · ${t.reporter.full_name}`}
                 </span>
+                {showReporter && (
+                  <span className="mt-0.5 block text-sm text-muted-foreground">
+                    {handler(t) ? `ผู้รับผิดชอบ: ${handler(t)}` : "ยังไม่มีผู้รับผิดชอบ"}
+                  </span>
+                )}
                 <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
                   <StatusPill status={t.status} />
                   <UrgencyMark urgency={t.urgency} />
@@ -131,6 +140,11 @@ export function TicketTable({
               {showReporter && (
                 <th scope="col" className="px-4 py-3 font-medium">
                   ผู้แจ้ง
+                </th>
+              )}
+              {showReporter && (
+                <th scope="col" className="px-4 py-3 font-medium">
+                  ผู้รับผิดชอบ
                 </th>
               )}
               <th scope="col" className="px-4 py-3 font-medium">
@@ -177,6 +191,11 @@ export function TicketTable({
                 <td className="px-4 py-4">{placeOf(t)}</td>
                 {showReporter && (
                   <td className="px-4 py-4 whitespace-nowrap">{t.reporter?.full_name ?? "-"}</td>
+                )}
+                {showReporter && (
+                  <td className="px-4 py-4 whitespace-nowrap">
+                    {handler(t) ?? <span className="text-muted-foreground">ยังไม่มี</span>}
+                  </td>
                 )}
                 <td className="px-4 py-4">
                   <UrgencyMark urgency={t.urgency} />
