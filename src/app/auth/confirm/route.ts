@@ -12,6 +12,8 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
+  // Only the reset-password page may be asked for; anything else goes home.
+  const toReset = searchParams.get("next") === "/reset-password";
 
   const supabase = await createClient();
   let error: unknown = new Error("missing parameters");
@@ -52,7 +54,7 @@ export async function GET(request: NextRequest) {
     target.pathname = "/login";
     target.searchParams.set("error", "confirm");
   } else {
-    target.pathname = "/";
+    target.pathname = toReset ? "/reset-password" : "/";
   }
   return NextResponse.redirect(target);
 }
