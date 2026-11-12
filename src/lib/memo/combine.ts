@@ -20,3 +20,7 @@ export function parseTicketIds(values: unknown[]): string[] | null {
 /** Until a ticket is picked any ticket can be; after that only tickets of the same building. */
 export const selectableTicket = (selectedBuildingId: string | null, ticketBuildingId: string) =>
   selectedBuildingId === null || selectedBuildingId === ticketBuildingId;
+
+/** The picked ids that are still in the list (it can refresh under the picker), in the order picked. */
+export const liveSelection = (picked: string[], candidateIds: string[]) =>
+  picked.filter((id) => candidateIds.includes(id));

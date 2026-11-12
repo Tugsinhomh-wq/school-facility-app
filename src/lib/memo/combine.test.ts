@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { COMBINE_MAX, COMBINE_MIN, parseTicketIds, selectableTicket } from "./combine.ts";
+import { COMBINE_MAX, COMBINE_MIN, liveSelection, parseTicketIds, selectableTicket } from "./combine.ts";
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const ids = (count: number) => Array.from({ length: count }, (_, i) => id(i + 1));
@@ -41,4 +41,11 @@ test("selectableTicket allows any ticket until one is picked, then only the same
   assert.equal(selectableTicket(null, "b1"), true);
   assert.equal(selectableTicket("b1", "b1"), true);
   assert.equal(selectableTicket("b1", "b2"), false);
+});
+
+test("liveSelection drops picked ids that are no longer in the list, keeping the order", () => {
+  assert.deepEqual(liveSelection([id(3), id(1), id(2)], [id(1), id(2)]), [id(1), id(2)]);
+  assert.deepEqual(liveSelection([id(1), id(2)], [id(1), id(2), id(3)]), [id(1), id(2)]);
+  assert.deepEqual(liveSelection([id(5)], [id(1)]), []);
+  assert.deepEqual(liveSelection([], [id(1)]), []);
 });

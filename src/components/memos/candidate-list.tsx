@@ -8,7 +8,12 @@ import {
   createMemoFromTicket,
 } from "@/app/(dashboard)/memos/actions";
 import { Button } from "@/components/ui/button";
-import { COMBINE_MAX, COMBINE_MIN, selectableTicket } from "@/lib/memo/combine";
+import {
+  COMBINE_MAX,
+  COMBINE_MIN,
+  liveSelection,
+  selectableTicket,
+} from "@/lib/memo/combine";
 
 function CombineButton({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
@@ -34,14 +39,19 @@ export interface Candidate {
  */
 export function CandidateList({ candidates }: { candidates: Candidate[] }) {
   const [picked, setPicked] = useState<string[]>([]);
-  const first = candidates.find((t) => t.id === picked[0]);
+  // The list can refresh under us (a ticket got a memo meanwhile): only count what is still there.
+  const live = liveSelection(
+    picked,
+    candidates.map((t) => t.id),
+  );
+  const first = candidates.find((t) => t.id === live[0]);
   const buildingId = first ? first.buildingId : null;
-  const count = picked.length;
+  const count = live.length;
   const tooFew = count < COMBINE_MIN;
   const tooMany = count > COMBINE_MAX;
 
   const toggle = (id: string) =>
-    setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+    setPicked(live.includes(id) ? live.filter((x) => x !== id) : [...live, id]);
 
   return (
     <>
@@ -88,7 +98,7 @@ export function CandidateList({ candidates }: { candidates: Candidate[] }) {
                   name="ticket_ids"
                   value={t.id}
                   form="combine-form"
-                  checked={picked.includes(t.id)}
+                  checked={live.includes(t.id)}
                   disabled={!ok}
                   onChange={() => toggle(t.id)}
                   aria-label={`เลือก ${t.title} เพื่อรวมเป็นร่างเดียว`}
