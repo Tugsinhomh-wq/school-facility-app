@@ -5,6 +5,7 @@ import { useActionState, useState } from "react";
 import {
   signIn,
   signInWithGoogle,
+  requestPasswordReset,
   signUp,
   type AuthResult,
 } from "@/app/auth/actions";
@@ -13,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
-type Mode = "signin" | "signup";
+type Mode = "signin" | "signup" | "forgot";
 
 export function LoginForm({
   initialError,
@@ -32,9 +33,19 @@ export function LoginForm({
     FormData
   >(signUp, null);
 
+  const [forgotState, forgotAction, forgotPending] = useActionState<
+    AuthResult,
+    FormData
+  >(requestPasswordReset, null);
+
   const isSignIn = mode === "signin";
-  const state = isSignIn ? signInState : signUpState;
-  const pending = isSignIn ? signInPending : signUpPending;
+  const isForgot = mode === "forgot";
+  const state = isForgot ? forgotState : isSignIn ? signInState : signUpState;
+  const pending = isForgot
+    ? forgotPending
+    : isSignIn
+      ? signInPending
+      : signUpPending;
   const message = state?.message ?? (isSignIn ? initialError : undefined);
 
   return (
@@ -89,38 +100,49 @@ export function LoginForm({
           </div>
         </>
       )}
-      <div
-        role="tablist"
-        aria-label="เลือกการใช้งาน"
-        className="mb-5 grid grid-cols-2 rounded-lg bg-muted p-1 text-sm"
-      >
-        {(
-          [
-            ["signin", "เข้าสู่ระบบ"],
-            ["signup", "สมัครใช้งาน"],
-          ] as const
-        ).map(([value, label]) => (
-          <button
-            key={value}
-            type="button"
-            role="tab"
-            aria-selected={mode === value}
-            onClick={() => setMode(value)}
-            className={cn(
-              "min-h-11 rounded-md font-medium transition-colors",
-              mode === value
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      {isForgot ? (
+        <div className="mb-5">
+          <h2 className="text-lg font-semibold">ลืมรหัสผ่าน</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            กรอกอีเมลที่สมัครไว้ ระบบจะส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ให้
+          </p>
+        </div>
+      ) : (
+        <div
+          role="tablist"
+          aria-label="เลือกการใช้งาน"
+          className="mb-5 grid grid-cols-2 rounded-lg bg-muted p-1 text-sm"
+        >
+          {(
+            [
+              ["signin", "เข้าสู่ระบบ"],
+              ["signup", "สมัครใช้งาน"],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              role="tab"
+              aria-selected={mode === value}
+              onClick={() => setMode(value)}
+              className={cn(
+                "min-h-11 rounded-md font-medium transition-colors",
+                mode === value
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
 
       <form
         key={mode}
-        action={isSignIn ? signInAction : signUpAction}
+        action={
+          isForgot ? forgotAction : isSignIn ? signInAction : signUpAction
+        }
         className="space-y-4"
       >
         {!isSignIn && (
@@ -148,23 +170,34 @@ export function LoginForm({
             placeholder="name@lrp.ac.th"
           />
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="password">รหัสผ่าน</Label>
-          <Input
-            className="h-11 text-base"
-            id="password"
-            name="password"
-            type="password"
-            autoComplete={isSignIn ? "current-password" : "new-password"}
-            minLength={isSignIn ? undefined : 8}
-            required
-          />
-          {!isSignIn && (
-            <p className="text-xs text-muted-foreground">
-              อย่างน้อย 8 ตัวอักษร
-            </p>
-          )}
-        </div>
+        {!isForgot && (
+          <div className="space-y-1.5">
+            <Label htmlFor="password">รหัสผ่าน</Label>
+            <Input
+              className="h-11 text-base"
+              id="password"
+              name="password"
+              type="password"
+              autoComplete={isSignIn ? "current-password" : "new-password"}
+              minLength={isSignIn ? undefined : 8}
+              required
+            />
+            {!isSignIn && (
+              <p className="text-xs text-muted-foreground">
+                อย่างน้อย 8 ตัวอักษร
+              </p>
+            )}
+            {isSignIn && (
+              <button
+                type="button"
+                onClick={() => setMode("forgot")}
+                className="flex min-h-11 items-center text-sm text-primary underline-offset-4 hover:underline"
+              >
+                ลืมรหัสผ่าน?
+              </button>
+            )}
+          </div>
+        )}
 
         {!isSignIn && (
           <label className="flex min-h-11 items-start gap-2 text-sm">
@@ -207,10 +240,21 @@ export function LoginForm({
         >
           {pending
             ? "กำลังดำเนินการ..."
-            : isSignIn
-              ? "เข้าสู่ระบบ"
-              : "สมัครใช้งาน"}
+            : isForgot
+              ? "ส่งลิงก์ตั้งรหัสผ่านใหม่"
+              : isSignIn
+                ? "เข้าสู่ระบบ"
+                : "สมัครใช้งาน"}
         </Button>
+        {isForgot && (
+          <button
+            type="button"
+            onClick={() => setMode("signin")}
+            className="flex min-h-11 w-full items-center justify-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            กลับไปเข้าสู่ระบบ
+          </button>
+        )}
       </form>
     </div>
   );

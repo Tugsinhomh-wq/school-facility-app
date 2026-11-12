@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { POLICY_VERSION } from "@/lib/policy";
+import { getAuth } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 
 export type AuthResult = { ok: boolean; message: string } | null;
@@ -97,6 +98,80 @@ export async function signUp(
     message:
       "สมัครสำเร็จ ส่งลิงก์ยืนยันไปที่อีเมลแล้ว เปิดลิงก์นั้นก่อนเข้าสู่ระบบ",
   };
+}
+
+async function siteOrigin() {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const proto =
+    h.get("x-forwarded-proto") ??
+    (host?.startsWith("localhost") ? "http" : "https");
+  return `${proto}://${host}`;
+}
+
+/** "Forgot password": emails a link that signs the user in and opens the new-password page. */
+export async function requestPasswordReset(
+  _prev: AuthResult,
+  formData: FormData,
+): Promise<AuthResult> {
+  const email = String(formData.get("email") ?? "")
+    .trim()
+    .toLowerCase();
+  if (!EMAIL.test(email))
+    return { ok: false, message: "รูปแบบอีเมลไม่ถูกต้อง" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${await siteOrigin()}/auth/confirm?next=/reset-password`,
+  });
+  if (error) {
+    if (
+      error.code === "over_email_send_rate_limit" ||
+      error.code === "over_request_rate_limit"
+    )
+      return { ok: false, message: thaiError(error) };
+    console.error("password reset failed", error.code);
+    return {
+      ok: false,
+      message: "ส่งลิงก์ไม่สำเร็จ ลองใหม่อีกครั้ง หรือแจ้งผู้ดูแลระบบ",
+    };
+  }
+  // Same answer whether or not the address has an account, so the form cannot be used to find out who does.
+  return {
+    ok: true,
+    message:
+      "ถ้าอีเมลนี้สมัครไว้ ระบบส่งลิงก์ตั้งรหัสผ่านใหม่ไปให้แล้ว เปิดลิงก์ในอีเมลภายใน 1 ชั่วโมง ถ้าไม่พบให้ดูในกล่องจดหมายขยะ",
+  };
+}
+
+/** Sets the new password for the user who arrived through the reset link. */
+export async function updatePassword(
+  _prev: AuthResult,
+  formData: FormData,
+): Promise<AuthResult> {
+  const password = String(formData.get("password") ?? "");
+  const again = String(formData.get("password_again") ?? "");
+  if (password.length < 8)
+    return { ok: false, message: "รหัสผ่านต้องยาวอย่างน้อย 8 ตัวอักษร" };
+  if (password !== again)
+    return { ok: false, message: "รหัสผ่านสองช่องไม่ตรงกัน" };
+
+  const supabase = await createClient();
+  const { data } = await getAuth(supabase);
+  if (!data.user) redirect("/login?error=confirm");
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) {
+    if (error.code === "same_password")
+      return { ok: false, message: "ใช้รหัสผ่านเดิมไม่ได้ ตั้งรหัสผ่านใหม่" };
+    if (error.code === "weak_password")
+      return { ok: false, message: thaiError(error) };
+    console.error("update password failed", error.code);
+    return {
+      ok: false,
+      message: "เปลี่ยนรหัสผ่านไม่สำเร็จ ลองขอลิงก์ใหม่อีกครั้ง",
+    };
+  }
+  redirect("/");
 }
 
 /** Google sign-in, restricted to school accounts (the domain is checked again in /auth/confirm). */

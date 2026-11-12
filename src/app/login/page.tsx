@@ -37,7 +37,7 @@ export default async function LoginPage({
             googleEnabled={process.env.NEXT_PUBLIC_GOOGLE_LOGIN === "1"}
             initialError={
               error === "confirm"
-                ? "ลิงก์ยืนยันอีเมลไม่ถูกต้องหรือหมดอายุ ลองสมัครหรือเข้าสู่ระบบอีกครั้ง"
+                ? "ลิงก์ไม่ถูกต้องหรือหมดอายุ ลองเข้าสู่ระบบอีกครั้ง หรือกด \"ลืมรหัสผ่าน\" เพื่อขอลิงก์ใหม่"
                 : error === "domain"
                   ? "เข้าด้วย Google ได้เฉพาะอีเมล @lrp.ac.th ถ้าไม่ใช่อีเมลโรงเรียน ให้สมัครด้วยอีเมลและรหัสผ่านแทน"
                   : error === "google"
