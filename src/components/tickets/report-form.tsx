@@ -41,13 +41,15 @@ export interface BuildingOption {
   name: string;
 }
 
-type FieldName = "building" | "title";
+type FieldName = "photo" | "building" | "title";
 
 function validate(
+  photoCount: number,
   buildingId: string,
   title: string,
 ): Partial<Record<FieldName, string>> {
   const errors: Partial<Record<FieldName, string>> = {};
+  if (photoCount < 1) errors.photo = "ต้องแนบรูปอย่างน้อย 1 รูป";
   if (!buildingId) errors.building = "เลือกอาคารที่พบปัญหา";
   if (title.trim().length < 3)
     errors.title = title.trim()
@@ -57,10 +59,12 @@ function validate(
 }
 
 const FIELD_ID: Record<FieldName, string> = {
+  photo: "q-photo",
   building: "q-building",
   title: "q-title",
 };
 const FIELD_LABEL: Record<FieldName, string> = {
+  photo: "รูปก่อนซ่อม",
   building: "อาคาร",
   title: "เสียตรงไหน เป็นอะไร",
 };
@@ -90,6 +94,7 @@ export function ReportForm({
   onAnother: () => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const [photoCount, setPhotoCount] = useState(0);
   const [urgency, setUrgency] = useState<string>("medium");
   const [title, setTitle] = useState("");
   const [buildingId, setBuildingId] = useState("");
@@ -105,7 +110,7 @@ export function ReportForm({
     FormData
   >(createRepairTicket, null);
 
-  const errors = validate(buildingId, title);
+  const errors = validate(photoCount, buildingId, title);
   const shown = (f: FieldName) =>
     touched[f] || submitted ? errors[f] : undefined;
   const failed = (Object.keys(errors) as FieldName[]).filter(
@@ -195,7 +200,20 @@ export function ReportForm({
         </div>
       )}
 
-      <ImagePicker onBusyChange={setBusy} camera label="รูปก่อนซ่อม (ไม่บังคับ)" />
+      <div
+        id="q-photo"
+        tabIndex={-1}
+        aria-describedby={shown("photo") ? "q-photo-error" : undefined}
+        className="space-y-1.5 outline-none"
+      >
+        <ImagePicker
+          onBusyChange={setBusy}
+          onCountChange={setPhotoCount}
+          camera
+          label="รูปก่อนซ่อม (จำเป็น)"
+        />
+        <FieldError id="q-photo-error" message={shown("photo")} />
+      </div>
 
       <div className="space-y-1.5">
         <Label htmlFor="q-building">

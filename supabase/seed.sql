@@ -5,6 +5,9 @@ INSERT INTO buildings (code, name, floor_count) VALUES
   ('BLD-03', 'อาคาร 3', 3),
   ('BLD-04', 'โรงอาหาร', 1),
   ('BLD-05', 'อาคารเกษตร', 1),
+  ('BLD-06', 'อาคาร 4', 1),
+  ('BLD-07', 'อาคาร 5', 1),
+  ('BLD-08', 'อาคารนาฏศิลป์', 1),
   ('GRD-01', 'สนามและบริเวณโรงเรียน', 1);
 
 INSERT INTO rooms (building_id, room_number, name, capacity, is_bookable)

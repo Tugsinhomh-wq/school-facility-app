@@ -58,6 +58,9 @@ export async function createRepairTicket(
 
   // Photos were uploaded by the browser into the user's own folder; accept only paths we would have made.
   const ownPath = new RegExp(`^${auth.user.id}/[0-9a-f-]{36}\\.jpg$`);
+  if (imagePaths.length === 0) {
+    return { ok: false, message: "ต้องแนบรูปก่อนส่งแจ้งซ่อม อย่างน้อย 1 รูป" };
+  }
   if (imagePaths.length > 4 || !imagePaths.every((p) => ownPath.test(p))) {
     return { ok: false, message: "รูปที่แนบไม่ถูกต้อง ลองแนบใหม่อีกครั้ง" };
   }
