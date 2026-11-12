@@ -3,7 +3,7 @@ import path from "node:path";
 
 import { AlignmentType, BorderStyle, Document, ImageRun, LeaderType, Packer, Paragraph, type IParagraphOptions, Table, TableCell, TableRow, TabStopType, TextRun, WidthType } from "docx";
 
-import { DEPUTY, DIRECTOR, SCHOOL_NAME, type MemoDoc } from "@/lib/memo/model";
+import { BUILDING_HEAD, DIRECTOR, SCHOOL_NAME, type MemoDoc } from "@/lib/memo/model";
 import { withBreakHints } from "@/lib/memo/thai-text";
 
 const CM = 567; // twips per centimetre
@@ -108,9 +108,9 @@ export async function memoToDocx(doc: MemoDoc, { fontName = "TH Sarabun New" }: 
       new Paragraph({ ...signer, children: [run(position)] }),
     ];
     children.push(
-      new Paragraph({ spacing: { before: 280 }, children: [run("ความเห็นของรองผู้อำนวยการกลุ่มบริหารทั่วไป", true)] }),
+      new Paragraph({ spacing: { before: 280 }, children: [run(`ความเห็นของ${BUILDING_HEAD.position}`, true)] }),
       dotted(),
-      ...sign(DEPUTY.name, DEPUTY.position),
+      ...sign(BUILDING_HEAD.name, BUILDING_HEAD.position),
       new Paragraph({ spacing: { before: 280 }, children: [run("คำสั่งการ / การพิจารณาของผู้อำนวยการโรงเรียน", true)] }),
       new Paragraph({ indent: { left: 0.5 * CM }, children: [run("☐ อนุมัติ        ☐ ไม่อนุมัติ")] }),
       dotted(),

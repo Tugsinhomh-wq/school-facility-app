@@ -3,7 +3,7 @@ import path from "node:path";
 
 import PDFDocument from "pdfkit";
 
-import { DEPUTY, DIRECTOR, SCHOOL_NAME, type MemoDoc } from "@/lib/memo/model";
+import { BUILDING_HEAD, DIRECTOR, SCHOOL_NAME, type MemoDoc } from "@/lib/memo/model";
 import { thaiWords } from "@/lib/memo/thai-text";
 
 const FONT_DIR = path.join(process.cwd(), "src/lib/memo/fonts");
@@ -162,12 +162,12 @@ export function memoToPdf(doc: MemoDoc): Promise<Buffer> {
         y += LINE * 0.6;
         ensure(LINE * 13); // keep both notes together on one page
         pdf.font(bold).fontSize(SIZE);
-        for (const line of wrap("ความเห็นของรองผู้อำนวยการกลุ่มบริหารทั่วไป", contentWidth)) {
+        for (const line of wrap(`ความเห็นของ${BUILDING_HEAD.position}`, contentWidth)) {
           pdf.text(line, M.left, y, { lineBreak: false });
           y += LINE;
         }
         dotted(contentWidth);
-        sign(DEPUTY.name, DEPUTY.position);
+        sign(BUILDING_HEAD.name, BUILDING_HEAD.position);
 
         y += LINE * 0.6;
         pdf.font(bold).fontSize(SIZE);

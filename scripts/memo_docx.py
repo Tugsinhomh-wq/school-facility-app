@@ -149,9 +149,9 @@ def build(memo: dict) -> bytes:
                 add_text(para(doc, align=WD_ALIGN_PARAGRAPH.CENTER, left=8), f"({name})")
                 add_text(para(doc, align=WD_ALIGN_PARAGRAPH.CENTER, left=8), position)
 
-            add_text(para(doc, before=14), "ความเห็นของรองผู้อำนวยการกลุ่มบริหารทั่วไป", bold=True)
+            add_text(para(doc, before=14), "ความเห็นของหัวหน้างานอาคารสถานที่", bold=True)
             dotted_line()
-            sign("นางสาวทักษิณา จัตุกูล", "รองผู้อำนวยการกลุ่มบริหารทั่วไป")
+            sign("นายอำนาจ ตอบกุลกิติกร", "หัวหน้างานอาคารสถานที่")
             add_text(para(doc, before=14), "คำสั่งการ / การพิจารณาของผู้อำนวยการโรงเรียน", bold=True)
             add_text(para(doc, left=0.5), "☐ อนุมัติ        ☐ ไม่อนุมัติ")
             dotted_line()
