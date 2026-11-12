@@ -45,6 +45,7 @@ export async function getCleaningSetup(): Promise<CleaningSetup | { failed: true
         .select("id, name")
         .eq("is_active", true)
         .not("code", "like", "HALL-%")
+        .not("code", "like", "OTHER-%")
         .order("name"),
       s.supabase
         .from("school_off_days")

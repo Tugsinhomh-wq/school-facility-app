@@ -32,7 +32,7 @@ export function QuickReportFab() {
     let cancelled = false;
     void createClient()
       .from("buildings")
-      .select("id, name")
+      .select("id, name, code")
       .eq("is_active", true)
       .order("name")
       .then(({ data }) => {

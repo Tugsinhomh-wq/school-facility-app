@@ -45,3 +45,6 @@ __pycache__/
 
 # autoharness runtime files
 **/.claude/autoharness/
+
+# autoharness lock files
+.claude/skills/*/.ledger.jsonl.lock

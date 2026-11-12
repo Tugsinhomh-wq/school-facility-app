@@ -223,7 +223,7 @@ export async function importClassrooms(_prev: SetupResult, formData: FormData): 
 
   const [people, buildings] = await Promise.all([
     resolveEmails(db, parsed.ok.flatMap((r) => r.advisorEmails)),
-    db.from("buildings").select("id, name").eq("is_active", true).not("code", "like", "HALL-%"),
+    db.from("buildings").select("id, name").eq("is_active", true).not("code", "like", "HALL-%").not("code", "like", "OTHER-%"),
   ]);
   if (!people || buildings.error)
     return { ok: false, message: "ตรวจสอบอีเมลหรืออาคารไม่สำเร็จ ลองใหม่อีกครั้ง ยังไม่ได้บันทึกข้อมูลใด" };

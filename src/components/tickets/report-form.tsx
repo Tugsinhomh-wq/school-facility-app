@@ -13,6 +13,7 @@ import { SimilarTickets } from "@/components/tickets/similar-tickets";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { isOtherBuilding, needsPlace, otherLast } from "@/lib/buildings";
 import { cn } from "@/lib/utils";
 
 const URGENCY_CHOICES = [
@@ -39,14 +40,17 @@ const SYMPTOMS = [
 export interface BuildingOption {
   id: string;
   name: string;
+  /** Lets the form tell the catch-all "อื่นๆ (นอกอาคาร)" building apart. */
+  code?: string | null;
 }
 
-type FieldName = "photo" | "building" | "title";
+type FieldName = "photo" | "building" | "title" | "place";
 
 function validate(
   photoCount: number,
   buildingId: string,
   title: string,
+  placeMissing: boolean,
 ): Partial<Record<FieldName, string>> {
   const errors: Partial<Record<FieldName, string>> = {};
   if (photoCount < 1) errors.photo = "ต้องแนบรูปอย่างน้อย 1 รูป";
@@ -55,6 +59,7 @@ function validate(
     errors.title = title.trim()
       ? "เขียนอาการให้ชัดขึ้นอีกนิด (อย่างน้อย 3 ตัวอักษร)"
       : "บอกว่าเสียตรงไหน เป็นอะไร หรือแตะตัวเลือกด้านบน";
+  if (placeMissing) errors.place = "ระบุว่าอยู่ตรงไหน เช่น สนามฟุตบอล ลานจอดรถ";
   return errors;
 }
 
@@ -62,11 +67,13 @@ const FIELD_ID: Record<FieldName, string> = {
   photo: "q-photo",
   building: "q-building",
   title: "q-title",
+  place: "q-loc",
 };
 const FIELD_LABEL: Record<FieldName, string> = {
   photo: "รูปก่อนซ่อม",
   building: "อาคาร",
   title: "เสียตรงไหน เป็นอะไร",
+  place: "สถานที่",
 };
 
 const selectClass =
@@ -97,6 +104,7 @@ export function ReportForm({
   const [photoCount, setPhotoCount] = useState(0);
   const [urgency, setUrgency] = useState<string>("medium");
   const [title, setTitle] = useState("");
+  const [otherMode, setOtherMode] = useState(false);
   const [buildingId, setBuildingId] = useState("");
   const [spot, setSpot] = useState("");
   const [touched, setTouched] = useState<Partial<Record<FieldName, boolean>>>(
@@ -110,7 +118,17 @@ export function ReportForm({
     FormData
   >(createRepairTicket, null);
 
-  const errors = validate(photoCount, buildingId, title);
+  const buildingCode = buildings.find((b) => b.id === buildingId)?.code;
+  const outside = isOtherBuilding(buildingCode);
+  // "อื่นๆ" is lit when tapped, or when the typed text is not one of the ready-made faults.
+  const otherActive =
+    otherMode || (title.trim() !== "" && !SYMPTOMS.includes(title));
+  const errors = validate(
+    photoCount,
+    buildingId,
+    title,
+    needsPlace(buildingCode, spot),
+  );
   const shown = (f: FieldName) =>
     touched[f] || submitted ? errors[f] : undefined;
   const failed = (Object.keys(errors) as FieldName[]).filter(
@@ -236,7 +254,7 @@ export function ReportForm({
           <option value="" disabled>
             {buildings.length === 0 ? "กำลังโหลดอาคาร..." : "เลือกอาคาร"}
           </option>
-          {buildings.map((b) => (
+          {otherLast(buildings).map((b) => (
             <option key={b.id} value={b.id}>
               {b.name}
             </option>
@@ -265,6 +283,7 @@ export function ReportForm({
               aria-pressed={title === sym}
               onClick={() => {
                 setTitle(sym);
+                setOtherMode(false);
                 setTouched((t) => ({ ...t, title: true }));
               }}
               className={cn(
@@ -279,10 +298,20 @@ export function ReportForm({
           ))}
           <button
             type="button"
-            onClick={() => titleInput.current?.focus()}
-            className="min-h-11 cursor-pointer rounded-full border border-dashed border-input px-4 text-sm text-muted-foreground hover:bg-muted"
+            aria-pressed={otherActive}
+            onClick={() => {
+              setOtherMode(true);
+              if (SYMPTOMS.includes(title)) setTitle("");
+              titleInput.current?.focus();
+            }}
+            className={cn(
+              "min-h-11 cursor-pointer rounded-full border px-4 text-sm transition-colors",
+              otherActive
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-dashed border-input text-muted-foreground hover:bg-muted",
+            )}
           >
-            อื่นๆ พิมพ์เอง
+            อื่นๆ (พิมพ์เอง)
           </button>
         </div>
         <Input
@@ -295,7 +324,11 @@ export function ReportForm({
           onBlur={() => setTouched((t) => ({ ...t, title: true }))}
           aria-invalid={Boolean(shown("title"))}
           aria-describedby={shown("title") ? "q-title-error" : undefined}
-          placeholder="เช่น หลอดไฟห้อง 112 ขาด"
+          placeholder={
+            otherActive
+              ? "พิมพ์อาการที่พบ"
+              : "เช่น หลอดไฟห้อง 112 ขาด"
+          }
           className="h-12 text-base"
         />
         <FieldError id="q-title-error" message={shown("title")} />
@@ -304,16 +337,34 @@ export function ReportForm({
       <SimilarTickets buildingId={buildingId} text={`${title}${spot}`} />
 
       <div className="space-y-1.5">
-        <Label htmlFor="q-loc">ห้องหรือจุดที่พบ (ถ้ามี)</Label>
+        <Label htmlFor="q-loc">
+          {outside ? (
+            <>
+              ระบุสถานที่{" "}
+              <span className="text-destructive" aria-hidden>
+                *
+              </span>
+              <span className="sr-only">(จำเป็น)</span>
+            </>
+          ) : (
+            "ห้องหรือจุดที่พบ (ถ้ามี)"
+          )}
+        </Label>
         <Input
           id="q-loc"
           name="location_detail"
           value={spot}
           onChange={(e) => setSpot(e.target.value)}
+          onBlur={() => setTouched((t) => ({ ...t, place: true }))}
           maxLength={120}
-          placeholder="เช่น หน้าโรงอาหาร"
+          aria-invalid={Boolean(shown("place"))}
+          aria-describedby={shown("place") ? "q-loc-error" : undefined}
+          placeholder={
+            outside ? "เช่น สนามฟุตบอล ลานจอดรถ" : "เช่น หน้าโรงอาหาร"
+          }
           className="h-12 text-base"
         />
+        <FieldError id="q-loc-error" message={shown("place")} />
       </div>
 
       <fieldset className="space-y-2">

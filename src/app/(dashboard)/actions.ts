@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { needsPlace } from "@/lib/buildings";
 import { createClient } from "@/lib/supabase/server";
 import type { UrgencyLevel } from "@/types/database";
 import { getAuth } from "@/lib/supabase/auth";
@@ -55,6 +56,15 @@ export async function createRepairTicket(
       message: "โหมดสาธิต: ยังไม่ได้เข้าสู่ระบบ จึงไม่ได้บันทึกข้อมูลจริง",
     };
   }
+
+  // The catch-all building says nothing about where, so the place must be typed.
+  const { data: building } = await supabase
+    .from("buildings")
+    .select("code")
+    .eq("id", buildingId)
+    .maybeSingle();
+  if (needsPlace(building?.code, locationDetail))
+    return { ok: false, message: "ระบุสถานที่ เช่น สนามฟุตบอล ลานจอดรถ" };
 
   // Photos were uploaded by the browser into the user's own folder; accept only paths we would have made.
   const ownPath = new RegExp(`^${auth.user.id}/[0-9a-f-]{36}\\.jpg$`);
