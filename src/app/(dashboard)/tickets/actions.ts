@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { hasSupabase, getSession } from "@/lib/data/session";
+import { canChangeUrgency, parseUrgency } from "@/lib/ticket-urgency";
 import { purgeTickets } from "@/lib/trash";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -37,6 +38,10 @@ export async function updateTicket(
     return { ok: false, message: "ค่าใช้จ่ายต้องเป็นตัวเลขตั้งแต่ 0 ขึ้นไป" };
   if (notes.length > 2000)
     return { ok: false, message: "บันทึกช่างยาวเกิน 2,000 ตัวอักษร" };
+  // Sent only while the ticket is open (the field is disabled on closed tickets); absent = leave the level alone.
+  const urgencyField = formData.get("urgency");
+  const urgency = urgencyField === null ? undefined : parseUrgency(urgencyField);
+  if (urgency === null) return { ok: false, message: "ระดับความเร่งด่วนไม่ถูกต้อง" };
 
   if (
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||
@@ -72,10 +77,28 @@ export async function updateTicket(
       return { ok: false, message: "รูปหลังซ่อมได้ไม่เกิน 4 รูป" };
   }
 
+  // Changing the level is allowed only while the ticket is open, judged on what is stored now (not on the
+  // status in this same submit), so closing a ticket and fixing its level in one save still works.
+  let newUrgency: typeof urgency;
+  if (urgency !== undefined) {
+    const { data: stored } = await supabase
+      .from("repair_tickets")
+      .select("status, urgency")
+      .eq("id", id)
+      .maybeSingle();
+    if (!stored) return { ok: false, message: "ไม่พบงานซ่อมนี้ หรือไม่มีสิทธิ์แก้ไข" };
+    if (stored.urgency !== urgency) {
+      if (!canChangeUrgency(stored.status as TicketStatus))
+        return { ok: false, message: "งานที่ปิดแล้วเปลี่ยนความเร่งด่วนไม่ได้" };
+      newUrgency = urgency;
+    }
+  }
+
   // RLS only lets staff and super_admin update; an empty result means the write was refused.
   const { data, error } = await supabase
     .from("repair_tickets")
     .update({
+      ...(newUrgency ? { urgency: newUrgency } : {}),
       status,
       estimated_cost: cost,
       technician_notes: notes || null,
