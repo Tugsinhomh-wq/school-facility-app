@@ -98,9 +98,9 @@ CREATE POLICY "profiles: cleaning staff read non-executives" ON public.profiles 
 --   5) ถ้าขึ้น "invalid input syntax for type uuid" แปลว่าอีเมลที่แก้ไม่ตรงกับบัญชีจริงทุกตัวอักษร
 --   (ถ้าข้ามบรรทัด set local role ไป ชุดจะรันเป็นผู้ดูแลฐานข้อมูลซึ่งไม่ถูกจำกัดสิทธิ์ ผลจะผิด)
 --
--- ========== ชุด 1: policy ของ cleaning_staff ครบ 8 ตัว ==========
--- ผลที่ควรได้: 8 แถว — classrooms, classroom_advisors, school_off_days (cmd ALL) / cleaning_confirmations,
---   cleaning_cancellations, profiles (cmd SELECT) / objects (cmd SELECT) — และต้องไม่มีแถวของ cleaning_settings
+-- ========== ชุด 1: policy ของ cleaning_staff ครบ 7 ตัว ==========
+-- ผลที่ควรได้: 7 แถว — classrooms, classroom_advisors, school_off_days (cmd ALL) / cleaning_confirmations,
+--   cleaning_cancellations, profiles, objects (cmd SELECT) — และต้องไม่มีแถวของ cleaning_settings
 -- select tablename, policyname, cmd from pg_policies
 --   where policyname like '%cleaning staff%' order by tablename, policyname;
 --
@@ -148,9 +148,11 @@ CREATE POLICY "profiles: cleaning staff read non-executives" ON public.profiles 
 --   (select count(*) from public.profiles where role <> 'executive'); end $$;
 --
 -- ========== ชุด D: บัญชีที่ปิดแล้วเสียสิทธิ์ทันที ==========
--- ผลที่ควรได้: ERROR: ผลทดสอบ: rooms_seen_when_closed=0
+-- ผลที่ควรได้: ERROR: ผลทดสอบ: rooms_seen_when_closed=0, is_cleaning_when_closed=f
+--   (นับเฉพาะห้องทดสอบ 9999/9 อย่านับทุกห้อง: บัญชีที่เป็นครูที่ปรึกษาเห็นห้องของตัวเองอยู่แล้วแม้ปิดบัญชี)
+--   (ชุดนี้ผ่านได้ก็ต่อเมื่อรัน profiles_lockdown_01.sql แล้ว เพราะไฟล์นั้นเป็นตัวเพิ่มเงื่อนไข is_active ให้ current_role_is)
 -- update public.profiles set role = 'cleaning_staff', is_active = false where email = 'เจ้าหน้าที่ทดสอบ@lrp.ac.th';
 -- insert into public.classrooms (term, name, zone) values ('9999/9', 'ห้องทดสอบ', 'เขตทดสอบ');
 -- select set_config('request.jwt.claims', json_build_object('sub', (select id from public.profiles where email = 'เจ้าหน้าที่ทดสอบ@lrp.ac.th'), 'role', 'authenticated')::text, true);
 -- set local role authenticated;
--- do $$ begin raise exception 'ผลทดสอบ: rooms_seen_when_closed=%', (select count(*) from public.classrooms where term = '9999/9'); end $$;
+-- do $$ begin raise exception 'ผลทดสอบ: rooms_seen_when_closed=%, is_cleaning_when_closed=%', (select count(*) from public.classrooms where term = '9999/9'), public.current_role_is('cleaning_staff'); end $$;
