@@ -45,8 +45,8 @@ export function QuickReportFab({ staff = false }: { staff?: boolean }) {
   }, [open, buildings.length]);
 
   if (hidden) return null;
-  // On the list page the report form is already on the page: for staff from md up, for everyone else at every size.
-  const formOnPage = pathname === "/tickets";
+  // On the list page a regular user already has the report form on the page; staff report with this button.
+  const formOnPage = pathname === "/tickets" && !staff;
 
   return (
     <>
@@ -60,7 +60,7 @@ export function QuickReportFab({ staff = false }: { staff?: boolean }) {
         className={cn(
           "fixed right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-40 flex h-14 items-center gap-2 rounded-full bg-primary px-5 text-base font-semibold text-primary-foreground shadow-lg shadow-black/25 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-offset-2 active:scale-95 md:bottom-6 print:hidden",
           // Last, so that twMerge lets "hidden" win over "flex".
-          formOnPage && (staff ? "md:hidden" : "hidden"),
+          formOnPage && "hidden",
         )}
       >
         <Plus className="size-5" aria-hidden />
