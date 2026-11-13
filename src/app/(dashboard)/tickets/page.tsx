@@ -1,4 +1,3 @@
-import { Plus } from "lucide-react";
 import Link from "next/link";
 
 import { NewReportCard } from "@/components/tickets/new-report-card";
@@ -7,7 +6,7 @@ import { TicketFiltersBar } from "@/components/tickets/ticket-filters";
 import { BulkTrashBar } from "@/components/tickets/bulk-trash-bar";
 import { LoadError } from "@/components/ui/state-card";
 import { TicketTable } from "@/components/tickets/ticket-table";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { getTicketList, PAGE_SIZE, parseFilters } from "@/lib/data/tickets";
 import { bangkokYmd, formatDayLong } from "@/lib/time";
 import { cn } from "@/lib/utils";
@@ -20,8 +19,8 @@ export const metadata = {
 };
 
 /**
- * Two views of one page. Admin, head and staff get the queue: a table with open emergencies in amber and
- * the report form under it. Everyone else (a regular user, the meeting-room officer, a signed-out visitor
+ * Two views of one page. Admin, head and staff get the queue: a table with open emergencies in amber
+ * (they report with the floating button). Everyone else (a regular user, the meeting-room officer, a signed-out visitor
  * looking at sample data) gets the repair desk: the report form beside their own jobs, each with its lane.
  * Executives never get here (guardExecutive sends them to the summary).
  */
@@ -92,7 +91,7 @@ export default async function TicketsPage({
           <h1 className="mt-1 font-display text-3xl font-medium tracking-tight">แจ้งซ่อม</h1>
         </header>
         <div className={cn("grid grid-cols-1 items-start gap-6", canReport && "lg:grid-cols-2")}>
-          {canReport && <NewReportCard buildings={list.buildings} variant="well" />}
+          {canReport && <NewReportCard buildings={list.buildings} />}
           <section aria-labelledby="mine-h" className="rounded-2xl bg-secondary p-4 shadow-xs sm:p-6">
             <h2 id="mine-h" className="font-display text-2xl font-medium leading-snug">
               {list.viewer ? "งานที่ฉันแจ้ง" : "รายการแจ้งซ่อม"}
@@ -124,12 +123,6 @@ export default async function TicketsPage({
           <h1 className="mt-1 font-display text-3xl font-medium tracking-tight">รายการแจ้งซ่อม</h1>
           <p className="mt-1 text-muted-foreground">{total}</p>
         </div>
-        {canReport && (
-          <Link href="#new" className={cn(buttonVariants(), "hidden h-12 px-5 text-sm font-semibold md:inline-flex")}>
-            <Plus className="size-4" aria-hidden />
-            แจ้งซ่อมใหม่
-          </Link>
-        )}
       </header>
 
       {trashed > 0 && (
@@ -183,8 +176,6 @@ export default async function TicketsPage({
           </>
         )}
       </div>
-
-      {canReport && <NewReportCard buildings={list.buildings} variant="plate" className="mt-10 hidden md:block" />}
     </>
   );
 }
