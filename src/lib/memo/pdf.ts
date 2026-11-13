@@ -118,7 +118,7 @@ export function memoToPdf(doc: MemoDoc): Promise<Buffer> {
     labelled("เรื่อง", doc.subject);
     labelled("เรียน", doc.recipient, 6);
 
-    const indent = cm(1.5);
+    const indent = cm(1.75);
     for (const p of doc.paragraphs) paragraph(p, { firstIndent: indent, after: 2 });
     if (doc.proposal) paragraph(doc.proposal, { firstIndent: indent, after: 2 });
     paragraph(doc.closing, { firstIndent: indent, after: 20 });

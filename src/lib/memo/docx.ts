@@ -55,7 +55,7 @@ export async function memoToDocx(doc: MemoDoc, { fontName = "TH Sarabun New" }: 
       children: [run(label, true, opts.size), run(` ${value}`, Boolean(opts.boldValue), opts.size)],
     });
 
-  const indent = { firstLine: 1.5 * CM };
+  const indent = { firstLine: 1.75 * CM };
   const body = { indent, spacing: { after: 40 } };
   const signer = { indent: { left: 8 * CM }, alignment: AlignmentType.CENTER } as const;
 

@@ -120,10 +120,10 @@ def build(memo: dict) -> bytes:
     labelled(doc, "เรียน", memo["recipient"], after=6)
 
     for text in memo["paragraphs"]:
-        add_text(para(doc, first_line=1.5, after=2), text)
+        add_text(para(doc, first_line=1.75, after=2), text)
     if memo.get("proposal"):
-        add_text(para(doc, first_line=1.5, after=2), memo["proposal"])
-    add_text(para(doc, first_line=1.5, after=18), memo["closing"])
+        add_text(para(doc, first_line=1.75, after=2), memo["proposal"])
+    add_text(para(doc, first_line=1.75, after=18), memo["closing"])
 
     def signature(name, position):
         add_text(para(doc, align=WD_ALIGN_PARAGRAPH.CENTER, left=8), "ลงชื่อ ................................................")

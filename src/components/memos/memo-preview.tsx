@@ -44,7 +44,7 @@ export function MemoPreview({ doc, fontClass }: { doc: MemoDoc; fontClass: strin
         <Field label="เรียน" after="1.4cqw" >{doc.recipient}</Field>
 
         {[...doc.paragraphs, ...(doc.proposal ? [doc.proposal] : []), doc.closing].map((p, i, all) => (
-          <p key={i} style={{ textIndent: "7.1cqw", marginBottom: i === all.length - 1 ? "4cqw" : "0.3cqw" }}>{p}</p>
+          <p key={i} style={{ textIndent: "8.33cqw", marginBottom: i === all.length - 1 ? "4cqw" : "0.3cqw" }}>{p}</p>
         ))}
 
         {repair ? (
