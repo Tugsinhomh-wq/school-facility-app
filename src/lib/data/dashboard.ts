@@ -20,7 +20,8 @@ import type {
   UserRole,
 } from "@/types/database";
 
-export type BuildingOption = Pick<Building, "id" | "name">;
+/** `code` lets the report form tell the catch-all "อื่นๆ (นอกอาคาร)" building apart. */
+export type BuildingOption = Pick<Building, "id" | "name"> & { code?: string | null };
 
 export interface Viewer {
   name: string;

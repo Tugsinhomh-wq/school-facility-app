@@ -101,6 +101,7 @@ export async function createRepairTicket(
   }
 
   revalidatePath("/");
+  revalidatePath("/tickets");
   return {
     ok: true,
     ticketId: created?.id,

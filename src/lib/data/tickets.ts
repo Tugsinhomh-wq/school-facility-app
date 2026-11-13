@@ -123,7 +123,7 @@ export async function getTicketList(f: TicketFilters): Promise<TicketList> {
       ordered.range(from, from + PAGE_SIZE - 1),
       supabase
         .from("buildings")
-        .select("id, name")
+        .select("id, name, code")
         .eq("is_active", true)
         .order("name"),
       supabase
