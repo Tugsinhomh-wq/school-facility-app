@@ -151,7 +151,7 @@ export async function memoToDocx(doc: MemoDoc, { fontName = "TH Sarabun New" }: 
         properties: {
           page: {
             size: { width: 11906, height: 16838 },
-            margin: { top: 2.5 * CM, bottom: 2 * CM, left: 3 * CM, right: 2 * CM },
+            margin: { top: 1 * CM, bottom: 2 * CM, left: 3 * CM, right: 2 * CM },
           },
         },
         children,

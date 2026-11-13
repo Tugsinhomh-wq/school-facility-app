@@ -88,7 +88,7 @@ def build(memo: dict) -> bytes:
 
     sec = doc.sections[0]
     sec.page_width, sec.page_height = Cm(21.0), Cm(29.7)
-    sec.top_margin, sec.bottom_margin = Cm(2.5), Cm(2.0)
+    sec.top_margin, sec.bottom_margin = Cm(1.0), Cm(2.0)
     sec.left_margin, sec.right_margin = Cm(3.0), Cm(2.0)
 
     # Header: garuda (1.5 cm high) at the left, the title centred; borderless 3 + 10 + 3 cm table.
