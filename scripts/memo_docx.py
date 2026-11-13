@@ -103,7 +103,7 @@ def build(memo: dict) -> bytes:
     title_p = title_cell.paragraphs[0]
     title_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     title_p.paragraph_format.space_before = Pt(18)
-    add_text(title_p, "บันทึกข้อความ", bold=True, size=24)
+    add_text(title_p, "บันทึกข้อความ", bold=True, size=20)
 
     repair = memo.get("variant") == "repair"
     labelled(doc, "ส่วนราชการ", memo["agency"], before=6)
@@ -120,10 +120,10 @@ def build(memo: dict) -> bytes:
     labelled(doc, "เรียน", memo["recipient"], after=6)
 
     for text in memo["paragraphs"]:
-        add_text(para(doc, first_line=2.5, after=2), text)
+        add_text(para(doc, first_line=1.75, after=2), text)
     if memo.get("proposal"):
-        add_text(para(doc, first_line=2.5, after=2), memo["proposal"])
-    add_text(para(doc, first_line=2.5, after=18), memo["closing"])
+        add_text(para(doc, first_line=1.75, after=2), memo["proposal"])
+    add_text(para(doc, first_line=1.75, after=18), memo["closing"])
 
     def signature(name, position):
         add_text(para(doc, align=WD_ALIGN_PARAGRAPH.CENTER, left=8), "ลงชื่อ ................................................")
