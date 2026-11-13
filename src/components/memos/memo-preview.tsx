@@ -24,7 +24,7 @@ export function MemoPreview({ doc, fontClass }: { doc: MemoDoc; fontClass: strin
     <div className="[container-type:inline-size]">
       <div
         className={`${fontClass} aspect-[210/297] w-full bg-white text-black shadow-lg ring-1 ring-black/10`}
-        style={{ padding: "7.1cqw 9.5cqw 9.5cqw 14.3cqw", fontSize: "2.4cqw", lineHeight: 1.4 }}
+        style={{ padding: "4.8cqw 9.5cqw 9.5cqw 14.3cqw", fontSize: "2.4cqw", lineHeight: 1.4 }}
       >
         <div className="relative flex items-center justify-center" style={{ height: "10.5cqw", marginBottom: "1.5cqw" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -97,10 +97,10 @@ export function memoToPdf(doc: MemoDoc): Promise<Buffer> {
 
     // Header: garuda (1.5 cm high) at the top left, the title centred on the same line.
     const garudaH = cm(2.2);
-    pdf.image(path.join(FONT_DIR, "../assets/garuda.png"), M.left, cm(1.5), { height: garudaH });
+    pdf.image(path.join(FONT_DIR, "../assets/garuda.png"), M.left, cm(1.0), { height: garudaH });
     pdf.font(bold).fontSize(20);
-    pdf.text("บันทึกข้อความ", M.left, cm(1.5) + (garudaH - 20 * 1.2) / 2, { width: contentWidth, align: "center", lineBreak: false });
-    y = cm(1.5) + garudaH + 8;
+    pdf.text("บันทึกข้อความ", M.left, cm(1.0) + (garudaH - 20 * 1.2) / 2, { width: contentWidth, align: "center", lineBreak: false });
+    y = cm(1.0) + garudaH + 8;
 
     const repair = doc.variant === "repair";
     labelled("ส่วนราชการ", doc.agency);
