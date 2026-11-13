@@ -1,0 +1,2 @@
+{"type":"tool_result","content":"0\nnpm warn deprecated eslint@9.39.5: This version is no longer supported.\n\nadded 726 packages in 16s"}
+Earlier, before install: "Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'eslint' imported from /home/user/school-facility-app/eslint.config.mjs" and "src/lib/trash.ts(3,37): error TS2307: Cannot find module '@supabase/supabase-js' or its corresponding type declarations." Test run before install: "# tests 298 # pass 293 # fail 5".

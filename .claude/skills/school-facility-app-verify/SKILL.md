@@ -6,6 +6,7 @@ category: testing
 
 # Verifying school-facility-app changes
 
+- Before any check: run `ls node_modules | wc -l`. If it prints 0, run `npm ci --no-audit --no-fund` first. Without it `npx eslint` dies with `Cannot find package 'eslint'`, and `tsc` reports missing `clsx`, `next/server`, and `@types/node` errors that look like code bugs.
 - Tests: `npm test` runs `node --experimental-strip-types --test` over `src/lib/**/*.test.ts`. One file: `node --experimental-strip-types --test src/lib/<file>.test.ts`.
 - Under the node test runner the `@/` alias does not resolve. In any module a test imports, and in the test file itself, use relative imports with the `.ts` extension, for example `import { TZ } from "./time.ts";`. Existing `src/lib` modules already do this (`cleaning.ts` imports `./time.ts`).
 - Lint the changed files: `npx eslint <files>`.
