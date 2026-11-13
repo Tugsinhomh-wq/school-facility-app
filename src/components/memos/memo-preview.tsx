@@ -29,7 +29,7 @@ export function MemoPreview({ doc, fontClass }: { doc: MemoDoc; fontClass: strin
         <div className="relative flex items-center justify-center" style={{ height: "10.5cqw", marginBottom: "1.5cqw" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/garuda.png" alt="ตราครุฑ" className="absolute left-0 top-0 w-auto" style={{ height: "10.5cqw" }} />
-          <p className="font-bold" style={{ fontSize: "4.5cqw", lineHeight: 1.2 }}>
+          <p className="font-bold" style={{ fontSize: "3.4cqw", lineHeight: 1.2 }}>
             บันทึกข้อความ
           </p>
         </div>
@@ -44,7 +44,7 @@ export function MemoPreview({ doc, fontClass }: { doc: MemoDoc; fontClass: strin
         <Field label="เรียน" after="1.4cqw" >{doc.recipient}</Field>
 
         {[...doc.paragraphs, ...(doc.proposal ? [doc.proposal] : []), doc.closing].map((p, i, all) => (
-          <p key={i} style={{ textIndent: "11.9cqw", marginBottom: i === all.length - 1 ? "4cqw" : "0.3cqw" }}>{p}</p>
+          <p key={i} style={{ textIndent: "7.1cqw", marginBottom: i === all.length - 1 ? "4cqw" : "0.3cqw" }}>{p}</p>
         ))}
 
         {repair ? (

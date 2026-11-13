@@ -55,7 +55,7 @@ export async function memoToDocx(doc: MemoDoc, { fontName = "TH Sarabun New" }: 
       children: [run(label, true, opts.size), run(` ${value}`, Boolean(opts.boldValue), opts.size)],
     });
 
-  const indent = { firstLine: 2.5 * CM };
+  const indent = { firstLine: 1.5 * CM };
   const body = { indent, spacing: { after: 40 } };
   const signer = { indent: { left: 8 * CM }, alignment: AlignmentType.CENTER } as const;
 
@@ -83,7 +83,7 @@ export async function memoToDocx(doc: MemoDoc, { fontName = "TH Sarabun New" }: 
               ],
             }),
           ]),
-          cell(10 * CM, [new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 360 }, children: [run("บันทึกข้อความ", true, 48)] })]),
+          cell(10 * CM, [new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 360 }, children: [run("บันทึกข้อความ", true, 40)] })]),
           cell(3 * CM, [new Paragraph({ children: [] })]),
         ],
       }),

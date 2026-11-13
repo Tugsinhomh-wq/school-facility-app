@@ -27,7 +27,7 @@ async function xmlOf(d: MemoDoc) {
 
 test("body text is 14 pt (28 half-points) and only the title is larger", async () => {
   const sizes = new Set([...(await xmlOf(doc)).matchAll(/<w:sz w:val="(\d+)"/g)].map((m) => m[1]));
-  assert.deepEqual([...sizes].sort(), ["28", "48"]);
+  assert.deepEqual([...sizes].sort(), ["28", "40"]);
 });
 
 test("only the title and the field labels are bold, never the body paragraphs", async () => {
