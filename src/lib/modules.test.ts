@@ -27,7 +27,7 @@ test("signed-out visitors see the open modules, never the roster or control", ()
 });
 
 test("staff roles see the same five, census and control included", () => {
-  for (const role of ["staff", "head", "room_staff", "super_admin"] as const) {
+  for (const role of ["staff", "head", "room_staff", "cleaning_staff", "super_admin"] as const) {
     const mods = visibleModules(role);
     assert.equal(mods.length, 5);
     assert.equal(mods.find((m) => m.id === "census")?.href, "/census");

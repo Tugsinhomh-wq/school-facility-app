@@ -6,7 +6,8 @@ import {
   type ClassroomRow,
 } from "@/lib/data/cleaning";
 import { getCheckWindow } from "@/lib/data/cleaning-window";
-import { getSession, isFacilityOfficer } from "@/lib/data/session";
+import { getSession } from "@/lib/data/session";
+import { isCleaningManager } from "@/lib/cleaning-access";
 import { inCheckWindow, type CheckWindow } from "@/lib/cleaning";
 import type { ReportRoom } from "@/lib/cleaning-report";
 import { bangkokYmd, weekdayIndex } from "@/lib/time";
@@ -48,7 +49,7 @@ export async function getTodayCounts(): Promise<TodayCounts> {
   let officer = false;
   try {
     const s = await getSession();
-    if (!s || !isFacilityOfficer(s.viewer.role)) return null;
+    if (!s || !isCleaningManager(s.viewer.role)) return null;
     officer = true;
     const today = bangkokYmd(new Date());
     const [rooms, offDay, window] = await Promise.all([
@@ -86,7 +87,7 @@ export async function getConfirmationPhotos(
 ): Promise<{ urls: string[] } | { failed: true }> {
   try {
     const s = await getSession();
-    if (!s || !isFacilityOfficer(s.viewer.role)) return { failed: true };
+    if (!s || !isCleaningManager(s.viewer.role)) return { failed: true };
     const { data, error } = await s.supabase
       .from("cleaning_confirmations")
       .select("photo_paths")
@@ -122,7 +123,7 @@ export async function getReportData(
 > {
   try {
     const s = await getSession();
-    if (!s || !isFacilityOfficer(s.viewer.role)) return null;
+    if (!s || !isCleaningManager(s.viewer.role)) return null;
     const { rows, failed } = await getAllClassrooms();
     if (failed) return { failed: true };
     const confirmed = new Map<string, Set<string>>();

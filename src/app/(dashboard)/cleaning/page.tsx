@@ -15,7 +15,8 @@ import { dayState, lateReachable, weekGrid } from "@/lib/cleaning";
 import { getWeek } from "@/lib/data/cleaning";
 import { getAllClassrooms } from "@/lib/data/cleaning-officer";
 import { getMyClassrooms } from "@/lib/data/cleaning-teacher";
-import { getSession, guardExecutive, isFacilityOfficer } from "@/lib/data/session";
+import { getSession, guardExecutive } from "@/lib/data/session";
+import { isCleaningManager } from "@/lib/cleaning-access";
 import { addDays, bangkokYmd, formatDayLong, isYmd, mondayOf } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +38,7 @@ export default async function CleaningPage({
   const today = bangkokYmd(new Date());
   const session = await getSession();
   const params = await searchParams;
-  const officer = isFacilityOfficer(session?.viewer.role);
+  const officer = isCleaningManager(session?.viewer.role);
   // An officer who also advises a class reaches their own confirm cards with ?view=mine.
   const mine = officer && param(params.view) === "mine";
 

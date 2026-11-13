@@ -39,7 +39,7 @@ export const MODULES: AppModule[] = [
     label: "สำมะโนผู้เรียน",
     href: "/census",
     // The roster holds students' names: same visibility as control. Signed-out visitors and executives never see it.
-    roles: ["user", "staff", "head", "room_staff", "super_admin"],
+    roles: ["user", "staff", "head", "room_staff", "cleaning_staff", "super_admin"],
     group: "other",
   },
   {
@@ -47,7 +47,7 @@ export const MODULES: AppModule[] = [
     label: "ควบคุมภายใน",
     href: "/control",
     // Signed-out visitors and executives do not get it: /control is for signed-in staff and teachers.
-    roles: ["user", "staff", "head", "room_staff", "super_admin"],
+    roles: ["user", "staff", "head", "room_staff", "cleaning_staff", "super_admin"],
     group: "other",
   },
 ];

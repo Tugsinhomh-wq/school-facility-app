@@ -38,6 +38,7 @@ const ROLE_ICON: Record<UserRole, LucideIcon> = {
   head: Users,
   staff: Wrench,
   room_staff: Wrench,
+  cleaning_staff: Wrench,
   executive: Eye,
   user: UserRound,
 };
