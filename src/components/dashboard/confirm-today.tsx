@@ -1,26 +1,37 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import { confirmCleaning, type ConfirmResult } from "@/app/(dashboard)/cleaning/actions";
+import { ImagePicker } from "@/components/tickets/image-picker";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 /**
  * The one-tap confirmation on the home page. It posts the same action as the cleaning page, with no
- * `day` (the server uses its own Bangkok date). Photos and late days stay on /cleaning.
+ * `day` (the server uses its own Bangkok date). Photos are optional: take one with the camera or
+ * pick from the phone, then confirm. Late days stay on /cleaning.
  */
 export function ConfirmToday({ classroomId }: { classroomId: string }) {
   const [state, action, pending] = useActionState<ConfirmResult | null, FormData>(confirmCleaning, null);
+  const [busy, setBusy] = useState(false);
   return (
-    <form action={action} className="space-y-3">
+    <form action={action} className="space-y-4">
       <input type="hidden" name="classroom_id" value={classroomId} />
+      <ImagePicker
+        bucket="cleaning-photos"
+        fieldName="photo_paths"
+        label="รูปเขต (ไม่บังคับ)"
+        maxImages={4}
+        camera
+        onBusyChange={setBusy}
+      />
       <Button
         type="submit"
-        disabled={pending}
+        disabled={pending || busy}
         className="h-13 w-full rounded-full px-8 text-base font-semibold sm:w-auto"
       >
-        {pending ? "กำลังบันทึก..." : "ยืนยันเขตวันนี้"}
+        {pending ? "กำลังบันทึก..." : busy ? "กำลังอัปโหลดรูป..." : "ยืนยันเขตวันนี้"}
       </Button>
       {state && (
         <p
