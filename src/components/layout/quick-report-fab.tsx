@@ -16,9 +16,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 
 /** Floating report button for phones: a short form with the camera first. Signed-in users only. */
-export function QuickReportFab() {
+export function QuickReportFab({ staff = false }: { staff?: boolean }) {
   const [open, setOpen] = useState(false);
   const [formKey, setFormKey] = useState(0);
   const [buildings, setBuildings] = useState<BuildingOption[]>([]);
@@ -44,6 +45,8 @@ export function QuickReportFab() {
   }, [open, buildings.length]);
 
   if (hidden) return null;
+  // On the list page the report form is already on the page: for staff from md up, for everyone else at every size.
+  const formOnPage = pathname === "/tickets";
 
   return (
     <>
@@ -54,7 +57,11 @@ export function QuickReportFab() {
           setOpen(true);
         }}
         aria-label="แจ้งซ่อม"
-        className="fixed right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-40 flex h-14 items-center gap-2 rounded-full bg-primary px-5 text-base font-semibold text-primary-foreground shadow-lg shadow-black/25 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-offset-2 active:scale-95 md:bottom-6 print:hidden"
+        className={cn(
+          "fixed right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-40 flex h-14 items-center gap-2 rounded-full bg-primary px-5 text-base font-semibold text-primary-foreground shadow-lg shadow-black/25 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-offset-2 active:scale-95 md:bottom-6 print:hidden",
+          // Last, so that twMerge lets "hidden" win over "flex".
+          formOnPage && (staff ? "md:hidden" : "hidden"),
+        )}
       >
         <Plus className="size-5" aria-hidden />
         แจ้งซ่อม

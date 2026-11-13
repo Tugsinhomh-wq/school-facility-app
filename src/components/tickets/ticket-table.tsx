@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { StatusPill, UrgencyMark } from "@/components/tickets/status-mark";
 import { overdueDays } from "@/lib/ticket-aging";
+import { cn } from "@/lib/utils";
 import { formatBaht, formatDateTh } from "@/lib/ticket-meta";
 import type { TicketRow } from "@/types/tickets";
 
@@ -13,6 +14,11 @@ export function placeOf(t: TicketRow) {
       .join(", ") || "ไม่ระบุ"
   );
 }
+
+/** An open emergency: its row is filled in amber so the queue shows it first at a glance. */
+const isUrgent = (t: TicketRow) => t.urgency === "emergency" && (t.status === "pending" || t.status === "in_progress");
+const URGENT_ROW =
+  "bg-queue-urgent text-foreground hover:bg-queue-urgent [&_.text-muted-foreground]:text-foreground [&_.text-amber-800]:text-foreground";
 
 /** "มีรายงานซ้ำ 2 คน" on a main ticket, "รวมกับ REQ-…" on a report that joined one. */
 export function DuplicateNote({ t }: { t: TicketRow }) {
@@ -76,16 +82,16 @@ export function TicketTable({
       <div className="rounded-xl border border-dashed border-border p-10 text-center text-muted-foreground">
         {hasFilters
           ? "ไม่พบรายการที่ตรงกับตัวกรอง ลองล้างตัวกรองหรือค้นหาด้วยคำอื่น"
-          : 'ยังไม่มีรายการแจ้งซ่อม กดปุ่ม "แจ้งซ่อม" ที่หน้าแรกเพื่อแจ้งเรื่องแรก'}
+          : "ยังไม่มีรายการแจ้งซ่อม"}
       </div>
     );
   }
 
   return (
     <>
-      <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border md:hidden">
+      <ul className="divide-y divide-border border-y-2 border-foreground bg-card md:hidden">
         {tickets.map((t) => (
-          <li key={t.id} className="flex items-center pl-1">
+          <li key={t.id} className={cn("flex items-center pl-1", isUrgent(t) && URGENT_ROW)}>
             {selectable && <RowCheck id={t.id} title={t.title} />}
             <Link
               href={`/tickets/${t.id}`}
@@ -122,9 +128,9 @@ export function TicketTable({
           </li>
         ))}
       </ul>
-      <div className="hidden overflow-x-auto rounded-xl border border-border md:block">
+      <div className="hidden overflow-x-auto border-y-2 border-foreground bg-card md:block">
         <table className="w-full min-w-[46rem] text-left text-sm">
-          <thead className="border-b border-border bg-muted/50 whitespace-nowrap text-muted-foreground">
+          <thead className="border-b-2 border-foreground whitespace-nowrap text-muted-foreground">
             <tr>
               {selectable && (
                 <th scope="col" className="w-12 py-3 pl-2">
@@ -160,7 +166,7 @@ export function TicketTable({
           </thead>
           <tbody className="divide-y divide-border">
             {tickets.map((t) => (
-              <tr key={t.id} className="hover:bg-muted/40">
+              <tr key={t.id} className={cn("hover:bg-muted/40", isUrgent(t) && URGENT_ROW)}>
                 {selectable && (
                   <td className="py-2 pl-2">
                     <RowCheck id={t.id} title={t.title} />
