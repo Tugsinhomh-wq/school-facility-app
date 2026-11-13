@@ -1,4 +1,4 @@
-import { Camera, ChevronRight } from "lucide-react";
+import { AlertCircle, Camera, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
 import { StatusPill, UrgencyMark } from "@/components/tickets/status-mark";
@@ -15,10 +15,28 @@ export function placeOf(t: TicketRow) {
   );
 }
 
-/** An open emergency: its row is filled in amber so the queue shows it first at a glance. */
-const isUrgent = (t: TicketRow) => t.urgency === "emergency" && (t.status === "pending" || t.status === "in_progress");
-const URGENT_ROW =
-  "bg-queue-urgent text-foreground hover:bg-queue-urgent [&_.text-muted-foreground]:text-foreground [&_.text-amber-800]:text-foreground";
+/**
+ * Row colours for the staff queue. An open emergency is a light red row with a red bar at its edge (dark text
+ * stays readable on it); a new ticket nobody has taken yet is filled in amber. Emergency wins when both apply.
+ * A report merged into another ticket is not new work, so it gets neither.
+ */
+const isEmergency = (t: TicketRow) => t.urgency === "emergency" && (t.status === "pending" || t.status === "in_progress");
+const isNew = (t: TicketRow) => t.status === "pending" && !t.duplicate_of_number && !isEmergency(t);
+const EMERGENCY_ROW = "bg-queue-emergency hover:bg-queue-emergency";
+const NEW_ROW =
+  "bg-queue-new text-foreground hover:bg-queue-new [&_.text-muted-foreground]:text-foreground [&_.text-amber-800]:text-foreground";
+const rowTone = (t: TicketRow) => (isEmergency(t) ? EMERGENCY_ROW : isNew(t) ? NEW_ROW : "");
+
+/** The urgency cell: an open emergency is a solid red badge, anything else the usual mark. */
+function QueueUrgency({ t }: { t: TicketRow }) {
+  if (!isEmergency(t)) return <UrgencyMark urgency={t.urgency} />;
+  return (
+    <span className="inline-flex items-center gap-1 rounded-md bg-queue-emergency-bar px-2 py-0.5 text-sm font-semibold whitespace-nowrap text-white">
+      <AlertCircle className="size-4" aria-hidden />
+      ฉุกเฉิน
+    </span>
+  );
+}
 
 /** "มีรายงานซ้ำ 2 คน" on a main ticket, "รวมกับ REQ-…" on a report that joined one. */
 export function DuplicateNote({ t }: { t: TicketRow }) {
@@ -91,7 +109,10 @@ export function TicketTable({
     <>
       <ul className="divide-y divide-border border-y-2 border-foreground bg-card md:hidden">
         {tickets.map((t) => (
-          <li key={t.id} className={cn("flex items-center pl-1", isUrgent(t) && URGENT_ROW)}>
+          <li
+            key={t.id}
+            className={cn("flex items-center pl-1", rowTone(t), isEmergency(t) && "shadow-[inset_6px_0_0_var(--color-queue-emergency-bar)]")}
+          >
             {selectable && <RowCheck id={t.id} title={t.title} />}
             <Link
               href={`/tickets/${t.id}`}
@@ -111,7 +132,7 @@ export function TicketTable({
                 )}
                 <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
                   <StatusPill status={t.status} />
-                  <UrgencyMark urgency={t.urgency} />
+                  <QueueUrgency t={t} />
                   <OverdueNote t={t} />
                   <DuplicateNote t={t} />
                   <span>{t.ticket_number}</span>
@@ -166,7 +187,10 @@ export function TicketTable({
           </thead>
           <tbody className="divide-y divide-border">
             {tickets.map((t) => (
-              <tr key={t.id} className={cn("hover:bg-muted/40", isUrgent(t) && URGENT_ROW)}>
+              <tr
+                key={t.id}
+                className={cn("hover:bg-muted/40", rowTone(t), isEmergency(t) && "[&>td:first-child]:shadow-[inset_6px_0_0_var(--color-queue-emergency-bar)]")}
+              >
                 {selectable && (
                   <td className="py-2 pl-2">
                     <RowCheck id={t.id} title={t.title} />
@@ -204,7 +228,7 @@ export function TicketTable({
                   </td>
                 )}
                 <td className="px-4 py-4">
-                  <UrgencyMark urgency={t.urgency} />
+                  <QueueUrgency t={t} />
                 </td>
                 <td className="px-4 py-4">
                   <StatusPill status={t.status} />
