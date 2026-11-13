@@ -14,8 +14,9 @@ import { firstFreeStart, HOURS, lanePos, segOn, weekDays } from "@/lib/meeting-v
 import { addDays, bangkokMinutes, bangkokYmd, formatDateShort, formatDayLong, formatDayShort, formatHm, mondayOf } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
-const ROW_REM = 2.75;
-const LINES = `repeating-linear-gradient(to bottom, transparent 0, transparent calc(${ROW_REM}rem - 1px), var(--color-sheet-rule) calc(${ROW_REM}rem - 1px), var(--color-sheet-rule) ${ROW_REM}rem)`;
+// One hour is --sheet-row tall (set in globals.css): it grows with the screen so the sheet fills a tall monitor.
+const SHEET_H = `calc(${HOURS.length} * var(--sheet-row))`;
+const LINES = "repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--sheet-row) - 1px), var(--color-sheet-rule) calc(var(--sheet-row) - 1px), var(--color-sheet-rule) var(--sheet-row))";
 const WELL = "border-2 border-sheet-ink bg-sheet-paper-2 p-4 shadow-[8px_8px_0_var(--color-sheet-paper-3)] sm:p-6";
 
 /**
@@ -90,9 +91,9 @@ export function RoomWeekSheet({
           <p className="text-sm font-semibold text-sheet-muted">
             สัปดาห์ {formatDateShort(days[0])} ถึง {formatDateShort(days[6])}
           </p>
-          <h1 className="mt-1 font-sheet text-3xl leading-snug font-bold text-sheet-ink">ขอใช้ห้องประชุม</h1>
+          <h1 className="mt-1 font-sheet text-3xl leading-snug 2xl:text-4xl font-bold text-sheet-ink">ขอใช้ห้องประชุม</h1>
         </div>
-        <p className="max-w-[52ch] flex-1 basis-64">ดูตารางว่างและจองห้อง ระบบกันเวลาชนกันให้{sample && " (ข้อมูลตัวอย่าง)"}</p>
+        <p className="mr-auto max-w-[52ch]">ดูตารางว่างและจองห้อง ระบบกันเวลาชนกันให้{sample && " (ข้อมูลตัวอย่าง)"}</p>
         <Link href="/meeting-rooms/manage" className="inline-flex min-h-11 items-center text-sm font-semibold text-sheet-ink underline decoration-sheet-ink underline-offset-4 hover:decoration-sheet-accent">
           จัดการห้อง
         </Link>
@@ -141,7 +142,7 @@ export function RoomWeekSheet({
         <span>{room.requires_approval ? "ต้องให้ ผอ. อนุมัติ" : "จองแล้วได้ทันที"}</span>
       </p>
 
-      <div className="mt-6 grid grid-cols-1 items-start gap-8 xl:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="mt-6 grid grid-cols-1 items-start gap-8 xl:grid-cols-[minmax(0,1fr)_22rem] 2xl:grid-cols-[minmax(0,1fr)_26rem]">
         <div>
           {/* Desktop: the printed week. */}
           <div
@@ -160,9 +161,9 @@ export function RoomWeekSheet({
                 </div>
               );
             })}
-            <div aria-hidden className="relative" style={{ height: `${HOURS.length * ROW_REM}rem` }}>
+            <div aria-hidden className="relative" style={{ height: SHEET_H }}>
               {HOURS.slice(1).map((h, i) => (
-                <span key={h} className="absolute inset-x-0 -translate-y-1/2 pr-2 text-right text-xs font-semibold text-sheet-muted tabular-nums" style={{ top: `${(i + 1) * ROW_REM}rem` }}>
+                <span key={h} className="absolute inset-x-0 -translate-y-1/2 pr-2 text-right text-xs font-semibold text-sheet-muted tabular-nums" style={{ top: `calc(${i + 1} * var(--sheet-row))` }}>
                   {formatHm(h)}
                 </span>
               ))}
@@ -174,7 +175,7 @@ export function RoomWeekSheet({
                   key={ymd}
                   title="คลิกช่วงเวลาที่ว่างเพื่อเริ่มจอง"
                   className="relative cursor-pointer border-l border-sheet-rule"
-                  style={{ height: `${HOURS.length * ROW_REM}rem`, backgroundImage: LINES }}
+                  style={{ height: SHEET_H, backgroundImage: LINES }}
                   onClick={(e) => {
                     const r = e.currentTarget.getBoundingClientRect();
                     const slot = Math.floor((((e.clientY - r.top) / r.height) * (DAY_END - DAY_START)) / STEP);
