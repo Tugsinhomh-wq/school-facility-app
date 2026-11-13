@@ -174,3 +174,25 @@
   --muted-foreground: var(--color-sheet-muted);
   --muted: var(--color-sheet-paper-3);
 }
+
+/* Large monitors (an administrator's 2560x1440 screen). Everything in the app is sized in rem, so raising the root
+   size scales it all together; at 2560 wide the text lands near 20px instead of looking small in a sea of margin. */
+@media (min-width: 2000px) {
+  html {
+    font-size: 112.5%;
+  }
+}
+@media (min-width: 2400px) {
+  html {
+    font-size: 125%;
+  }
+}
+
+/* The meeting-room week sheet uses the whole width of a wide screen (every other page keeps its reading width), and
+   its hour rows grow with the window height so a tall monitor is filled instead of leaving a blank band under it. */
+.page-wrap:has(.room-sheet) {
+  max-width: 150rem;
+}
+.room-sheet {
+  --sheet-row: clamp(2.75rem, calc((100vh - 26rem) / 13), 6.5rem);
+}

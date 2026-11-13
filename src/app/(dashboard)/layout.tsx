@@ -30,7 +30,7 @@ export default async function DashboardLayout({
       <AppSidebar viewer={viewer} />
       <div className="min-w-0 flex-1 px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-28 sm:px-6 md:px-10 md:pt-10 md:pb-10 print:p-0">
         <LastPageTracker />
-        <div className="mx-auto max-w-6xl">
+        <div className="page-wrap mx-auto max-w-6xl">
           <Link
             href="/"
             className="mb-5 flex items-center gap-2.5 rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50 md:hidden print:hidden"
