@@ -12,6 +12,17 @@
   --color-queue-new: oklch(0.81 0.16 82);
   --color-queue-emergency: oklch(0.94 0.045 25);
   --color-queue-emergency-bar: oklch(0.5 0.2 27);
+  /* The administrator's week sheet on the meeting-room page: cream paper, warm brown ink, gold hairlines, one vermilion. */
+  --color-sheet-paper: oklch(0.94 0.03 80);
+  --color-sheet-paper-2: oklch(0.97 0.02 85);
+  --color-sheet-paper-3: oklch(0.89 0.05 80);
+  --color-sheet-ink: oklch(0.27 0.05 50);
+  --color-sheet-ink-2: oklch(0.36 0.05 50);
+  --color-sheet-muted: oklch(0.45 0.06 55);
+  --color-sheet-rule: oklch(0.84 0.06 78);
+  --color-sheet-gold: oklch(0.74 0.14 75);
+  --color-sheet-accent: oklch(0.54 0.2 24);
+  --font-sheet: var(--font-serif-th), var(--font-noto), serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-noto), ui-sans-serif, system-ui, sans-serif;
@@ -149,4 +160,17 @@
   .animate-retro-grid {
     animation: none !important;
   }
+}
+
+/* The administrator's week sheet re-skins the shared form controls inside it: vermilion for the primary action
+   and the focus ring, brown ink for borders. Dialogs render outside it and keep the app's look. */
+.room-sheet {
+  --primary: var(--color-sheet-accent);
+  --primary-foreground: oklch(0.97 0.02 85);
+  --ring: var(--color-sheet-accent);
+  --border: var(--color-sheet-rule);
+  --input: var(--color-sheet-ink);
+  --foreground: var(--color-sheet-ink);
+  --muted-foreground: var(--color-sheet-muted);
+  --muted: var(--color-sheet-paper-3);
 }

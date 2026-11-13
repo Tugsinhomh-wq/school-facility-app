@@ -5,14 +5,13 @@ import { useActionState, useMemo, useState } from "react";
 
 import { createMemoFromReservation, createReservation, type BookingResult } from "@/app/(dashboard)/meeting-rooms/actions";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { Booking, RoomInfo } from "@/lib/data/rooms";
 import { DAY_END, DAY_START, findConflict, latestEnd, STEP } from "@/lib/meeting";
 import { equipmentGroupsFor } from "@/lib/meeting-equipment";
-import { formatDayLong, formatHm } from "@/lib/time";
+import { formatHm } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
 const selectClass =
@@ -26,7 +25,8 @@ export interface BookingDefaults {
 
 const range = (from: number, to: number) => Array.from({ length: Math.max(0, Math.floor((to - from) / STEP)) + 1 }, (_, i) => from + i * STEP);
 
-function BookingForm({ rooms, bookings, defaults, onDone }: { rooms: RoomInfo[]; bookings: Booking[]; defaults: BookingDefaults; onDone: () => void }) {
+/** The booking form, put straight on the room pages. */
+export function BookingForm({ rooms, bookings, defaults, onDone }: { rooms: RoomInfo[]; bookings: Booking[]; defaults: BookingDefaults; onDone: () => void }) {
   const [roomId, setRoomId] = useState(defaults.roomId);
   const [start, setStart] = useState(defaults.start);
   const [end, setEnd] = useState(() => Math.min(defaults.start + 60, latestEnd(bookings, defaults.roomId, defaults.ymd, defaults.start)));
@@ -147,20 +147,5 @@ function BookingForm({ rooms, bookings, defaults, onDone }: { rooms: RoomInfo[];
         {pending ? "กำลังส่ง..." : room?.requires_approval ? "ส่งคำขอใช้ห้อง" : "จองห้อง"}
       </Button>
     </form>
-  );
-}
-
-export function BookingDialog({ open, onClose, rooms, bookings, defaults }: { open: boolean; onClose: () => void; rooms: RoomInfo[]; bookings: Booking[]; defaults: BookingDefaults | null }) {
-  return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>ขอใช้ห้องประชุม</DialogTitle>
-          <DialogDescription>{defaults ? formatDayLong(defaults.ymd) : ""}</DialogDescription>
-        </DialogHeader>
-        {/* Remounted per slot so each booking starts from a clean form. */}
-        {defaults && <BookingForm key={`${defaults.roomId}-${defaults.ymd}-${defaults.start}`} rooms={rooms} bookings={bookings} defaults={defaults} onDone={onClose} />}
-      </DialogContent>
-    </Dialog>
   );
 }
