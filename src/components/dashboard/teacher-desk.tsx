@@ -1,12 +1,13 @@
-import { Check, ChevronRight, DoorOpen, Minus, Wrench, X } from "lucide-react";
+import { Check, ChevronRight, DoorOpen, ImageIcon, Minus, Wrench, X } from "lucide-react";
 import Link from "next/link";
 
+import { CancelDays } from "@/components/dashboard/cancel-days";
 import { ConfirmToday } from "@/components/dashboard/confirm-today";
 import { TONE, type ActionRow } from "@/components/dashboard/home-actions";
 import { buttonVariants } from "@/components/ui/button";
 import type { DayState } from "@/lib/cleaning";
 import type { MyDay } from "@/lib/data/cleaning-teacher";
-import { formatDayShort } from "@/lib/time";
+import { addDays, formatDayShort } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
 /** What each day of the week shows inside its pill: a short word, and a longer one for screen readers. */
@@ -53,6 +54,14 @@ function WeekLane({ days, today }: { days: MyDay["days"]; today: string }) {
 /** One advised classroom: today's status, the single action, and the week. */
 export function CleaningDesk({ room, today, outside }: { room: MyDay; today: string; outside: boolean }) {
   const missed = room.days.filter((d) => d.state === "missed").length;
+  const todayDone = room.days.find((d) => d.ymd === today)?.confirmation ?? null;
+  // Yesterday sits in this week's strip whenever it was a school day; only a confirmed day can be undone.
+  const yesterday = addDays(today, -1);
+  const yesterdayDone = room.days.find((d) => d.ymd === yesterday)?.confirmation ?? null;
+  const cancellable = [
+    ...(todayDone ? [{ ymd: today, word: "วันนี้", hasPhotos: todayDone.photos > 0 }] : []),
+    ...(yesterdayDone ? [{ ymd: yesterday, word: "เมื่อวาน", hasPhotos: yesterdayDone.photos > 0 }] : []),
+  ];
   return (
     <section aria-labelledby={`desk-${room.id}`} className="rounded-2xl bg-secondary p-4 shadow-xs sm:p-6">
       <h2 id={`desk-${room.id}`} className="font-display text-2xl font-medium leading-snug">
@@ -61,23 +70,24 @@ export function CleaningDesk({ room, today, outside }: { room: MyDay; today: str
       <p className="mt-0.5 text-lg text-muted-foreground">{room.name}</p>
 
       <div className="mt-5">
-        {room.state === "pending" && (
-          <>
-            <ConfirmToday classroomId={room.id} />
-            <p className="mt-3 text-sm text-muted-foreground">
-              แนบรูปหรือยกเลิกการยืนยันได้ที่หน้าเขตทำความสะอาด ยกเลิกได้เฉพาะวันนี้และเมื่อวาน
-            </p>
-          </>
-        )}
+        {room.state === "pending" && <ConfirmToday classroomId={room.id} />}
         {(room.state === "confirmed" || room.state === "late") && (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <div className="space-y-1">
             <p className="inline-flex items-center gap-2 font-display text-xl font-medium">
               <Check className="size-7 text-primary" aria-hidden />
               ยืนยันแล้ว
             </p>
-            <Link href="/cleaning" className={cn(buttonVariants({ variant: "outline" }), "h-11 rounded-full px-5 text-sm")}>
-              แนบรูปหรือยกเลิก
-            </Link>
+            {todayDone && (
+              <p className="flex flex-wrap items-center gap-x-3 text-sm text-muted-foreground">
+                <span>โดย {todayDone.byName}</span>
+                {todayDone.photos > 0 && (
+                  <span className="inline-flex items-center gap-1">
+                    <ImageIcon className="size-3.5" aria-hidden />
+                    มีรูป {todayDone.photos} รูป
+                  </span>
+                )}
+              </p>
+            )}
           </div>
         )}
         {(room.state === "off" || room.state === "future") && (
@@ -86,6 +96,8 @@ export function CleaningDesk({ room, today, outside }: { room: MyDay; today: str
           </p>
         )}
       </div>
+
+      <CancelDays classroomId={room.id} days={cancellable} />
 
       {missed > 0 && (
         <p className="mt-4 text-sm">
