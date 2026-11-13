@@ -7,8 +7,11 @@
 
 @theme inline {
   --color-navy: oklch(0.34 0.17 266);
-  /* The staff repair queue: an open emergency is a row filled in amber. */
-  --color-queue-urgent: oklch(0.81 0.16 82);
+  /* The staff repair queue. A new ticket nobody has taken is an amber row; an open emergency is a light red row
+     with a strong red bar at its edge and a solid red badge (white on this red is about 6.5:1). */
+  --color-queue-new: oklch(0.81 0.16 82);
+  --color-queue-emergency: oklch(0.94 0.045 25);
+  --color-queue-emergency-bar: oklch(0.5 0.2 27);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-noto), ui-sans-serif, system-ui, sans-serif;

@@ -20,7 +20,7 @@ export const metadata = {
 
 /**
  * Two views of one page. Admin, head and staff get the queue: a table with open emergencies in amber
- * (they report with the floating button). Everyone else (a regular user, the meeting-room officer, a signed-out visitor
+ * (they report with the floating button); a new ticket is amber and an open emergency is red. Everyone else (a regular user, the meeting-room officer, a signed-out visitor
  * looking at sample data) gets the repair desk: the report form beside their own jobs, each with its lane.
  * Executives never get here (guardExecutive sends them to the summary).
  */
@@ -158,6 +158,9 @@ export default async function TicketsPage({
               showOpenView
               showMine
             />
+            <p className="text-sm text-muted-foreground">
+              แถวสีแดงคืองานฉุกเฉินที่ยังไม่ปิด แถวสีเหลืองคืองานใหม่ที่ยังไม่มีใครรับเรื่อง
+            </p>
             {(filters.status === "open" || filters.status === "mine") && (
               <p className="text-sm text-muted-foreground">
                 {filters.status === "mine" ? "งานที่ยังไม่ปิดและมอบหมายให้คุณ" : "งานที่ยังไม่ปิด"}{" "}
