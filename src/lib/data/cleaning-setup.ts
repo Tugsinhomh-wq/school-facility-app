@@ -1,6 +1,7 @@
 import { compareRoomNames } from "@/lib/cleaning";
 import { one, type One, type RawClassroom } from "@/lib/data/cleaning";
-import { getSession, isFacilityOfficer } from "@/lib/data/session";
+import { getSession } from "@/lib/data/session";
+import { isCleaningManager } from "@/lib/cleaning-access";
 import { addDays, bangkokYmd } from "@/lib/time";
 
 export type SetupRoom = {
@@ -32,7 +33,7 @@ export type CleaningSetup = {
 /** The setup page's data, for facility officers. null = not signed in or not an officer. */
 export async function getCleaningSetup(): Promise<CleaningSetup | { failed: true } | null> {
   const s = await getSession();
-  if (!s || !isFacilityOfficer(s.viewer.role)) return null;
+  if (!s || !isCleaningManager(s.viewer.role)) return null;
   try {
     const [rooms, buildings, offDays, people] = await Promise.all([
       s.supabase

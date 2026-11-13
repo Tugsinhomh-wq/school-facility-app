@@ -10,6 +10,7 @@ const ROLE_MAP: Record<UserRole, true> = {
   head: true,
   staff: true,
   room_staff: true,
+  cleaning_staff: true,
   executive: true,
   user: true,
 };

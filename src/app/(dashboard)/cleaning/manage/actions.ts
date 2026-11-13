@@ -6,7 +6,8 @@ import { parseUuidList } from "@/lib/advisors";
 import { latestTermRooms } from "@/lib/data/advisors";
 import { HEADERS, parseClassroomRows, type ImportError } from "@/lib/cleaning-import";
 import { readSheet } from "@/lib/cleaning-sheet";
-import { getSession, hasSupabase, isFacilityOfficer } from "@/lib/data/session";
+import { getSession, hasSupabase } from "@/lib/data/session";
+import { isCleaningManager } from "@/lib/cleaning-access";
 import { addDays, bangkokYmd, isYmd } from "@/lib/time";
 
 export type SetupResult = { ok: boolean; message: string; errors?: ImportError[] } | null;
@@ -27,7 +28,7 @@ async function officerDb(): Promise<Db | SetupResult> {
   if (!hasSupabase()) return DEMO;
   const s = await getSession();
   if (!s) return { ok: false, message: "เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่" };
-  if (!isFacilityOfficer(s.viewer.role))
+  if (!isCleaningManager(s.viewer.role))
     return { ok: false, message: "เฉพาะเจ้าหน้าที่งานอาคารสถานที่เท่านั้น" };
   return s.supabase;
 }

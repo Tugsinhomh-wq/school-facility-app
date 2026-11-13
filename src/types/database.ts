@@ -5,6 +5,7 @@ export type UserRole =
   | "head"
   | "staff"
   | "room_staff"
+  | "cleaning_staff"
   | "executive"
   | "user";
 export type TicketStatus = "pending" | "in_progress" | "completed" | "cancelled";

@@ -19,7 +19,8 @@ export function navGroups(role: UserRole | null): NavGroup[] {
       .filter((m) => m.group === g)
       .map(({ id, label, href, soon }) => ({ id, label, href, soon }));
   const manage: NavEntry[] = [
-    ...(role !== null && role !== "user" ? [{ id: "memos", label: "บันทึกข้อความ", href: "/memos" }] : []),
+    // The cleaning-zone officer has no memo access (no row policy), so no menu entry either.
+    ...(role !== null && role !== "user" && role !== "cleaning_staff" ? [{ id: "memos", label: "บันทึกข้อความ", href: "/memos" }] : []),
     ...(role === "super_admin"
       ? [
           SUMMARY,

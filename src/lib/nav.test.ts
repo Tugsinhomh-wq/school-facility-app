@@ -39,3 +39,9 @@ test("staff roles get memos; only the administrator gets the rest", () => {
   }
   assert.deepEqual(hrefs("super_admin").slice(-5), ["/memos", "/summary", "/feedback", "/users", "/trash"]);
 });
+
+test("the cleaning-zone officer gets the cleaning module, but no memos and no admin pages", () => {
+  const links = hrefs("cleaning_staff");
+  for (const href of ["/cleaning", "/census", "/control"]) assert.ok(links.includes(href), href);
+  for (const href of ["/memos", "/users", "/summary", "/trash"]) assert.ok(!links.includes(href), href);
+});
