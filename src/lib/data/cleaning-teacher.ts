@@ -1,4 +1,4 @@
-import { dayState, inCheckWindow, type DayState } from "@/lib/cleaning";
+import { dayState, inCheckWindow, weekGrid, type DayState } from "@/lib/cleaning";
 import {
   CLASSROOM_SELECT,
   DEMO_ROWS,
@@ -6,6 +6,7 @@ import {
   toRows,
   type ClassroomRow,
   type RawClassroom,
+  type WeekConfirmation,
 } from "@/lib/data/cleaning";
 import { getSession } from "@/lib/data/session";
 import { bangkokYmd, mondayOf } from "@/lib/time";
@@ -43,16 +44,20 @@ export async function getMyClassrooms(): Promise<{
  * page. Empty rows = not an advisor (show nothing); `failed` = show an error with retry;
  * `outside` = today is outside the check window (nothing to confirm).
  */
+/** One advised classroom on the home page: today's state and its Mon-Fri week. */
+export type MyDay = { id: string; name: string; state: DayState; days: ReturnType<typeof weekGrid<WeekConfirmation>> };
+
 export async function getMyToday(): Promise<
-  { rows: { id: string; name: string; state: DayState }[]; outside?: boolean; failed?: undefined } | { failed: true }
+  { rows: MyDay[]; outside?: boolean; failed?: undefined } | { failed: true }
 > {
   const mine = await getMyClassrooms();
   if (mine.failed) return { failed: true };
   if (mine.rows.length === 0) return { rows: [] };
   const today = bangkokYmd(new Date());
+  const monday = mondayOf(today);
   const week = await getWeek(
     mine.rows.map((r) => r.id),
-    mondayOf(today),
+    monday,
   );
   if (week.failed) return { failed: true };
   return {
@@ -66,6 +71,13 @@ export async function getMyToday(): Promise<
         offDays: week.offDays,
         window: week.window,
         confirmation: week.confirmations.get(r.id)?.get(today) ?? null,
+      }),
+      days: weekGrid({
+        monday,
+        today,
+        offDays: week.offDays,
+        confirmations: week.confirmations.get(r.id) ?? new Map<string, WeekConfirmation>(),
+        window: week.window,
       }),
     })),
   };
