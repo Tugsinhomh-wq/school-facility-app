@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Noto_Sans_Thai, Prompt } from "next/font/google";
+import { Noto_Sans_Thai, Noto_Serif_Thai, Prompt } from "next/font/google";
 import "./globals.css";
 
 // Body/UI: Noto Sans Thai (neutral, clear numerals). Headings: Prompt, a geometric Thai face
@@ -13,6 +13,13 @@ const prompt = Prompt({
   variable: "--font-prompt",
   subsets: ["thai", "latin"],
   weight: ["500", "600", "700"],
+});
+
+// Headings of the administrator's week sheet on the meeting-room page only.
+const serifThai = Noto_Serif_Thai({
+  variable: "--font-serif-th",
+  subsets: ["thai", "latin"],
+  weight: ["700"],
 });
 
 export const viewport: Viewport = {
@@ -33,7 +40,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="th"
       suppressHydrationWarning
-      className={`${noto.variable} ${prompt.variable} h-full antialiased`}
+      className={`${noto.variable} ${prompt.variable} ${serifThai.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         {children}
