@@ -25,10 +25,13 @@ export const TRAY_TINTS = ["bg-tray-1", "bg-tray-2", "bg-tray-3", "bg-tray-4", "
 export function LevelTrays({
   rooms,
   day,
+  titles = {},
   offLabel = "วันหยุด",
 }: {
   rooms: RoomToday[];
   day: string;
+  /** Tray titles by level; a level without one is titled by its own name. */
+  titles?: Record<string, string>;
   /** What a not-due day is called: "วันหยุด", or "ยังไม่อยู่ในช่วงเช็ก" outside the check window. */
   offLabel?: string;
 }) {
@@ -45,7 +48,7 @@ export function LevelTrays({
           >
             <header className="mb-2.5 flex flex-wrap items-baseline justify-between gap-x-3">
               <h3 id={`level-${i}`} className="font-display text-xl font-semibold">
-                {level}
+                {titles[level] ?? level}
               </h3>
               <p className="text-sm text-foreground/80 tabular-nums">
                 {open > 0 ? `ยังไม่ยืนยัน ${open} จาก ${rows.length} ห้อง` : `ยืนยันครบ ${rows.length} ห้อง`}
