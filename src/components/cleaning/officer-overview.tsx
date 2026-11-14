@@ -2,19 +2,19 @@ import { ChevronLeft, ChevronRight, DoorOpen, Settings } from "lucide-react";
 import Link from "next/link";
 
 import { ReportForm } from "@/components/cleaning/report-form";
-import { RoomGrid, type RoomToday } from "@/components/cleaning/room-grid";
+import { LevelTrays, type RoomToday } from "@/components/cleaning/level-trays";
 import { WeeklyTable, type WeekRow } from "@/components/cleaning/weekly-table";
 import { EmptyState } from "@/components/ui/state-card";
 import { inCheckWindow, overviewOrder, stepSchoolDay, windowText, type CheckWindow } from "@/lib/cleaning";
 import { addDays, formatDateShort, formatDayLong, formatDayShort, mondayOf } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
-export type Filters = { building?: string; only?: "missing"; week?: string; day?: string };
+export type Filters = { level?: string; only?: "missing"; week?: string; day?: string };
 
 /** /cleaning with these filters; the default values are left out so the URL stays short. */
 export function cleaningHref(f: Filters, hash = "") {
   const q = new URLSearchParams();
-  if (f.building) q.set("building", f.building);
+  if (f.level) q.set("level", f.level);
   if (f.only) q.set("only", f.only);
   if (f.week) q.set("week", f.week);
   if (f.day) q.set("day", f.day);
@@ -61,7 +61,7 @@ export function ManageLink() {
 
 /**
  * Facility officers: every classroom's status today (unconfirmed first, red border), filtered by
- * building and "only unconfirmed", then the room × day table of a chosen week. No reminders are
+ * grade level and "only unconfirmed", then the room × day table of a chosen week. No reminders are
  * sent; the officer follows up in person.
  */
 export function OfficerOverview({
@@ -69,7 +69,7 @@ export function OfficerOverview({
   day,
   monday,
   filters,
-  buildings,
+  levels,
   tiles,
   weekRows,
   offDay,
@@ -83,9 +83,9 @@ export function OfficerOverview({
   /** Monday of the week shown in the table. */
   monday: string;
   filters: Filters;
-  /** [building id, name], sorted. */
-  buildings: (readonly [string, string])[];
-  /** The state of every room on `day` in the selected building (or all). */
+  /** The grade levels present (ม.1, ม.2, ...), in school order. */
+  levels: string[];
+  /** The state of every room on `day` in the selected level (or all). */
   tiles: RoomToday[];
   weekRows: WeekRow[];
   /** `day` is a weekend or a school off day. */
@@ -96,7 +96,7 @@ export function OfficerOverview({
   reportBad?: boolean;
 }) {
   const thisMonday = mondayOf(today);
-  const { building } = filters;
+  const { level } = filters;
   const onlyMissing = filters.only === "missing";
   const outside = !inCheckWindow(day, window);
   const isToday = day === today;
@@ -117,33 +117,31 @@ export function OfficerOverview({
   return (
     <div className="space-y-8">
       <section aria-labelledby="today-title" className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 id="today-title" className="text-sm font-semibold text-muted-foreground">
-              {isToday ? "วันนี้" : formatDayLong(day)}
-              {building && ` · ${buildings.find(([id]) => id === building)?.[1]}`}
-            </h2>
-            <p className="text-2xl font-bold tabular-nums">
-              ยืนยันแล้ว {confirmed} / {tiles.length} ห้อง
+        <div className="rounded-2xl bg-foreground p-4 text-background shadow-sm sm:p-6">
+          <h2 id="today-title" className="text-sm font-semibold text-background/80">
+            {isToday ? "วันนี้" : formatDayLong(day)}
+            {level && ` · ${level}`}
+          </h2>
+          <p className="mt-1 font-display text-3xl font-bold tabular-nums sm:text-4xl">
+            <span className="text-emerald-200">{confirmed}</span> จาก {tiles.length} ห้อง ยืนยันแล้ว
+          </p>
+          {outside ? (
+            <p className="mt-1 text-background/80">
+              ยังไม่อยู่ในช่วงเช็ก · {windowText(window, day)}
             </p>
-            {outside ? (
-              <p className="text-sm text-muted-foreground">
-                ยังไม่อยู่ในช่วงเช็ก · {windowText(window, day)}
+          ) : offDay ? (
+            <p className="mt-1 text-background/80">{dayLabel}เป็นวันหยุด ไม่ต้องยืนยัน</p>
+          ) : (
+            missing > 0 && (
+              <p className="mt-1 text-lg font-medium text-emerald-200">
+                {isToday ? "ยังไม่ยืนยัน" : "ไม่ได้ยืนยัน"} {missing} ห้อง
               </p>
-            ) : offDay ? (
-              <p className="text-sm text-muted-foreground">{dayLabel}เป็นวันหยุด ไม่ต้องยืนยัน</p>
-            ) : (
-              missing > 0 && (
-                <p className="text-sm font-medium text-red-700 dark:text-red-300">
-                  {isToday ? "ยังไม่ยืนยัน" : "ไม่ได้ยืนยัน"} {missing} ห้อง
-                </p>
-              )
-            )}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {myRooms}
-            <ManageLink />
-          </div>
+            )
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {myRooms}
+          <ManageLink />
         </div>
 
         <nav aria-label="เลือกวัน" className="flex flex-wrap items-center gap-2">
@@ -172,27 +170,24 @@ export function OfficerOverview({
           <Link
             href={cleaningHref({ ...filters, only: onlyMissing ? undefined : "missing" })}
             aria-current={onlyMissing ? "page" : undefined}
-            className={cn(
-              chip(onlyMissing),
-              !onlyMissing && missing > 0 && "border-red-500/50 text-red-800 dark:text-red-300",
-            )}
+            className={chip(onlyMissing)}
           >
             เฉพาะที่ยังไม่ยืนยัน{missing > 0 && ` (${missing})`}
           </Link>
           <span aria-hidden className="mx-1 w-px shrink-0 self-stretch bg-border" />
           <Link
-            href={cleaningHref({ ...filters, building: undefined })}
-            aria-current={!building ? "page" : undefined}
-            className={chip(!building)}
+            href={cleaningHref({ ...filters, level: undefined })}
+            aria-current={!level ? "page" : undefined}
+            className={chip(!level)}
           >
-            ทุกอาคาร
+            ทุกระดับชั้น
           </Link>
-          {buildings.map(([id, name]) => (
+          {levels.map((name) => (
             <Link
-              key={id}
-              href={cleaningHref({ ...filters, building: id })}
-              aria-current={building === id ? "page" : undefined}
-              className={chip(building === id)}
+              key={name}
+              href={cleaningHref({ ...filters, level: name })}
+              aria-current={level === name ? "page" : undefined}
+              className={chip(level === name)}
             >
               {name}
             </Link>
@@ -200,7 +195,7 @@ export function OfficerOverview({
         </nav>
 
         {visible.length > 0 ? (
-          <RoomGrid
+          <LevelTrays
             rooms={visible}
             day={day}
             offLabel={outside && !offDay ? "ยังไม่อยู่ในช่วงเช็ก" : "วันหยุด"}

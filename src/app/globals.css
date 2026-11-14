@@ -23,6 +23,13 @@
   --color-sheet-gold: oklch(0.74 0.14 75);
   --color-sheet-accent: oklch(0.54 0.2 24);
   --font-sheet: var(--font-serif-th), var(--font-noto), serif;
+  /* The officer cleaning page: one pale tint per grade level (a tray) and per weekday (a slot). A colour of plastic, never a state. */
+  --color-tray-1: oklch(0.93 0.035 22);
+  --color-tray-2: oklch(0.935 0.04 64);
+  --color-tray-3: oklch(0.955 0.045 98);
+  --color-tray-4: oklch(0.93 0.05 160);
+  --color-tray-5: oklch(0.935 0.035 210);
+  --color-tray-6: oklch(0.925 0.03 270);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-noto), ui-sans-serif, system-ui, sans-serif;
