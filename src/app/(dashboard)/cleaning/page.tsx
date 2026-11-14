@@ -17,7 +17,7 @@ import { getAllClassrooms } from "@/lib/data/cleaning-officer";
 import { getMyClassrooms } from "@/lib/data/cleaning-teacher";
 import { getSession, guardExecutive } from "@/lib/data/session";
 import { isCleaningManager } from "@/lib/cleaning-access";
-import { levelOf, levelsOf } from "@/lib/cleaning-level";
+import { levelOf, levelsOf, levelTitles } from "@/lib/cleaning-level";
 import { addDays, bangkokYmd, formatDayLong, isYmd, mondayOf } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
@@ -249,6 +249,7 @@ async function OfficerView({ today, params }: { today: string; params: Params })
       monday={monday}
       filters={filters}
       levels={levels}
+      levelTitles={levelTitles(all.rows.map((r) => r.name))}
       tiles={tiles}
       weekRows={weekRows}
       // Weekend or school off day only; the check window is shown separately.

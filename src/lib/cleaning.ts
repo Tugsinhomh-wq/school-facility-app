@@ -1,3 +1,4 @@
+import { roomSortKey } from "./cleaning-level.ts";
 import { addDays, formatDateShort, isYmd, weekdayIndex } from "./time.ts";
 
 export type DayState = "confirmed" | "late" | "pending" | "missed" | "off" | "future";
@@ -84,7 +85,7 @@ export const lateReachable = <D extends { ymd: string; state: DayState }>(lastWe
 
 /** "ม.3/2" before "ม.3/10": compare numbers inside room names by value, not by character. */
 export const compareRoomNames = (a: string, b: string) =>
-  a.localeCompare(b, "th", { numeric: true });
+  roomSortKey(a).localeCompare(roomSortKey(b), "th", { numeric: true });
 
 /** The officer overview order: rooms still missing today's confirmation first, then by name. */
 export function overviewOrder<T>(rows: T[], isMissing: (row: T) => boolean, nameOf: (row: T) => string) {

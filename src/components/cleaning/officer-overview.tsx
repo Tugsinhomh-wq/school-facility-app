@@ -70,6 +70,7 @@ export function OfficerOverview({
   monday,
   filters,
   levels,
+  levelTitles,
   tiles,
   weekRows,
   offDay,
@@ -85,6 +86,8 @@ export function OfficerOverview({
   filters: Filters;
   /** The grade levels present (ม.1, ม.2, ...), in school order. */
   levels: string[];
+  /** Tray titles by level ("ม.4 และ ปวช.1" when a vocational class shares the tray). */
+  levelTitles: Record<string, string>;
   /** The state of every room on `day` in the selected level (or all). */
   tiles: RoomToday[];
   weekRows: WeekRow[];
@@ -120,7 +123,7 @@ export function OfficerOverview({
         <div className="rounded-2xl bg-foreground p-4 text-background shadow-sm sm:p-6">
           <h2 id="today-title" className="text-sm font-semibold text-background/80">
             {isToday ? "วันนี้" : formatDayLong(day)}
-            {level && ` · ${level}`}
+            {level && ` · ${levelTitles[level] ?? level}`}
           </h2>
           <p className="mt-1 font-display text-3xl font-bold tabular-nums sm:text-4xl">
             <span className="text-emerald-200">{confirmed}</span> จาก {tiles.length} ห้อง ยืนยันแล้ว
@@ -189,7 +192,7 @@ export function OfficerOverview({
               aria-current={level === name ? "page" : undefined}
               className={chip(level === name)}
             >
-              {name}
+              {levelTitles[name] ?? name}
             </Link>
           ))}
         </nav>
@@ -198,6 +201,7 @@ export function OfficerOverview({
           <LevelTrays
             rooms={visible}
             day={day}
+            titles={levelTitles}
             offLabel={outside && !offDay ? "ยังไม่อยู่ในช่วงเช็ก" : "วันหยุด"}
           />
         ) : (
