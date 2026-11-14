@@ -9,7 +9,7 @@ import {
   OfficerOverview,
   type Filters,
 } from "@/components/cleaning/officer-overview";
-import type { RoomToday } from "@/components/cleaning/room-grid";
+import type { RoomToday } from "@/components/cleaning/level-trays";
 import { EmptyState, LoadError } from "@/components/ui/state-card";
 import { dayState, lateReachable, weekGrid } from "@/lib/cleaning";
 import { getWeek } from "@/lib/data/cleaning";
@@ -17,6 +17,7 @@ import { getAllClassrooms } from "@/lib/data/cleaning-officer";
 import { getMyClassrooms } from "@/lib/data/cleaning-teacher";
 import { getSession, guardExecutive } from "@/lib/data/session";
 import { isCleaningManager } from "@/lib/cleaning-access";
+import { levelOf, levelsOf } from "@/lib/cleaning-level";
 import { addDays, bangkokYmd, formatDayLong, isYmd, mondayOf } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
@@ -162,7 +163,7 @@ async function TeacherView({
 }
 
 /**
- * Loads the officer overview. Params: `building` (building id), `only=missing`, `day` (a past day for
+ * Loads the officer overview. Params: `level` (a grade level such as ม.1), `only=missing`, `day` (a past day for
  * the room cards), `week` (any day of
  * a past week; the table shows that Mon-Fri). Unknown or future values fall back to the default.
  */
@@ -180,19 +181,12 @@ async function OfficerView({ today, params }: { today: string; params: Params })
 
   const [all, mine] = await Promise.all([getAllClassrooms(), getMyClassrooms()]);
 
-  const buildings = [
-    ...new Map(
-      all.rows.flatMap((r) =>
-        r.buildingId ? [[r.buildingId, r.building ?? "ไม่ระบุชื่ออาคาร"] as const] : [],
-      ),
-    ),
-  ].sort((a, b) => a[1].localeCompare(b[1], "th", { numeric: true }));
-  const buildingParam = param(params.building);
-  const building = buildings.some(([id]) => id === buildingParam)
-    ? buildingParam
-    : undefined;
+  // Zones are areas of the school, not only buildings, so the page groups and filters rooms by grade level.
+  const levels = levelsOf(all.rows.map((r) => r.name));
+  const levelParam = param(params.level);
+  const level = levels.includes(levelParam ?? "") ? levelParam : undefined;
   const filters: Filters = {
-    building,
+    level,
     only: param(params.only) === "missing" ? "missing" : undefined,
     week: monday === thisMonday ? undefined : monday,
     day: day === today ? undefined : day,
@@ -216,7 +210,7 @@ async function OfficerView({ today, params }: { today: string; params: Params })
       </div>
     );
 
-  const scoped = building ? all.rows.filter((r) => r.buildingId === building) : all.rows;
+  const scoped = level ? all.rows.filter((r) => levelOf(r.name) === level) : all.rows;
   const ids = scoped.map((r) => r.id);
   const dayMonday = mondayOf(day);
   const [now, picked, dayWeekData] = await Promise.all([
@@ -254,7 +248,7 @@ async function OfficerView({ today, params }: { today: string; params: Params })
       day={day}
       monday={monday}
       filters={filters}
-      buildings={buildings}
+      levels={levels}
       tiles={tiles}
       weekRows={weekRows}
       // Weekend or school off day only; the check window is shown separately.
