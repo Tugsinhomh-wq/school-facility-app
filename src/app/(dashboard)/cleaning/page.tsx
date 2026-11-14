@@ -120,7 +120,13 @@ async function TeacherView({
   if (week.failed || prev.failed) return <LoadError what="สถานะการยืนยัน" retryHref={retryHref} />;
 
   return (
-    <div className="grid max-w-md gap-10">
+    <div
+      className={
+        mine.rows.length > 1
+          ? "grid max-w-md items-start gap-6 lg:max-w-4xl lg:grid-cols-2"
+          : "grid max-w-md gap-6"
+      }
+    >
       {mine.rows.map((room) => {
         const confirmations = week.confirmations.get(room.id) ?? new Map();
         const days = weekGrid({
