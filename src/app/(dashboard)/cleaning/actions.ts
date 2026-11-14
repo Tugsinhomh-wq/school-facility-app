@@ -28,6 +28,10 @@ export async function confirmCleaning(
   if (!UUID.test(classroomId) || !isYmd(day))
     return { ok: false, message: "ข้อมูลห้องหรือวันที่ไม่ถูกต้อง ลองโหลดหน้าใหม่" };
 
+  // Every confirmation needs at least one photo of the zone (the form keeps the button off until one is uploaded).
+  if (photos.length < 1)
+    return { ok: false, message: "ต้องแนบรูปเขตอย่างน้อย 1 รูปก่อนยืนยัน" };
+
   if (
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||
     !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
