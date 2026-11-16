@@ -8,6 +8,7 @@ hints: Word and LibreOffice break Thai themselves, and the hints showed as boxes
     pip install -r scripts/requirements.txt
 """
 
+import base64
 import io
 import json
 import os
@@ -77,6 +78,52 @@ def labelled(doc, label, value, size=SIZE, bold_value=False, **kw):
     add_text(p, label, bold=True, size=size)
     add_text(p, " " + value, bold=bold_value, size=size)
     return p
+
+
+# Repair photos behind the memo: two columns, each photo shrunk to fit inside this box (cm), never cropped.
+PHOTO_BOX_W, PHOTO_BOX_H = 7.6, 8.5
+CAPTION_SIZE = 12
+
+
+def add_photo_pages(doc, photos):
+    """Attachment pages, laid out the same way as the PDF and the Node builder."""
+    title = para(doc, align=WD_ALIGN_PARAGRAPH.CENTER, after=10)
+    title.paragraph_format.page_break_before = True
+    add_text(title, "เอกสารแนบ: ภาพประกอบการแจ้งซ่อม", bold=True, size=16)
+    for group in photos["groups"]:
+        items = group["photos"]
+        table = doc.add_table(rows=0, cols=2)
+        table.alignment = WD_TABLE_ALIGNMENT.LEFT
+        table.autofit = False
+        for col in table.columns:
+            col.width = Cm(8)
+        for i in range(0, len(items), 2):
+            row = table.add_row()
+            row._tr.get_or_add_trPr().append(OxmlElement("w:cantSplit"))  # a row never splits across pages
+            for cell, item in zip(row.cells, items[i : i + 2]):
+                cell.width = Cm(8)
+                first = cell.paragraphs[0]
+                first.paragraph_format.line_spacing = 1.0
+                if item.get("failed"):
+                    first.paragraph_format.space_before = Pt(30)
+                    first.paragraph_format.space_after = Pt(30)
+                    add_text(first, "ไม่สามารถโหลดรูปนี้ได้", size=CAPTION_SIZE)
+                    continue
+                scale = min(PHOTO_BOX_W / item["width"], PHOTO_BOX_H / item["height"])
+                first.add_run().add_picture(
+                    io.BytesIO(base64.b64decode(item["data"])),
+                    width=Cm(item["width"] * scale),
+                    height=Cm(item["height"] * scale),
+                )
+                if group.get("heading"):
+                    first.paragraph_format.keep_with_next = True
+                    caption = cell.add_paragraph()
+                    caption.paragraph_format.line_spacing = 1.0
+                    caption.paragraph_format.space_after = Pt(8)
+                    add_text(caption, group["heading"], size=CAPTION_SIZE)
+        para(doc)
+    if photos.get("omitted"):
+        add_text(para(doc), f"แสดงรูปไม่ครบ ข้ามอีก {photos['omitted']} รูป")
 
 
 def build(memo: dict) -> bytes:
@@ -160,6 +207,9 @@ def build(memo: dict) -> bytes:
             add_text(para(doc, before=24, after=4), "ความเห็นของผู้อำนวยการ", bold=True)
             add_text(para(doc, after=12), "☐ อนุมัติ        ☐ ไม่อนุมัติ        ☐ อื่น ๆ ..........................................")
             signature("................................................", f"ผู้อำนวยการ{SCHOOL}")
+
+    if memo.get("photos") and memo["photos"].get("groups"):
+        add_photo_pages(doc, memo["photos"])
 
     doc.core_properties.author = SCHOOL
     doc.core_properties.title = memo["subject"]
