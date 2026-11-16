@@ -5,6 +5,7 @@ import JSZip from "jszip";
 import { AlignmentType, BorderStyle, Document, ImageRun, LeaderType, Packer, Paragraph, type IParagraphOptions, Table, TableCell, TableRow, TabStopType, TextRun, WidthType } from "docx";
 
 import { BUILDING_HEAD, DIRECTOR, SCHOOL_NAME, type MemoDoc } from "./model.ts";
+import { fitWithin, PHOTO_BOX_CM, type MemoPhotoPages } from "./photo-files.ts";
 
 const CM = 567; // twips per centimetre
 const SIZE = 28; // 14 pt, in half-points
@@ -28,7 +29,7 @@ async function withoutFolderEntries(buf: Buffer): Promise<Buffer> {
   return to.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
 }
 
-export async function memoToDocx(doc: MemoDoc, { fontName = "TH Sarabun New" }: Options = {}): Promise<Buffer> {
+export async function memoToDocx(doc: MemoDoc, photos?: MemoPhotoPages, { fontName = "TH Sarabun New" }: Options = {}): Promise<Buffer> {
   const run = (text: string, bold = false, size = SIZE) =>
     new TextRun({
       // No zero-width break hints: Word and LibreOffice break Thai themselves, and the hints showed as boxes
@@ -140,6 +141,53 @@ export async function memoToDocx(doc: MemoDoc, { fontName = "TH Sarabun New" }: 
       new Paragraph({ ...signer, children: [run("(................................................)")] }),
       new Paragraph({ ...signer, children: [run(`ผู้อำนวยการ${SCHOOL_NAME}`)] }),
     );
+  }
+
+  if (photos && photos.groups.length > 0) {
+    const PX_PER_CM = 96 / 2.54;
+    const CAPTION = 24; // 12 pt
+    children.push(new Paragraph({ alignment: AlignmentType.CENTER, pageBreakBefore: true, spacing: { after: 200 }, children: [run("เอกสารแนบ: ภาพประกอบการแจ้งซ่อม", true, 32)] }));
+    for (const group of photos.groups) {
+      const rows: TableRow[] = [];
+      for (let i = 0; i < group.photos.length; i += 2) {
+        const cells = [group.photos[i], group.photos[i + 1]].map((p) => {
+          const content: Paragraph[] = [];
+          if (p && "failed" in p) {
+            content.push(new Paragraph({ spacing: { before: 600, after: 600 }, children: [run("ไม่สามารถโหลดรูปนี้ได้", false, CAPTION)] }));
+          } else if (p) {
+            const fit = fitWithin(p.width, p.height, PHOTO_BOX_CM.width, PHOTO_BOX_CM.height);
+            content.push(
+              new Paragraph({
+                keepNext: Boolean(group.heading),
+                children: [
+                  new ImageRun({
+                    type: p.type,
+                    data: p.data,
+                    transformation: { width: Math.round(fit.width * PX_PER_CM), height: Math.round(fit.height * PX_PER_CM) },
+                    altText: { title: "รูปประกอบการแจ้งซ่อม", description: group.heading || "รูปประกอบการแจ้งซ่อม", name: "repair-photo" },
+                  }),
+                ],
+              }),
+            );
+            if (group.heading) content.push(new Paragraph({ spacing: { after: 160 }, children: [run(group.heading, false, CAPTION)] }));
+          } else {
+            content.push(new Paragraph({ children: [] }));
+          }
+          return cell(8 * CM, content);
+        });
+        rows.push(new TableRow({ cantSplit: true, children: cells }));
+      }
+      children.push(
+        new Table({
+          width: { size: 16 * CM, type: WidthType.DXA },
+          columnWidths: [8 * CM, 8 * CM],
+          borders: { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder, insideHorizontal: noBorder, insideVertical: noBorder },
+          rows,
+        }),
+        new Paragraph({ children: [] }),
+      );
+    }
+    if (photos.omitted > 0) children.push(plain(`แสดงรูปไม่ครบ ข้ามอีก ${photos.omitted} รูป`));
   }
 
   const file = new Document({
