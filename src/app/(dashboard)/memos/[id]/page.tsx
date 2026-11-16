@@ -9,6 +9,7 @@ import { LoadError } from "@/components/ui/state-card";
 import { DeleteMemoButton, DeleteMemoPanel, DeleteMemos } from "@/components/memos/delete-memo";
 import { MemoEditor } from "@/components/memos/memo-editor";
 import { getMemo } from "@/lib/data/memos";
+import { getMemoPhotos } from "@/lib/data/memo-photos";
 import { canDeleteMemo } from "@/lib/memo/delete-rule";
 
 import { guardExecutive } from "@/lib/data/session";
@@ -32,6 +33,8 @@ export default async function MemoPage({
 
   // The administrator deletes any memo, staff their own drafts; the action checks again.
   const canDelete = canDeleteMemo(viewer?.role, userId, memo);
+  // Repair memos show their photos as an attachment page in the preview, as the exports do.
+  const photos = await getMemoPhotos(memo);
 
   return (
     <DeleteMemos back>
@@ -78,7 +81,7 @@ export default async function MemoPage({
       {canDelete && (
         <DeleteMemoPanel id={memo.id} refNo={memo.doc_ref_no} subject={memo.subject} className="mb-6" />
       )}
-      <MemoEditor memo={memo} fontClass={sarabun.className} />
+      <MemoEditor memo={memo} fontClass={sarabun.className} photos={photos} />
     </DeleteMemos>
   );
 }

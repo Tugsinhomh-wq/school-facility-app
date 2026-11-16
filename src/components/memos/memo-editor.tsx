@@ -9,11 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { buildMemoDoc } from "@/lib/memo/model";
+import { buildMemoDoc, type MemoPhotoGroup } from "@/lib/memo/model";
 import { cn } from "@/lib/utils";
 import type { MemoRecord } from "@/lib/data/memos";
 
-export function MemoEditor({ memo, fontClass }: { memo: MemoRecord; fontClass: string }) {
+export function MemoEditor({ memo, fontClass, photos = [] }: { memo: MemoRecord; fontClass: string; photos?: MemoPhotoGroup[] }) {
   const [fields, setFields] = useState({
     doc_ref_no: memo.doc_ref_no,
     subject: memo.subject,
@@ -73,7 +73,7 @@ export function MemoEditor({ memo, fontClass }: { memo: MemoRecord; fontClass: s
           ตัวอย่างเอกสาร
         </h2>
         <div className="rounded-xl bg-muted p-3 sm:p-5">
-          <MemoPreview doc={doc} fontClass={fontClass} />
+          <MemoPreview doc={doc} fontClass={fontClass} photos={photos} />
         </div>
       </section>
     </div>
