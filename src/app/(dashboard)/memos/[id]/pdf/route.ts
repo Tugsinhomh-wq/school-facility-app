@@ -1,4 +1,6 @@
 import { getMemo } from "@/lib/data/memos";
+import { getMemoPhotos } from "@/lib/data/memo-photos";
+import { loadPhotoFiles } from "@/lib/memo/photo-files";
 import { memoToPdf } from "@/lib/memo/pdf";
 import { buildMemoDoc } from "@/lib/memo/model";
 
@@ -13,7 +15,8 @@ export async function GET(
   if (!memo) return new Response("ไม่พบบันทึกข้อความ", { status: 404 });
 
   const doc = buildMemoDoc(memo, memo.author);
-  const body = await memoToPdf(doc);
+  const photos = await loadPhotoFiles(await getMemoPhotos(memo));
+  const body = await memoToPdf(doc, photos);
   const name = `บันทึกข้อความ-${memo.doc_ref_no}`.replace(
     /[\\/:*?"<>|]+/g,
     "-",

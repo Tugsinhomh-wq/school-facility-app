@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import type { MemoDoc } from "@/lib/memo/model";
+import type { MemoDoc, MemoPhotoGroup } from "@/lib/memo/model";
 import { BUILDING_HEAD, DIRECTOR, SCHOOL_NAME } from "@/lib/memo/model";
 
 /**
@@ -18,7 +18,39 @@ function Field({ label, children, after, big, strong }: { label: string; childre
   );
 }
 
-export function MemoPreview({ doc, fontClass }: { doc: MemoDoc; fontClass: string }) {
+/** The attachment page behind a repair memo: photos in two columns, shrunk to fit a 7.6 x 8.5 cm box, as in the exports. */
+function PhotoPage({ groups, fontClass }: { groups: MemoPhotoGroup[]; fontClass: string }) {
+  const CM = 100 / 21; // one centimetre of the page, in cqw
+  return (
+    <div
+      className={`${fontClass} w-full bg-white text-black shadow-lg ring-1 ring-black/10`}
+      style={{ marginTop: "2cqw", minHeight: "141.4cqw", padding: "4.8cqw 9.5cqw 9.5cqw 14.3cqw", fontSize: "2.06cqw", lineHeight: 1.35 }}
+    >
+      <p className="text-center font-bold" style={{ fontSize: "3.05cqw", marginBottom: "3cqw" }}>
+        เอกสารแนบ: ภาพประกอบการแจ้งซ่อม
+      </p>
+      {groups.map((g, gi) => (
+        <div key={gi} className="grid" style={{ gridTemplateColumns: `${7.6 * CM}cqw ${7.6 * CM}cqw`, columnGap: `${0.8 * CM}cqw`, rowGap: "2cqw", marginBottom: "2cqw" }}>
+          {g.urls.map((url, i) => (
+            <figure key={i}>
+              {url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={url} alt={g.heading || "รูปประกอบการแจ้งซ่อม"} className="block object-contain object-top" style={{ maxWidth: `${7.6 * CM}cqw`, maxHeight: `${8.5 * CM}cqw` }} />
+              ) : (
+                <div className="flex items-center justify-center border border-dashed border-black text-center" style={{ height: `${3 * CM}cqw` }}>
+                  ไม่สามารถโหลดรูปนี้ได้
+                </div>
+              )}
+              {g.heading && <figcaption style={{ marginTop: "0.8cqw" }}>{g.heading}</figcaption>}
+            </figure>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function MemoPreview({ doc, fontClass, photos = [] }: { doc: MemoDoc; fontClass: string; photos?: MemoPhotoGroup[] }) {
   const repair = doc.variant === "repair";
   return (
     <div className="[container-type:inline-size]">
@@ -103,6 +135,7 @@ export function MemoPreview({ doc, fontClass }: { doc: MemoDoc; fontClass: strin
           </>
         )}
       </div>
+      {photos.length > 0 && <PhotoPage groups={photos} fontClass={fontClass} />}
     </div>
   );
 }

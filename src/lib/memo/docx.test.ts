@@ -4,6 +4,8 @@ import JSZip from "jszip";
 
 import { memoToDocx } from "./docx.ts";
 import type { MemoDoc } from "./model.ts";
+import type { MemoPhotoPages } from "./photo-files.ts";
+import { makePng } from "./test-images.ts";
 
 const doc: MemoDoc = {
   variant: "repair",
@@ -58,4 +60,46 @@ test('the reporter signature line reads "ลงชื่อ ... ผู้รา�
   const text = (await xmlOf(doc)).replace(/<[^>]+>/g, "");
   assert.equal(text.includes("(ลงชื่อ)"), false);
   assert.ok(text.includes("ลงชื่อ ...................... ผู้รายงาน"));
+});
+
+const mediaCount = (zip: JSZip) => zip.file(/^word\/media\//).length;
+const text = (xml: string) => xml.replace(/<[^>]+>/g, "");
+const pngs = (n: number, w = 400, h = 300): MemoPhotoPages["groups"][number]["photos"] =>
+  // Different sizes on purpose: docx-js stores byte-identical pictures once.
+  Array.from({ length: n }, (_, i) => ({ data: makePng(w + i, h), width: w + i, height: h, type: "png" as const }));
+
+test("without photos the Word file only has the garuda picture", async () => {
+  const zip = await JSZip.loadAsync(await memoToDocx(doc));
+  assert.equal(mediaCount(zip), 1);
+  assert.equal(text(await zip.file("word/document.xml")!.async("string")).includes("เอกสารแนบ"), false);
+});
+
+test("photos are added as pictures behind the memo with their caption", async () => {
+  const zip = await JSZip.loadAsync(await memoToDocx(doc, { groups: [{ heading: "อาคาร 2 ห้อง 213 – หลอดไฟขาด", photos: pngs(3) }], omitted: 0 }));
+  assert.equal(mediaCount(zip), 4);
+  const xml = await zip.file("word/document.xml")!.async("string");
+  assert.ok(text(xml).includes("เอกสารแนบ: ภาพประกอบการแจ้งซ่อม"));
+  assert.ok(text(xml).includes("อาคาร 2 ห้อง 213 – หลอดไฟขาด"));
+  assert.ok(xml.includes("<w:cantSplit"), "rows must not split across pages");
+});
+
+test("a photo that failed to load becomes a note, not a picture", async () => {
+  const zip = await JSZip.loadAsync(await memoToDocx(doc, { groups: [{ heading: "", photos: [{ failed: true }, ...pngs(1)] }], omitted: 0 }));
+  assert.equal(mediaCount(zip), 2);
+  assert.ok(text(await zip.file("word/document.xml")!.async("string")).includes("ไม่สามารถโหลดรูปนี้ได้"));
+});
+
+test("photos left out past the limit are announced", async () => {
+  const zip = await JSZip.loadAsync(await memoToDocx(doc, { groups: [{ heading: "", photos: pngs(1) }], omitted: 5 }));
+  assert.ok(text(await zip.file("word/document.xml")!.async("string")).includes("แสดงรูปไม่ครบ ข้ามอีก 5 รูป"));
+});
+
+test("a very long and a very wide photo stay inside the 7.6 x 8.5 cm box", async () => {
+  const zip = await JSZip.loadAsync(await memoToDocx(doc, { groups: [{ heading: "", photos: [{ data: makePng(20, 2000), width: 20, height: 2000, type: "png" }, { data: makePng(2000, 20), width: 2000, height: 20, type: "png" }] }], omitted: 0 }));
+  const xml = await zip.file("word/document.xml")!.async("string");
+  const extents = [...xml.matchAll(/<wp:extent cx="(\d+)" cy="(\d+)"/g)].map((m) => [Number(m[1]), Number(m[2])]).slice(1); // skip the garuda
+  assert.equal(extents.length, 2);
+  for (const [cx, cy] of extents) {
+    assert.ok(cx <= 7.6 * 360000 + 1000 && cy <= 8.5 * 360000 + 1000, `extent ${cx} x ${cy} EMU`);
+  }
 });

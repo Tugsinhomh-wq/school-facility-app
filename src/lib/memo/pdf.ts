@@ -4,6 +4,7 @@ import path from "node:path";
 import PDFDocument from "pdfkit";
 
 import { BUILDING_HEAD, DIRECTOR, SCHOOL_NAME, type MemoDoc } from "./model.ts";
+import { fitWithin, PHOTO_BOX_CM, type MemoPhotoPages } from "./photo-files.ts";
 import { thaiWords } from "./thai-text.ts";
 
 const FONT_DIR = path.join(process.cwd(), "src/lib/memo/fonts");
@@ -14,7 +15,7 @@ const M = { top: cm(2.5), bottom: cm(2), left: cm(3), right: cm(2) };
 const SIZE = 14;
 const LINE = SIZE * 1.35; // single spacing, as in a typed official letter
 
-export function memoToPdf(doc: MemoDoc): Promise<Buffer> {
+export function memoToPdf(doc: MemoDoc, photos?: MemoPhotoPages): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const pdf = new PDFDocument({ size: "A4", margins: { top: M.top, bottom: M.bottom, left: M.left, right: M.right }, font: path.join(FONT_DIR, "Sarabun-Regular.ttf"), info: { Title: doc.subject, Author: SCHOOL_NAME } });
     const chunks: Buffer[] = [];
@@ -205,6 +206,47 @@ export function memoToPdf(doc: MemoDoc): Promise<Buffer> {
       y += LINE + 16;
       signature("................................................", `ผู้อำนวยการ${SCHOOL_NAME}`);
     }
+
+    /** Attachment pages: the repair photos in two columns, each shrunk to fit its box, captioned below. */
+    const photoPages = ({ groups, omitted }: MemoPhotoPages) => {
+      pdf.addPage();
+      y = M.top;
+      pdf.font(bold).fontSize(16).text("เอกสารแนบ: ภาพประกอบการแจ้งซ่อม", M.left, y, { width: contentWidth, align: "center", lineBreak: false });
+      y += 16 * 1.6 + 8;
+      const boxW = cm(PHOTO_BOX_CM.width);
+      const boxH = cm(PHOTO_BOX_CM.height);
+      const gap = contentWidth - 2 * boxW;
+      const CAP = 12;
+      const CAP_LINE = CAP * 1.35;
+      const FAILED_H = cm(3);
+      for (const group of groups) {
+        pdf.font(regular).fontSize(CAP);
+        const caption = group.heading ? wrap(group.heading, boxW) : [];
+        for (let i = 0; i < group.photos.length; i += 2) {
+          const cells = group.photos.slice(i, i + 2).map((p) => {
+            if ("failed" in p) return { p, w: boxW, h: FAILED_H };
+            const fit = fitWithin(p.width, p.height, boxW, boxH);
+            return { p, w: fit.width, h: fit.height };
+          });
+          const rowH = Math.max(...cells.map((c) => c.h)) + (caption.length ? 4 + caption.length * CAP_LINE : 0) + 12;
+          ensure(rowH);
+          cells.forEach((c, k) => {
+            const x = M.left + k * (boxW + gap);
+            if ("failed" in c.p) {
+              pdf.save().dash(3, { space: 3 }).lineWidth(0.8).rect(x, y, boxW, c.h).stroke("#000000").undash().restore();
+              pdf.font(regular).fontSize(CAP).text("ไม่สามารถโหลดรูปนี้ได้", x, y + c.h / 2 - CAP * 0.7, { width: boxW, align: "center", lineBreak: false });
+            } else {
+              pdf.image(c.p.data, x + (boxW - c.w) / 2, y, { width: c.w, height: c.h });
+            }
+            pdf.font(regular).fontSize(CAP);
+            caption.forEach((line, n) => pdf.text(line, x, y + c.h + 4 + n * CAP_LINE, { width: boxW, lineBreak: false }));
+          });
+          y += rowH;
+        }
+      }
+      if (omitted > 0) paragraph(`แสดงรูปไม่ครบ ข้ามอีก ${omitted} รูป`, { after: 0 });
+    };
+    if (photos && photos.groups.length > 0) photoPages(photos);
 
     pdf.end();
   });

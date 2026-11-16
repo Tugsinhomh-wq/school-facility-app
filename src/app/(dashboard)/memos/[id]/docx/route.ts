@@ -1,4 +1,6 @@
 import { getMemo } from "@/lib/data/memos";
+import { getMemoPhotos } from "@/lib/data/memo-photos";
+import { loadPhotoFiles } from "@/lib/memo/photo-files";
 import { memoToDocx } from "@/lib/memo/docx";
 import { memoToDocxPython } from "@/lib/memo/docx-python";
 import { buildMemoDoc } from "@/lib/memo/model";
@@ -14,20 +16,21 @@ export async function GET(
   if (!memo) return new Response("ไม่พบบันทึกข้อความ", { status: 404 });
 
   const doc = buildMemoDoc(memo, memo.author);
+  const photos = await loadPhotoFiles(await getMemoPhotos(memo));
 
   // Preferred: python-docx (thai-docx skill, Sarabun embedded). Fallback: the Node builder with
   // ICU word breaks, for hosts without Python.
   let engine = "python-docx";
   let body: Buffer;
   try {
-    body = await memoToDocxPython(doc);
+    body = await memoToDocxPython(doc, photos);
   } catch (error) {
     console.warn(
       "Word export fell back to docx-js:",
       error instanceof Error ? error.message : error,
     );
     engine = "docx-js";
-    body = await memoToDocx(doc);
+    body = await memoToDocx(doc, photos);
   }
 
   const name = `บันทึกข้อความ-${memo.doc_ref_no}`.replace(

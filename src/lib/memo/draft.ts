@@ -31,8 +31,11 @@ export function draftFromTicket(t: TicketRow, author?: { full_name: string; posi
 }
 
 /** Where a ticket is: building, then room or spot; "บริเวณโรงเรียน" when nothing is known. */
-const placeOfTicket = (t: TicketRow) =>
-  [t.building?.name, t.room?.name ?? t.location_detail].filter(Boolean).join(" ") || "บริเวณโรงเรียน";
+export const placeOfTicket = (t: {
+  building?: { name: string } | null;
+  room?: { name: string } | null;
+  location_detail?: string | null;
+}) => [t.building?.name, t.room?.name ?? t.location_detail].filter(Boolean).join(" ") || "บริเวณโรงเรียน";
 
 /**
  * First draft of one repair memo that covers several tickets of the same building, to ask the director
