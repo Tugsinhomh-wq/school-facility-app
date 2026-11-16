@@ -31,6 +31,15 @@ export interface MemoDoc {
   decisionBlock: boolean;
 }
 
+/**
+ * Photos attached behind a repair memo: one group per repair ticket. `urls` are signed links; an empty
+ * string is a photo whose link could not be made. `heading` is the caption, empty when there is none.
+ */
+export interface MemoPhotoGroup {
+  heading: string;
+  urls: string[];
+}
+
 /** The system's temporary number (MEMO-…) is not the official one; the real number comes from the general administration office. */
 const isTemporaryRef = (ref: string) => !ref.trim() || /^MEMO-/i.test(ref.trim());
 
