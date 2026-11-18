@@ -5,16 +5,20 @@ import { notFound } from "next/navigation";
 import { createMemoFromTicket } from "@/app/(dashboard)/memos/actions";
 import { OverdueNote, placeOf } from "@/components/tickets/ticket-table";
 import { TicketManageForm } from "@/components/tickets/ticket-manage-form";
+import { MarkRead } from "@/components/tickets/comment-form";
+import { TicketComments } from "@/components/tickets/ticket-comments";
 import { TicketTimeline } from "@/components/tickets/ticket-timeline";
 import { StatusPill, UrgencyMark } from "@/components/tickets/status-mark";
 import { Button } from "@/components/ui/button";
 import { MergePanel } from "@/components/tickets/merge-panel";
 import { TrashButton } from "@/components/tickets/trash-button";
+import { getTicketComments } from "@/lib/data/ticket-comments";
 import { getDuplicateContext, getTicketDetail } from "@/lib/data/tickets";
 import { repairDuration } from "@/lib/ticket-events";
 import { formatBaht, formatDateTh } from "@/lib/ticket-meta";
 
-import { guardExecutive, isStaffRole } from "@/lib/data/session";
+import { getSession, guardExecutive, isStaffRole } from "@/lib/data/session";
+import { canComment } from "@/lib/ticket-comments";
 
 export const dynamic = "force-dynamic";
 
@@ -38,22 +42,25 @@ export default async function TicketDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await guardExecutive();
+  await guardExecutive("budget_deputy");
   const { id } = await params;
   const { ticket, viewer, imageUrls, afterImageUrls, viewerId, events, staffOptions, assigneeName } =
     await getTicketDetail(id);
   if (!ticket) notFound();
   const isStaff = isStaffRole(viewer?.role);
+  const isDeputy = viewer?.role === "budget_deputy";
   const dupCtx = isStaff ? await getDuplicateContext(ticket) : null;
+  const session = canComment(viewer?.role) ? await getSession() : null;
+  const comments = session ? await getTicketComments(session.supabase, ticket.id) : null;
 
   return (
     <>
       <Link
-        href="/tickets"
+        href={isDeputy ? "/backlog" : "/tickets"}
         className="mb-3 inline-flex min-h-11 items-center gap-1.5 text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         <ArrowLeft className="size-4" aria-hidden />
-        รายการแจ้งซ่อม
+        {isDeputy ? "งานซ่อมค้าง" : "รายการแจ้งซ่อม"}
       </Link>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
@@ -79,7 +86,7 @@ export default async function TicketDetailPage({
           <dl className="mt-6 grid grid-cols-2 gap-5 border-t border-border pt-6">
             <Field label="สถานที่">{placeOf(ticket)}</Field>
             <Field label="แจ้งเมื่อ">{formatDateTh(ticket.created_at)}</Field>
-            {isStaff && (
+            {(isStaff || isDeputy) && (
               <Field label="ผู้แจ้ง">{ticket.reporter?.full_name ?? "-"}</Field>
             )}
             {isStaff && (
@@ -169,6 +176,12 @@ export default async function TicketDetailPage({
             </Field>
           </dl>
           <TicketTimeline createdAt={ticket.created_at} events={events} />
+          {comments && (
+            <>
+              <MarkRead ticketId={ticket.id} />
+              <TicketComments ticketId={ticket.id} comments={comments} />
+            </>
+          )}
         </article>
 
         {isStaff && (
