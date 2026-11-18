@@ -15,6 +15,7 @@ import {
   parseReviewForm,
   parseScoreForm,
 } from "@/lib/control/parse";
+import { isExecutive } from "@/lib/exec-roles";
 import { getSession, hasSupabase } from "@/lib/data/session";
 import type { UserRole } from "@/types/database";
 
@@ -53,7 +54,7 @@ async function userCtx(): Promise<Ctx | ControlResult> {
   if (!hasSupabase()) return DEMO;
   const s = await getSession();
   if (!s) return refuse("เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่");
-  if (s.viewer.role === "executive") return refuse("ผู้บริหารดูข้อมูลได้อย่างเดียว");
+  if (isExecutive(s.viewer.role)) return refuse("ผู้บริหารดูข้อมูลได้อย่างเดียว");
   return { db: s.supabase, userId: s.userId, role: s.viewer.role };
 }
 const isCtx = (v: Ctx | ControlResult): v is Ctx => v !== null && "db" in v;

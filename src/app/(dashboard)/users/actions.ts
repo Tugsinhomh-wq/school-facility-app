@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { parseUuidList, planAdvisorSave } from "@/lib/advisors";
 import { latestTermRooms, setUserRooms } from "@/lib/data/advisors";
 import { getSession } from "@/lib/data/session";
+import { isExecutive } from "@/lib/exec-roles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { UserRole } from "@/types/database";
 
@@ -17,6 +18,7 @@ const ROLES: UserRole[] = [
   "room_staff",
   "cleaning_staff",
   "executive",
+  "budget_deputy",
   "super_admin",
 ];
 const UUID = /^[0-9a-f-]{36}$/i;
@@ -95,7 +97,7 @@ export async function saveAdvisorRooms(
           ? "รายการห้องมีการเปลี่ยนแปลง โหลดหน้าใหม่แล้วลองอีกครั้ง"
           : "ข้อมูลไม่ถูกต้อง",
     };
-  if (rooms.length > 0 && target.role === "executive")
+  if (rooms.length > 0 && isExecutive(target.role))
     return { ok: false, message: "ผู้บริหารเป็นครูที่ปรึกษาไม่ได้ (ถอดห้องออกได้อย่างเดียว)" };
   if (rooms.length > 0 && !target.is_active)
     return { ok: false, message: "บัญชีนี้ปิดใช้งานอยู่ เพิ่มห้องไม่ได้ (ถอดห้องออกได้อย่างเดียว)" };

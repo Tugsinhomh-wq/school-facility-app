@@ -19,6 +19,7 @@ import {
 import { UserEditForm } from "@/components/users/user-edit-form";
 import { Button } from "@/components/ui/button";
 import type { LevelGroup } from "@/lib/advisors";
+import { isExecutive } from "@/lib/exec-roles";
 import { ROLE_LABEL } from "@/lib/ticket-meta";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@/types/database";
@@ -40,6 +41,7 @@ const ROLE_ICON: Record<UserRole, LucideIcon> = {
   room_staff: Wrench,
   cleaning_staff: Wrench,
   executive: Eye,
+  budget_deputy: Eye,
   user: UserRound,
 };
 
@@ -62,7 +64,7 @@ export function UserRow({
 }) {
   // Executives and closed accounts cannot gain rooms; the form stays only to remove leftovers.
   const blocked =
-    user.role === "executive"
+    isExecutive(user.role)
       ? "ผู้บริหารเป็นครูที่ปรึกษาไม่ได้"
       : !user.is_active
         ? "บัญชีนี้ปิดใช้งานอยู่"

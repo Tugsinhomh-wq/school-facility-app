@@ -16,6 +16,7 @@ const ROLE_ORDER: UserRole[] = [
   "room_staff",
   "cleaning_staff",
   "executive",
+  "budget_deputy",
   "super_admin",
 ];
 

@@ -45,3 +45,18 @@ test("the cleaning-zone officer gets the cleaning module, but no memos and no ad
   for (const href of ["/cleaning", "/census", "/control"]) assert.ok(links.includes(href), href);
   for (const href of ["/memos", "/users", "/summary", "/trash"]) assert.ok(!links.includes(href), href);
 });
+
+test("the budget deputy sees the summary and the open-repairs page, nobody else sees /backlog", () => {
+  assert.deepEqual(hrefs("budget_deputy"), ["/summary", "/backlog"]);
+  assert.deepEqual(hrefs("executive"), ["/summary"]);
+  for (const role of ["user", "staff", "head", "room_staff", "cleaning_staff", "super_admin", null] as const)
+    assert.ok(!hrefs(role).includes("/backlog"), String(role));
+});
+
+test("the backlog entry carries a count only when there is something unread", () => {
+  const backlog = (badges?: { backlog?: number }) =>
+    navGroups("budget_deputy", badges).flatMap((g) => g.items).find((i) => i.id === "backlog");
+  assert.equal(backlog({ backlog: 3 })?.badge, 3);
+  assert.equal(backlog({ backlog: 0 })?.badge, undefined);
+  assert.equal(backlog()?.badge, undefined);
+});

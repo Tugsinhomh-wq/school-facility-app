@@ -53,7 +53,7 @@ export async function getCleaningSetup(): Promise<CleaningSetup | { failed: true
         .select("day, reason")
         .gte("day", addDays(bangkokYmd(new Date()), -14))
         .order("day"),
-      s.supabase.from("profiles").select("full_name, email").eq("is_active", true).neq("role", "executive").order("full_name").limit(500),
+      s.supabase.from("profiles").select("full_name, email").eq("is_active", true).not("role", "in", "(executive,budget_deputy)").order("full_name").limit(500),
     ]);
     if (rooms.error || buildings.error || offDays.error || people.error) return { failed: true };
     const list = (

@@ -7,6 +7,10 @@ test("executives see no modules", () => {
   assert.deepEqual(visibleModules("executive"), []);
 });
 
+test("the budget deputy sees no modules", () => {
+  assert.deepEqual(visibleModules("budget_deputy"), []);
+});
+
 test("teachers see all five, every one built: census opens /census, control opens /control", () => {
   const mods = visibleModules("user");
   assert.deepEqual(

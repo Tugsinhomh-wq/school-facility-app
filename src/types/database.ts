@@ -7,6 +7,7 @@ export type UserRole =
   | "room_staff"
   | "cleaning_staff"
   | "executive"
+  | "budget_deputy"
   | "user";
 export type TicketStatus = "pending" | "in_progress" | "completed" | "cancelled";
 export type UrgencyLevel = "low" | "medium" | "high" | "emergency";

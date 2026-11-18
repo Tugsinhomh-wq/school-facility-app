@@ -7,6 +7,7 @@ import { AppSidebar } from "@/components/layout/app-sidebar";
 import { LastPageTracker } from "@/components/layout/last-page-tracker";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { QuickReportFab } from "@/components/layout/quick-report-fab";
+import { isExecutive } from "@/lib/exec-roles";
 import { getSession, isStaffRole } from "@/lib/data/session";
 import { needsConsent } from "@/lib/policy";
 
@@ -41,7 +42,7 @@ export default async function DashboardLayout({
           {children}
         </div>
       </div>
-      {viewer && viewer.role !== "executive" && <QuickReportFab staff={isStaffRole(viewer.role)} />}
+      {viewer && !isExecutive(viewer.role) && <QuickReportFab staff={isStaffRole(viewer.role)} />}
       <MobileNav role={viewer?.role ?? null} signedIn={viewer !== null} />
     </div>
   );

@@ -1,5 +1,6 @@
 import {
   ChartColumn,
+  ClipboardList,
   DoorOpen,
   Ellipsis,
   FileText,
@@ -24,6 +25,7 @@ export const NAV_ICONS: Record<string, LucideIcon> = {
   control: ShieldCheck,
   memos: FileText,
   summary: ChartColumn,
+  backlog: ClipboardList,
   feedback: Inbox,
   users: Users,
   trash: Trash2,
