@@ -12,3 +12,4 @@ When a PR adds a table or function under `supabase/*.sql` and app code (or `BACK
 - Never claim the SQL works from reading it alone. Say it was reviewed against `supabase/schema.sql` and the RLS files, and has not run against a real database.
 - Keep the file idempotent where possible (`create table if not exists`, `create or replace function`).
 - Each new table in `BACKUP_TABLES` needs an ORDER_BY entry, and restore must handle it with `on conflict do nothing`.
+- Also record the new table in the backup description in `docs/backup.md`: name the SQL file that creates it, state that it must run before the code that reads it deploys (or right after), and say what happens to the next backup if it has not run. A read-only marker table (for example a per-user last-read timestamp) is left out of the backup, and the doc says so.
