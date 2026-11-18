@@ -9,6 +9,7 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 import { QuickReportFab } from "@/components/layout/quick-report-fab";
 import { isExecutive } from "@/lib/exec-roles";
 import { getSession, isStaffRole } from "@/lib/data/session";
+import { getUnreadTicketIds } from "@/lib/data/ticket-comments";
 import { needsConsent } from "@/lib/policy";
 
 /**
@@ -26,9 +27,11 @@ export default async function DashboardLayout({
   if (session && session.consentVersion !== undefined && needsConsent(session.consentVersion, session.metaConsentVersion))
     redirect("/consent");
   const viewer = session?.viewer ?? null;
+  // The deputy's menu counts the tickets with a comment not read yet.
+  const badges = session && viewer?.role === "budget_deputy" ? { backlog: (await getUnreadTicketIds(session.supabase)).size } : undefined;
   return (
     <div className="min-h-screen md:flex">
-      <AppSidebar viewer={viewer} />
+      <AppSidebar viewer={viewer} badges={badges} />
       <div className="min-w-0 flex-1 px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-28 sm:px-6 md:px-10 md:pt-10 md:pb-10 print:p-0">
         <LastPageTracker />
         <div className="page-wrap mx-auto max-w-6xl">
@@ -43,7 +46,7 @@ export default async function DashboardLayout({
         </div>
       </div>
       {viewer && !isExecutive(viewer.role) && <QuickReportFab staff={isStaffRole(viewer.role)} />}
-      <MobileNav role={viewer?.role ?? null} signedIn={viewer !== null} />
+      <MobileNav role={viewer?.role ?? null} signedIn={viewer !== null} badges={badges} />
     </div>
   );
 }
