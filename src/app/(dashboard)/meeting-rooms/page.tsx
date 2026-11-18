@@ -11,9 +11,10 @@ export const metadata = {
 };
 
 /**
- * Two views of one page. The administrator gets the week sheet (the whole week of a room on one printed sheet, the
- * approval queue beside it). Everyone else, approvers included, gets the day desk: one day of one room as a lane,
- * the booking form beside it and, for approvers, the queue. Executives never get here (guardExecutive).
+ * Two views of one page. The administrator and the meeting-room officer get the week sheet (the whole week of a room
+ * on one printed sheet, the approval queue beside it). Everyone else, other approvers included, gets the day desk: one
+ * day of one room as a lane, the booking form beside it and, for approvers, the queue. Executives never get here
+ * (guardExecutive).
  */
 export default async function MeetingRoomsPage({
   searchParams,
@@ -56,7 +57,7 @@ export default async function MeetingRoomsPage({
     error: sp.error,
   };
   // Keyed by room and week so that moving to another one starts from clean local state.
-  return role === "super_admin" ? (
+  return role === "super_admin" || role === "room_staff" ? (
     <RoomWeekSheet key={`${roomId}-${weekStart}`} {...common} />
   ) : (
     <RoomDesk key={`${roomId}-${weekStart}`} {...common} isManager={isManager} canManage={isManager} />
