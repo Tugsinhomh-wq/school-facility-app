@@ -7,8 +7,10 @@ import { useState } from "react";
 
 import { signOut } from "@/app/auth/actions";
 import { NAV_ICONS } from "@/components/layout/module-icons";
+import { NavBadge } from "@/components/layout/nav-badge";
 import { isActivePath } from "@/components/layout/site-nav";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { isExecutive } from "@/lib/exec-roles";
 import { navGroups, type NavEntry } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@/types/database";
@@ -23,12 +25,12 @@ const TAB = "flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs 
  * Bottom tab bar for phones: หน้าแรก, แจ้งซ่อม, จองห้อง and เพิ่มเติม, which opens a sheet with the
  * rest of the menu, the account and sign-out. Executives get two tabs (summary, account).
  */
-export function MobileNav({ role, signedIn }: { role: UserRole | null; signedIn: boolean }) {
+export function MobileNav({ role, signedIn, badges }: { role: UserRole | null; signedIn: boolean; badges?: { backlog?: number } }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const groups = navGroups(role);
+  const groups = navGroups(role, badges);
   const entries = groups.flatMap((g) => g.items);
-  const executive = role === "executive";
+  const executive = isExecutive(role);
   const tabs = executive ? [...entries, ACCOUNT] : entries.filter((e) => TAB_IDS.includes(e.id));
   const sheetGroups = executive
     ? []
@@ -44,10 +46,10 @@ export function MobileNav({ role, signedIn }: { role: UserRole | null; signedIn:
       aria-label="เมนูหลัก"
       className={cn(
         "fixed inset-x-0 bottom-0 z-40 grid border-t border-border bg-background pb-[env(safe-area-inset-bottom)] md:hidden print:hidden",
-        executive ? "grid-cols-2" : "grid-cols-4",
+        executive ? (tabs.length === 3 ? "grid-cols-3" : "grid-cols-2") : "grid-cols-4",
       )}
     >
-      {tabs.map(({ id, label, href }) => {
+      {tabs.map(({ id, label, href, badge }) => {
         const Icon = NAV_ICONS[id];
         const active = href !== null && isActivePath(pathname, href);
         return (
@@ -57,7 +59,10 @@ export function MobileNav({ role, signedIn }: { role: UserRole | null; signedIn:
             aria-current={active ? "page" : undefined}
             className={cn(TAB, active ? "text-primary" : "text-muted-foreground")}
           >
-            <Icon className="size-6" aria-hidden />
+            <span className="relative">
+              <Icon className="size-6" aria-hidden />
+              {badge ? <NavBadge n={badge} className="absolute -top-1.5 -right-3" /> : null}
+            </span>
             {label}
           </Link>
         );

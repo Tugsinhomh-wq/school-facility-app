@@ -12,6 +12,7 @@ const ROLE_MAP: Record<UserRole, true> = {
   room_staff: true,
   cleaning_staff: true,
   executive: true,
+  budget_deputy: true,
   user: true,
 };
 const ALL_ROLES = Object.keys(ROLE_MAP) as UserRole[];

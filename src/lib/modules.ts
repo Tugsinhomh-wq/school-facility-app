@@ -1,3 +1,4 @@
+import { isExecutive } from "./exec-roles.ts";
 import type { UserRole } from "../types/database.ts";
 
 /** One work module of the general-administration group. The sidebar, phone bar and home page all list these. */
@@ -57,6 +58,6 @@ export const MODULES: AppModule[] = [
  * because they only use the summary page and their account.
  */
 export function visibleModules(role: UserRole | null): AppModule[] {
-  if (role === "executive") return [];
+  if (isExecutive(role)) return [];
   return MODULES.filter((m) => m.roles === "all" || (role !== null && m.roles.includes(role)));
 }

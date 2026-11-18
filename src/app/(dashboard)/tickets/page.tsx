@@ -11,7 +11,8 @@ import { getTicketList, PAGE_SIZE, parseFilters } from "@/lib/data/tickets";
 import { bangkokYmd, formatDayLong } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
-import { guardExecutive, isStaffRole } from "@/lib/data/session";
+import { getSession, guardExecutive, isStaffRole } from "@/lib/data/session";
+import { getUnreadTicketIds } from "@/lib/data/ticket-comments";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -37,6 +38,8 @@ export default async function TicketsPage({
   const list = await getTicketList(filters);
   const isStaff = isStaffRole(list.viewer?.role);
   const isAdmin = list.viewer?.role === "super_admin";
+  const session = isStaff ? await getSession() : null;
+  const unreadIds = session ? await getUnreadTicketIds(session.supabase) : undefined;
   const canReport = list.viewer !== null;
   const pages = Math.max(1, Math.ceil(list.total / PAGE_SIZE));
   const hasFilters = Boolean(filters.status || filters.urgency || filters.building || filters.q);
@@ -173,6 +176,7 @@ export default async function TicketsPage({
               tickets={list.tickets}
               showReporter
               assigneeNames={list.assigneeNames}
+              unreadIds={unreadIds}
               hasFilters={hasFilters}
             />
             {pager}

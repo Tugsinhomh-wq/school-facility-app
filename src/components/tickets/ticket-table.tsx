@@ -56,6 +56,11 @@ export function DuplicateNote({ t }: { t: TicketRow }) {
   return null;
 }
 
+/** A comment from someone else on this ticket that the viewer has not read yet. */
+export function NewCommentMark() {
+  return <span className="rounded-full bg-red-700 px-2 py-0.5 text-xs font-semibold text-white">ความเห็นใหม่</span>;
+}
+
 /** "ค้างเกินกำหนด 3 วัน" on an open ticket that has waited longer than its urgency allows. */
 export function OverdueNote({ t }: { t: TicketRow }) {
   const days = t.duplicate_of_number ? null : overdueDays(t);
@@ -85,6 +90,7 @@ export function TicketTable({
   hasFilters,
   selectable = false,
   assigneeNames = {},
+  unreadIds,
 }: {
   tickets: TicketRow[];
   showReporter: boolean;
@@ -93,6 +99,8 @@ export function TicketTable({
   selectable?: boolean;
   /** Staff only: who is handling each ticket, by profile id. */
   assigneeNames?: Record<string, string>;
+  /** Staff only: tickets with a comment the viewer has not read yet. */
+  unreadIds?: ReadonlySet<string>;
 }) {
   const handler = (t: TicketRow) => (t.assignee_id ? (assigneeNames[t.assignee_id] ?? "-") : null);
   if (tickets.length === 0) {
@@ -135,6 +143,7 @@ export function TicketTable({
                   <QueueUrgency t={t} />
                   <OverdueNote t={t} />
                   <DuplicateNote t={t} />
+                  {unreadIds?.has(t.id) && <NewCommentMark />}
                   <span>{t.ticket_number}</span>
                   {t.image_urls?.length > 0 && (
                     <span className="inline-flex items-center gap-1">
@@ -207,6 +216,7 @@ export function TicketTable({
                     {t.ticket_number}
                     <OverdueNote t={t} />
                     <DuplicateNote t={t} />
+                    {unreadIds?.has(t.id) && <NewCommentMark />}
                     {t.image_urls?.length > 0 && (
                       <span
                         className="inline-flex items-center gap-1"

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { cache } from "react";
 
 import type { Viewer } from "@/lib/data/dashboard";
+import { isExecutive } from "@/lib/exec-roles";
 import { getAuth } from "@/lib/supabase/auth";
 import type { UserRole } from "@/types/database";
 
@@ -19,9 +20,12 @@ export const isFacilityOfficer = (role?: UserRole | null) => isStaffRole(role);
 export const isRoomManager = (role?: UserRole | null) =>
   isStaffRole(role) || role === "room_staff";
 
-/** The executive summary page: executives and the system administrator only. */
+/** The executive summary page: executives, the budget deputy and the system administrator only. */
 export const canSeeSummary = (role?: UserRole | null) =>
-  role === "executive" || role === "super_admin";
+  isExecutive(role) || role === "super_admin";
+/** The open-repairs page: the budget deputy (the administrator may open it too, to check what the deputy sees). */
+export const canSeeBacklog = (role?: UserRole | null) =>
+  role === "budget_deputy" || role === "super_admin";
 
 /**
  * The signed-in user with a server client, or null (demo mode or signed out). Cached for the
@@ -57,8 +61,8 @@ export const getSession = cache(async () => {
   return { supabase, viewer, userId: auth.user.id, consentVersion, metaConsentVersion: auth.user.consentVersion };
 });
 
-/** Executives see the summary page only: any other page sends them there. */
-export async function guardExecutive() {
-  const session = await getSession();
-  if (session?.viewer.role === "executive") redirect("/summary");
+/** Executives see the summary page only: any other page sends them there. `allow` lets one executive role through (the deputy on a ticket page). */
+export async function guardExecutive(allow?: UserRole) {
+  const role = (await getSession())?.viewer.role;
+  if (isExecutive(role) && role !== allow) redirect("/summary");
 }

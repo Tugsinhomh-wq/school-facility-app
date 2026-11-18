@@ -8,6 +8,8 @@ import { HEADERS, parseClassroomRows, type ImportError } from "@/lib/cleaning-im
 import { readSheet } from "@/lib/cleaning-sheet";
 import { getSession, hasSupabase } from "@/lib/data/session";
 import { isCleaningManager } from "@/lib/cleaning-access";
+import { isExecutive } from "@/lib/exec-roles";
+import type { UserRole } from "@/types/database";
 import { addDays, bangkokYmd, isYmd } from "@/lib/time";
 
 export type SetupResult = { ok: boolean; message: string; errors?: ImportError[] } | null;
@@ -58,7 +60,7 @@ async function resolveEmails(db: Db, emails: string[]) {
     const p = byEmail.get(e);
     if (!p) return `ไม่พบบัญชีของ ${e} (ครูต้องเข้าสู่ระบบด้วยอีเมลนี้อย่างน้อยหนึ่งครั้งก่อน)`;
     if (!p.is_active) return `บัญชีของ ${e} ถูกปิดใช้งาน`;
-    if (p.role === "executive") return `${e} เป็นผู้บริหาร เป็นครูที่ปรึกษาไม่ได้`;
+    if (isExecutive(p.role as UserRole)) return `${e} เป็นผู้บริหาร เป็นครูที่ปรึกษาไม่ได้`;
     return null;
   };
   return { idOf: (e: string) => byEmail.get(e)!.id, problem };

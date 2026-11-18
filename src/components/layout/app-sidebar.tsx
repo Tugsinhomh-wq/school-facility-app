@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { signOut } from "@/app/auth/actions";
 import { NAV_ICONS } from "@/components/layout/module-icons";
+import { NavBadge } from "@/components/layout/nav-badge";
 import { NavLink } from "@/components/layout/site-nav";
 import type { Viewer } from "@/lib/data/dashboard";
 import { navGroups } from "@/lib/nav";
@@ -13,7 +14,7 @@ const BRAND = "สำนักงานออนไลน์";
 const SCHOOL = "โรงเรียนละหานทรายรัชดาภิเษก";
 
 /** Desktop navigation (md and up): brand, the grouped menu from `navGroups`, then the signed-in user. */
-export function AppSidebar({ viewer }: { viewer: Viewer | null }) {
+export function AppSidebar({ viewer, badges }: { viewer: Viewer | null; badges?: { backlog?: number } }) {
   const AccountIcon = NAV_ICONS.account;
   return (
     <aside className="sticky top-0 hidden h-screen w-58 shrink-0 flex-col gap-4 overflow-y-auto border-r border-sidebar-border bg-sidebar px-3 py-5 md:flex print:hidden">
@@ -29,18 +30,19 @@ export function AppSidebar({ viewer }: { viewer: Viewer | null }) {
       </Link>
 
       <nav aria-label="เมนูหลัก" className="flex-1">
-        {navGroups(viewer?.role ?? null).map((group, i) => (
+        {navGroups(viewer?.role ?? null, badges).map((group, i) => (
           <div key={group.heading ?? i} className={group.heading ? "mt-4" : undefined}>
             {group.heading && <p className="mb-1 px-3 text-xs font-medium text-muted-foreground">{group.heading}</p>}
             <ul className="space-y-0.5">
-              {group.items.map(({ id, label, href, soon }) => {
+              {group.items.map(({ id, label, href, soon, badge }) => {
                 const Icon = NAV_ICONS[id];
                 return (
                   <li key={id}>
                     {href ? (
                       <NavLink href={href}>
                         <Icon className="size-[18px] shrink-0" aria-hidden />
-                        {label}
+                        <span className="min-w-0 flex-1">{label}</span>
+                        {badge ? <NavBadge n={badge} /> : null}
                       </NavLink>
                     ) : (
                       <span aria-disabled="true" className="flex min-h-11 items-center gap-3 px-3 text-sm text-muted-foreground">

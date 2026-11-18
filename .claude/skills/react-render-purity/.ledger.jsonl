@@ -1,0 +1,1 @@
+{"action": "create", "reason": "The react-hooks/purity lint rule blocked Date.now() inside JSX during a page render. The fix (clock read in the body, passed as an argument) is a repeatable React/Next.js pattern in this repo, and no existing skill covers render purity.", "evidence": "references/evidence-d9871cc369bee0ef03aef7bc52bbc0b737734503a24c9fc21f3e748be7f91c15.md"}

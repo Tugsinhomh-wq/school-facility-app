@@ -1,19 +1,23 @@
+import { isExecutive } from "./exec-roles.ts";
 import { visibleModules } from "./modules.ts";
 import type { UserRole } from "../types/database.ts";
 
 /** One menu entry. `id` picks the icon; a null `href` is a module not built yet (shown disabled). */
-export type NavEntry = { id: string; label: string; href: string | null; soon?: boolean };
+export type NavEntry = { id: string; label: string; href: string | null; soon?: boolean; badge?: number };
 export type NavGroup = { heading: string | null; items: NavEntry[] };
 
 const HOME: NavEntry = { id: "home", label: "หน้าแรก", href: "/" };
 const SUMMARY: NavEntry = { id: "summary", label: "สรุปภาพรวม", href: "/summary" };
+const BACKLOG: NavEntry = { id: "backlog", label: "งานซ่อมค้าง", href: "/backlog" };
 
 /**
  * The menu for a role, shared by the desktop sidebar and the phone bar. Executives get only the
- * summary; "จัดการ" holds the staff and administrator pages (memos for every role but teachers).
+ * summary (the budget deputy also gets the open repairs, with a count of unread comments); "จัดการ" holds the staff and administrator pages (memos for every role but teachers).
  */
-export function navGroups(role: UserRole | null): NavGroup[] {
-  if (role === "executive") return [{ heading: null, items: [SUMMARY] }];
+export function navGroups(role: UserRole | null, badges: { backlog?: number } = {}): NavGroup[] {
+  if (role === "budget_deputy")
+    return [{ heading: null, items: [SUMMARY, badges.backlog ? { ...BACKLOG, badge: badges.backlog } : BACKLOG] }];
+  if (isExecutive(role)) return [{ heading: null, items: [SUMMARY] }];
   const byGroup = (g: "facility" | "other") =>
     visibleModules(role)
       .filter((m) => m.group === g)

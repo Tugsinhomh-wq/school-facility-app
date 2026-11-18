@@ -1,4 +1,4 @@
-import { AlertCircle, CalendarClock, Check, ChevronRight, Clock, DoorOpen, Sparkles, Wrench, type LucideIcon } from "lucide-react";
+import { AlertCircle, CalendarClock, Check, ChevronRight, Clock, DoorOpen, MessageSquare, Sparkles, Wrench, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 
 import type { FollowUpCounts } from "@/lib/control/follow-up";
@@ -48,10 +48,12 @@ export type HomeData = {
   mine: Awaited<ReturnType<typeof getMyToday>>;
   /** Improvement measures near or past their due date; null = signed out, an executive, or the load failed (no row). */
   followUp: FollowUpCounts | null;
+  /** Staff only: tickets with a comment from someone else not read yet (0 for everyone else). */
+  unreadComments: number;
 };
 
 /** Turns the data the home page already loads into rows, by role: officers see what waits for a decision, teachers their own items. */
-export function buildRows({ base, repairs, rooms, counts, mine, followUp }: HomeData): ActionRow[] {
+export function buildRows({ base, repairs, rooms, counts, mine, followUp, unreadComments }: HomeData): ActionRow[] {
   const role = base.viewer?.role;
   const rows: ActionRow[] = [];
 
@@ -153,6 +155,18 @@ export function buildRows({ base, repairs, rooms, counts, mine, followUp }: Home
       detail: `เกินกำหนด ${followUp.overdue} · ใกล้ถึง ${followUp.soon}`,
       href: "/control/follow-up",
       todo: followUp.alert,
+    });
+  }
+
+  if (isStaffRole(role) && unreadComments > 0) {
+    rows.push({
+      key: "ticket-comments",
+      icon: MessageSquare,
+      title: `ใบแจ้งซ่อมมีความเห็นใหม่ ${unreadComments} ใบ`,
+      detail: "ดูแถวที่มีป้าย ความเห็นใหม่ ในรายการ",
+      // shortcut: links to the full list, where the rows carry the marker; there is no unread-only filter.
+      href: "/tickets",
+      todo: unreadComments,
     });
   }
 
