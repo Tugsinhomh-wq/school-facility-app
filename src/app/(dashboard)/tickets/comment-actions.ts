@@ -21,7 +21,6 @@ export async function postComment(_prev: CommentResult, formData: FormData): Pro
   const { error } = await session.supabase.from("repair_ticket_comments").insert({
     ticket_id: ticketId,
     author_id: session.userId,
-    author_name: session.viewer.name,
     body,
   });
   if (error) {

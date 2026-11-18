@@ -33,3 +33,15 @@ test("cleanComment accepts 1000 characters and refuses 1001", () => {
   assert.equal(cleanComment("ก".repeat(1000))?.length, 1000);
   assert.equal(cleanComment("ก".repeat(1001)), null);
 });
+
+const SQL = readFileSync(new URL("../../supabase/budget_deputy_02_comments.sql", import.meta.url), "utf8");
+
+test("the SQL stamps the author name from the caller's profile, so it cannot be forged", () => {
+  assert.ok(SQL.includes("BEFORE INSERT ON public.repair_ticket_comments"));
+  assert.ok(SQL.includes("NEW.author_name :="));
+});
+
+test("the SQL keeps the deputy out of cleaning staff's advisor lookup, like executives", () => {
+  const policy = SQL.slice(SQL.indexOf('"profiles: cleaning staff read non-executives"'));
+  assert.ok(policy.includes("'budget_deputy'::public.user_role"));
+});

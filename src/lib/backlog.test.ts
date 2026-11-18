@@ -14,6 +14,7 @@ const ticket = (over: Partial<BacklogTicket> = {}): BacklogTicket => ({
   urgency: "medium",
   status: "pending",
   created_at: hoursAgo(1),
+  duplicate_of: null,
   location_detail: null,
   building: { name: "อาคาร 1" },
   room: { room_number: "101", name: "ห้อง 101" },
@@ -71,6 +72,22 @@ test("an unread ticket is listed on top and stays in its building with unread se
 test("ageDays counts whole days since the ticket was reported", () => {
   const { groups } = groupBacklog([ticket({ created_at: hoursAgo(1) }), ticket({ created_at: hoursAgo(84) })], none, NOW);
   assert.deepEqual(groups[0].rows.map((r) => r.ageDays).sort(), [0, 3]);
+});
+
+test("an unread ticket that is already closed is listed on top but never counted in a building", () => {
+  const open = ticket();
+  const closed = ticket({ status: "completed" });
+  const result = groupBacklog([open, closed], new Set([closed.id]), NOW);
+  assert.deepEqual(result.unread.map((r) => r.id), [closed.id]);
+  assert.equal(result.groups[0].total, 1);
+  assert.deepEqual(result.groups[0].rows.map((r) => r.id), [open.id]);
+});
+
+test("a merged duplicate is never counted in a building, even when it holds an unread comment", () => {
+  const merged = ticket({ duplicate_of: "other" });
+  const result = groupBacklog([merged], new Set([merged.id]), NOW);
+  assert.deepEqual(result.unread.map((r) => r.id), [merged.id]);
+  assert.deepEqual(result.groups, []);
 });
 
 test("an empty backlog gives no groups", () => {

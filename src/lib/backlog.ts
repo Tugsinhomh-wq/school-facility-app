@@ -7,6 +7,8 @@ export type BacklogTicket = {
   urgency: UrgencyLevel;
   status: TicketStatus;
   created_at: string;
+  /** Set when the report was merged into another ticket. */
+  duplicate_of: string | null;
   location_detail: string | null;
   building: { name: string } | null;
   room: { room_number: string; name: string | null } | null;
@@ -30,7 +32,8 @@ const th = (a: string, b: string) => a.localeCompare(b, "th", { numeric: true })
 
 /**
  * The open repairs for the budget deputy: one group per building (with how many are open and how many are
- * urgent), plus the rows that hold an unread comment, which also stay in their building so its count is true.
+ * urgent), plus the rows that hold an unread comment. An open row with an unread comment also stays in its
+ * building so the count is true; a closed or merged ticket with an unread comment shows only in the top list.
  */
 export function groupBacklog(tickets: BacklogTicket[], unreadIds: ReadonlySet<string>, now: number) {
   const byBuilding = new Map<string, BacklogGroup>();
@@ -47,13 +50,14 @@ export function groupBacklog(tickets: BacklogTicket[], unreadIds: ReadonlySet<st
       ageDays: Math.floor((now - new Date(t.created_at).getTime()) / DAY),
       unread: unreadIds.has(t.id),
     };
+    if (row.unread) unread.push(row);
+    if ((t.status !== "pending" && t.status !== "in_progress") || t.duplicate_of) continue;
     const name = t.building?.name ?? "ไม่ระบุอาคาร";
     const group = byBuilding.get(name) ?? { building: name, total: 0, urgent: 0, rows: [] };
     group.total += 1;
     if (t.urgency === "high" || t.urgency === "emergency") group.urgent += 1;
     group.rows.push(row);
     byBuilding.set(name, group);
-    if (row.unread) unread.push(row);
   }
   const groups = [...byBuilding.values()].sort((a, b) => th(a.building, b.building));
   for (const g of groups) g.rows.sort((a, b) => th(a.place, b.place));

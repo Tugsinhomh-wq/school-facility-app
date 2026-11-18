@@ -51,6 +51,22 @@ DROP POLICY IF EXISTS "ticket comments: administrator deletes" ON public.repair_
 CREATE POLICY "ticket comments: administrator deletes" ON public.repair_ticket_comments FOR DELETE TO authenticated
   USING (public.current_role_is('super_admin'));
 
+-- The author's name is stamped from the caller's profile, so nobody can post under another name through the API.
+-- A write with no signed-in user (the restore script in the SQL editor) keeps the name it carries.
+CREATE OR REPLACE FUNCTION public.stamp_comment_author() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
+BEGIN
+  IF (SELECT auth.uid()) IS NOT NULL THEN
+    NEW.author_name := (SELECT p.full_name FROM public.profiles p WHERE p.id = (SELECT auth.uid()));
+  END IF;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION public.stamp_comment_author() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS repair_ticket_comments_stamp_author ON public.repair_ticket_comments;
+CREATE TRIGGER repair_ticket_comments_stamp_author BEFORE INSERT ON public.repair_ticket_comments
+  FOR EACH ROW EXECUTE FUNCTION public.stamp_comment_author();
+
 -- 3. When each person last opened each ticket. Own rows only.
 CREATE TABLE IF NOT EXISTS public.repair_ticket_reads (
   ticket_id UUID NOT NULL REFERENCES public.repair_tickets(id) ON DELETE CASCADE,
@@ -65,6 +81,14 @@ DROP POLICY IF EXISTS "ticket reads: own" ON public.repair_ticket_reads;
 CREATE POLICY "ticket reads: own" ON public.repair_ticket_reads FOR ALL TO authenticated
   USING (user_id = (SELECT auth.uid()))
   WITH CHECK (user_id = (SELECT auth.uid()));
+
+-- Cleaning staff look up advisors by email and must not see executives, because an advisor row opens a class roster
+-- (cleaning_staff_02_policies.sql). Replaced here so the budget deputy is hidden too; do not run the old
+-- version of that policy again after this file.
+DROP POLICY IF EXISTS "profiles: cleaning staff read non-executives" ON public.profiles;
+CREATE POLICY "profiles: cleaning staff read non-executives" ON public.profiles FOR SELECT TO authenticated
+  USING (public.current_role_is('cleaning_staff')
+         AND role NOT IN ('executive'::public.user_role, 'budget_deputy'::public.user_role));
 
 -- 4. Tickets that hold a comment from someone else newer than the caller's last read. SECURITY INVOKER on
 --    purpose: the policies above decide which comments the caller can see at all.
@@ -86,9 +110,9 @@ GRANT EXECUTE ON FUNCTION public.unread_comment_tickets() TO authenticated;
 -- in front of the query, inside one BEGIN ... ROLLBACK block.
 -- =====================================================================
 
--- A. Tables, function and policies exist. Expect: 2 table rows, 1 function row, 7 policy rows.
+-- A. Tables, function and policies exist. Expect: 2 table rows, 2 function rows, 7 policy rows.
 -- SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('repair_ticket_comments', 'repair_ticket_reads');
--- SELECT proname FROM pg_proc WHERE proname = 'unread_comment_tickets';
+-- SELECT proname FROM pg_proc WHERE proname IN ('unread_comment_tickets', 'stamp_comment_author');
 -- SELECT policyname FROM pg_policies WHERE policyname LIKE 'ticket comments:%' OR policyname LIKE 'ticket reads:%' OR policyname LIKE '%budget deputy%';
 
 -- B. As the deputy, the ticket count equals the count of tickets that are not in the trash.
@@ -98,16 +122,22 @@ GRANT EXECUTE ON FUNCTION public.unread_comment_tickets() TO authenticated;
 -- SELECT count(*) FROM public.repair_tickets WHERE deleted_at IS NOT NULL;
 
 -- D. As a user, room_staff and executive: reading the thread returns 0 rows, and this insert is refused with an RLS error.
+--    Put the id of a real ticket in place of <ticket id>: these roles cannot read tickets, so a SELECT-based insert would add 0 rows without an error.
 -- SELECT count(*) FROM public.repair_ticket_comments;
--- INSERT INTO public.repair_ticket_comments (ticket_id, author_id, body) SELECT id, (SELECT auth.uid()), 'x' FROM public.repair_tickets LIMIT 1;
+-- INSERT INTO public.repair_ticket_comments (ticket_id, author_id, body) VALUES ('<ticket id>'::uuid, (SELECT auth.uid()), 'x');
 
--- E. As the deputy, an insert that names another person as author is refused with an RLS error.
--- INSERT INTO public.repair_ticket_comments (ticket_id, author_id, body) SELECT id, gen_random_uuid(), 'x' FROM public.repair_tickets LIMIT 1;
+-- E. As the deputy, an insert that names another person as author is refused with an RLS error. After a normal insert by the deputy,
+--    author_name is the deputy's profile name whatever the insert says.
+-- INSERT INTO public.repair_ticket_comments (ticket_id, author_id, body) VALUES ('<ticket id>'::uuid, gen_random_uuid(), 'x');
+-- INSERT INTO public.repair_ticket_comments (ticket_id, author_id, author_name, body) VALUES ('<ticket id>'::uuid, (SELECT auth.uid()), 'ชื่อปลอม', 'ทดสอบชื่อ') RETURNING author_name;  -- expect the real name
 
 -- F. As the deputy, both inserts fail the CHECK (new row violates check constraint).
--- INSERT INTO public.repair_ticket_comments (ticket_id, author_id, body) SELECT id, (SELECT auth.uid()), '   ' FROM public.repair_tickets LIMIT 1;
--- INSERT INTO public.repair_ticket_comments (ticket_id, author_id, body) SELECT id, (SELECT auth.uid()), repeat('ก', 1001) FROM public.repair_tickets LIMIT 1;
+-- INSERT INTO public.repair_ticket_comments (ticket_id, author_id, body) VALUES ('<ticket id>'::uuid, (SELECT auth.uid()), '   ');
+-- INSERT INTO public.repair_ticket_comments (ticket_id, author_id, body) VALUES ('<ticket id>'::uuid, (SELECT auth.uid()), repeat('ก', 1001));
 
 -- G. The deputy posts a comment, then reads the unread list: the ticket is not in it. Run the same list as staff: the ticket is in it.
--- INSERT INTO public.repair_ticket_comments (ticket_id, author_id, body) SELECT id, (SELECT auth.uid()), 'ทดสอบ' FROM public.repair_tickets LIMIT 1;
+-- INSERT INTO public.repair_ticket_comments (ticket_id, author_id, body) VALUES ('<ticket id>'::uuid, (SELECT auth.uid()), 'ทดสอบ');
 -- SELECT * FROM public.unread_comment_tickets();
+
+-- H. As cleaning staff, the deputy's profile row is hidden like an executive's. Expect: 0.
+-- SELECT count(*) FROM public.profiles WHERE role IN ('executive', 'budget_deputy');

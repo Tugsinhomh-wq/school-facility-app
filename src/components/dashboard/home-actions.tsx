@@ -164,8 +164,8 @@ export function buildRows({ base, repairs, rooms, counts, mine, followUp, unread
       icon: MessageSquare,
       title: `ใบแจ้งซ่อมมีความเห็นใหม่ ${unreadComments} ใบ`,
       detail: "ดูแถวที่มีป้าย ความเห็นใหม่ ในรายการ",
-      // shortcut: links to the open queue, where the rows carry the marker; there is no unread-only filter.
-      href: "/tickets?status=open",
+      // shortcut: links to the full list, where the rows carry the marker; there is no unread-only filter.
+      href: "/tickets",
       todo: unreadComments,
     });
   }
