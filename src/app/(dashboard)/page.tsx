@@ -6,7 +6,8 @@ import { getTodayCounts } from "@/lib/data/cleaning-officer";
 import { getMyToday } from "@/lib/data/cleaning-teacher";
 import { listFollowUp } from "@/lib/data/control";
 import { getDashboardBase, getRepairsData, getRoomsData } from "@/lib/data/dashboard";
-import { guardExecutive, isStaffRole } from "@/lib/data/session";
+import { getSession, guardExecutive, isStaffRole } from "@/lib/data/session";
+import { getUnreadTicketIds } from "@/lib/data/ticket-comments";
 import { bangkokYmd, formatDayLong } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
@@ -22,9 +23,11 @@ export default async function DashboardPage() {
     listFollowUp(),
   ]);
   const { viewer } = base;
+  const session = isStaffRole(viewer?.role) ? await getSession() : null;
+  const unreadComments = session ? (await getUnreadTicketIds(session.supabase)).size : 0;
   const today = bangkokYmd(new Date());
   const failed = base.failed || repairs.failed || rooms.failed;
-  const rows = failed ? [] : buildRows({ base, repairs, rooms, counts, mine, followUp: followUp.failed ? null : followUpCounts(followUp.items) });
+  const rows = failed ? [] : buildRows({ base, repairs, rooms, counts, mine, followUp: followUp.failed ? null : followUpCounts(followUp.items), unreadComments });
   const todo = rows.reduce((sum, r) => sum + r.todo, 0);
   // An advisor gets their own desk (the one-tap confirmation and the week); the same job is then left out of the list.
   const advised = !failed && !mine.failed && mine.rows.length > 0 ? mine : null;
