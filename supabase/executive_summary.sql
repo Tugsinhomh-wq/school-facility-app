@@ -1,7 +1,8 @@
 -- Aggregated figures for the executive summary page. SECURITY DEFINER so executives need no
 -- access to the tables themselves: they only ever receive counts, hours and place names,
 -- never reporters, applicants, ticket text or reservation purposes.
--- Allowed callers: executive, super_admin, staff (staff use it to draft the summary memo).
+-- Allowed callers: executive, budget_deputy, super_admin, staff (staff use it to draft the summary memo).
+-- Run budget_deputy_01_role.sql before applying this file again: the role list below names 'budget_deputy'.
 CREATE OR REPLACE FUNCTION public.executive_summary(p_from timestamptz, p_to timestamptz, p_bucket text DEFAULT 'day')
 RETURNS jsonb
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = ''
@@ -14,7 +15,7 @@ DECLARE
   bucket text := CASE WHEN p_bucket = 'month' THEN 'month' ELSE 'day' END;
   result jsonb;
 BEGIN
-  IF NOT public.current_role_is('executive', 'super_admin', 'staff') THEN
+  IF NOT public.current_role_is('executive', 'budget_deputy', 'super_admin', 'staff') THEN
     RAISE EXCEPTION 'not allowed' USING ERRCODE = '42501';
   END IF;
   IF p_to <= p_from OR span > interval '400 days' THEN
