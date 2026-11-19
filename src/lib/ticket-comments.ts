@@ -6,6 +6,15 @@ export const COMMENT_MAX = 1000;
 
 export const canComment = (role?: UserRole | null) => role != null && COMMENT_ROLES.includes(role);
 
+/**
+ * What the thread box shows on a ticket: the thread appears when the ticket is sent to the deputy or an older thread
+ * exists (staff keep reading it after taking the ticket back); posting needs the ticket to be sent right now.
+ */
+export const threadView = (shared: boolean, commentCount: number) => ({
+  show: shared || commentCount > 0,
+  canPost: shared,
+});
+
 /** The trimmed text of a comment, or null when it is empty, not text, or longer than COMMENT_MAX. */
 export function cleanComment(raw: unknown): string | null {
   if (typeof raw !== "string") return null;

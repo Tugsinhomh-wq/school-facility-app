@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { getSession, isStaffRole } from "@/lib/data/session";
+import { getTicketShare } from "@/lib/data/ticket-shares";
 import { canComment, cleanComment } from "@/lib/ticket-comments";
 
 const UUID = /^[0-9a-f-]{36}$/i;
@@ -17,6 +18,8 @@ export async function postComment(_prev: CommentResult, formData: FormData): Pro
   if (!session) return { ok: false, message: "เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่" };
   if (!canComment(session.viewer.role) || !UUID.test(ticketId)) return { ok: false, message: "ไม่มีสิทธิ์ส่งความเห็น" };
   if (body === null) return { ok: false, message: "ความเห็นต้องมี 1-1,000 ตัวอักษร" };
+  // Staff with a tab left open, or a deputy on a ticket they reported, must not write into a thread that is not sent.
+  if ((await getTicketShare(session.supabase, ticketId)) === null) return { ok: false, message: "ใบนี้ไม่ได้ส่งให้รองงบประมาณ ส่งก่อนจึงจะเขียนความเห็นได้" };
 
   const { error } = await session.supabase.from("repair_ticket_comments").insert({
     ticket_id: ticketId,

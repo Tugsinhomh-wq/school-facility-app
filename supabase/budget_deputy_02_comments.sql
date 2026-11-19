@@ -1,19 +1,14 @@
 -- Budget deputy, part 02 of 02: read access to repair tickets, the comment thread on each ticket,
 -- and per-user "last read" markers. Run AFTER budget_deputy_01_role.sql, as a separate run. Safe to run again.
--- Then run executive_summary.sql again (it now admits budget_deputy), then the check block at the end.
+-- Then run budget_deputy_03_share.sql (what the deputy may read), executive_summary.sql again (it now admits
+-- budget_deputy), then the check blocks at the end of the files.
 --
 -- "head" passes every check that lists 'staff' (see current_role_is in facility_02_cleaning.sql), so the thread
 -- policies name budget_deputy, staff and super_admin only.
 
--- 1. Read access for the deputy. Same shape as room_staff_role.sql. The restrictive policy
---    "tickets: hide trashed" (trash_tickets.sql) still applies, so trashed tickets stay hidden.
-DROP POLICY IF EXISTS "tickets: budget deputy read all" ON public.repair_tickets;
-CREATE POLICY "tickets: budget deputy read all" ON public.repair_tickets FOR SELECT TO authenticated
-  USING (public.current_role_is('budget_deputy'));
-
-DROP POLICY IF EXISTS "repair images: budget deputy read" ON storage.objects;
-CREATE POLICY "repair images: budget deputy read" ON storage.objects FOR SELECT TO authenticated
-  USING (bucket_id = 'repair-images' AND public.current_role_is('budget_deputy'));
+-- 1. The deputy's read access to tickets and photos is NOT created here any more. budget_deputy_03_share.sql grants it
+--    only for tickets that were sent to the deputy. (An earlier version of this file created read-all policies; running
+--    this file again must never bring them back, so they are gone from it.)
 
 -- Names on tickets: only people who reported a ticket, never the whole directory.
 DROP POLICY IF EXISTS "profiles: budget deputy read reporters" ON public.profiles;

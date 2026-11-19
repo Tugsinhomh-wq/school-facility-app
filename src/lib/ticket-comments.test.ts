@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
-import { canComment, cleanComment, COMMENT_MAX, COMMENT_ROLES } from "./ticket-comments.ts";
+import { canComment, cleanComment, COMMENT_MAX, COMMENT_ROLES, threadView } from "./ticket-comments.ts";
 import type { UserRole } from "../types/database.ts";
 
 const ALL_ROLES: UserRole[] = ["super_admin", "head", "staff", "room_staff", "cleaning_staff", "executive", "budget_deputy", "user"];
@@ -65,4 +65,16 @@ test("the share goes in with its first comment in one function", () => {
   const fn = SQL3.slice(SQL3.indexOf("share_ticket_with_budget"));
   assert.ok(fn.includes("INSERT INTO public.repair_ticket_shares"));
   assert.ok(fn.includes("INSERT INTO public.repair_ticket_comments"));
+});
+
+test("file 02 no longer creates the deputy's read-all ticket or photo policies, so running it again cannot undo file 03", () => {
+  assert.ok(!SQL.includes('CREATE POLICY "tickets: budget deputy read all"'));
+  assert.ok(!SQL.includes('CREATE POLICY "repair images: budget deputy read"'));
+});
+
+test("the thread is shown when the ticket is sent or an old thread exists, and posting needs the ticket to be sent", () => {
+  assert.deepEqual(threadView(true, 0), { show: true, canPost: true });
+  assert.deepEqual(threadView(true, 3), { show: true, canPost: true });
+  assert.deepEqual(threadView(false, 3), { show: true, canPost: false });
+  assert.deepEqual(threadView(false, 0), { show: false, canPost: false });
 });

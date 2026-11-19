@@ -20,7 +20,7 @@ import { repairDuration } from "@/lib/ticket-events";
 import { formatBaht, formatDateTh } from "@/lib/ticket-meta";
 
 import { getSession, guardExecutive, isStaffRole } from "@/lib/data/session";
-import { canComment } from "@/lib/ticket-comments";
+import { canComment, threadView } from "@/lib/ticket-comments";
 
 export const dynamic = "force-dynamic";
 
@@ -54,9 +54,9 @@ export default async function TicketDetailPage({
   const dupCtx = isStaff ? await getDuplicateContext(ticket) : null;
   const session = canComment(viewer?.role) ? await getSession() : null;
   const comments = session ? await getTicketComments(session.supabase, ticket.id) : null;
-  const share = session && isStaff ? await getTicketShare(session.supabase, ticket.id) : null;
-  // The deputy only ever reaches shared tickets. Staff keep reading an old thread after taking the ticket back.
-  const shared = isDeputy || share !== null;
+  // The deputy also reads tickets they reported themselves, so "sent to the deputy" comes from the share row for everyone.
+  const share = session ? await getTicketShare(session.supabase, ticket.id) : null;
+  const thread = threadView(share !== null, comments?.length ?? 0);
 
   return (
     <>
@@ -181,10 +181,10 @@ export default async function TicketDetailPage({
             </Field>
           </dl>
           <TicketTimeline createdAt={ticket.created_at} events={events} />
-          {comments && (shared || comments.length > 0) && (
+          {comments && thread.show && (
             <>
               <MarkRead ticketId={ticket.id} />
-              <TicketComments ticketId={ticket.id} comments={comments} canPost={shared} />
+              <TicketComments ticketId={ticket.id} comments={comments} canPost={thread.canPost} />
             </>
           )}
         </article>
@@ -193,7 +193,7 @@ export default async function TicketDetailPage({
           <aside className="h-fit rounded-xl border border-border p-5">
             <h2 className="mb-4 font-semibold">จัดการงานซ่อม</h2>
             <TicketManageForm ticket={ticket} staff={staffOptions} viewerId={viewerId} />
-            <SharePanel ticketId={ticket.id} share={share} />
+            <SharePanel key={share ? "sent" : "open"} ticketId={ticket.id} share={share} />
             <form
               action={createMemoFromTicket}
               className="mt-4 border-t border-border pt-4"

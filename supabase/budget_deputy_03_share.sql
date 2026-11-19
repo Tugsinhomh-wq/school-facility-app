@@ -1,5 +1,7 @@
 -- Budget deputy, part 03: the deputy sees only the repair tickets that head/staff/super_admin sent to them.
 -- Run AFTER budget_deputy_02_comments.sql. Safe to run again. Then run the check block at the end.
+-- Keep this order when setting up a database again: 01, 02, 03. File 02 no longer creates the read-all policies,
+-- so running it again is harmless; do not bring back the old "tickets: budget deputy read all" policy.
 --
 -- Why a table and not a column on repair_tickets: every UPDATE of a ticket moves updated_at (touch_updated_at), and
 -- the summary page reads updated_at for "done today" and the average repair time. Sharing must not disturb them.
@@ -63,27 +65,37 @@ GRANT EXECUTE ON FUNCTION public.share_ticket_with_budget(UUID, TEXT) TO authent
 -- Put a real ticket id in place of <ticket id>.
 -- =====================================================================
 
--- A. The table, the function and the new policies exist. Expect: 1 table row, 1 function row, 5 policy rows.
+-- A. The table, the function and the new policies exist, and the old read-all policy is gone. Expect: 1 table row, 1 function row,
+--    5 policy rows, and 0 for the last query. The photo policy must mention image_urls.
 -- SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'repair_ticket_shares';
 -- SELECT proname FROM pg_proc WHERE proname = 'share_ticket_with_budget';
 -- SELECT policyname FROM pg_policies WHERE policyname LIKE 'ticket shares:%' OR policyname IN ('tickets: budget deputy read shared', 'repair images: budget deputy read');
+-- SELECT count(*) FROM pg_policies WHERE policyname = 'tickets: budget deputy read all';
+-- SELECT qual FROM pg_policies WHERE policyname = 'repair images: budget deputy read';
 
--- B. As the deputy, with nothing shared: no tickets and no comments. Expect: 0 and 0.
+-- B. As the deputy, with nothing shared: no tickets, no comments, no photos, and no profiles other than their own. Expect: 0, 0, 0, 1.
+--    (A deputy who was a teacher before still sees the tickets they reported themselves; that is the ordinary "own tickets" rule.)
 -- SELECT count(*) FROM public.repair_tickets;
 -- SELECT count(*) FROM public.repair_ticket_comments;
+-- SELECT count(*) FROM storage.objects WHERE bucket_id = 'repair-images';
+-- SELECT count(*) FROM public.profiles;
 
--- C. As staff, share <ticket id> with a message; then as the deputy: exactly that ticket and its first comment. Expect: 1 and 1.
+-- C. As staff, share <ticket id> with a message; then as the deputy: exactly that ticket, its first comment and its reporter. Expect: 1, 1, 2.
 -- SELECT public.share_ticket_with_budget('<ticket id>'::uuid, 'ขอซื้อก๊อกน้ำ ประมาณ 2,500 บาท');
 -- SELECT count(*) FROM public.repair_tickets;   -- as the deputy
 -- SELECT count(*) FROM public.repair_ticket_comments;   -- as the deputy
+-- SELECT count(*) FROM public.profiles;   -- as the deputy: themselves plus the reporter (1 if they reported it)
 
--- D. As staff, delete the share row: the deputy sees 0 tickets and 0 comments again; share again: the old thread is back (2 comments).
+-- D. As staff, delete the share row: the deputy sees 0 tickets and 0 comments again, staff still read the comment; share again: the old thread is back.
 -- DELETE FROM public.repair_ticket_shares WHERE ticket_id = '<ticket id>'::uuid;
 
 -- E. Sharing leaves updated_at alone. Expect: the same value before and after the share.
 -- SELECT updated_at FROM public.repair_tickets WHERE id = '<ticket id>'::uuid;
 
--- F. As staff, each of these raises an error and leaves no share row and no comment: a blank message, 1001 characters,
---    and sharing a ticket that is already shared (error 23505).
--- SELECT public.share_ticket_with_budget('<ticket id>'::uuid, '   ');
--- SELECT public.share_ticket_with_budget('<ticket id>'::uuid, repeat('ก', 1001));
+-- F. As staff, each statement raises an error and leaves no share row and no comment: a blank message, 1001 characters,
+--    and sharing a ticket that is already shared (error 23505). An error aborts the transaction, so run each one after its
+--    own SAVEPOINT and undo it with ROLLBACK TO SAVEPOINT s; then count the rows.
+-- SAVEPOINT s; SELECT public.share_ticket_with_budget('<ticket id>'::uuid, '   ');  ROLLBACK TO SAVEPOINT s;
+-- SAVEPOINT s; SELECT public.share_ticket_with_budget('<ticket id>'::uuid, repeat('ก', 1001));  ROLLBACK TO SAVEPOINT s;
+-- SAVEPOINT s; SELECT public.share_ticket_with_budget('<ticket id>'::uuid, 'ซ้ำ');  ROLLBACK TO SAVEPOINT s;   -- after the ticket is already shared
+-- SELECT count(*) FROM public.repair_ticket_shares WHERE ticket_id = '<ticket id>'::uuid;   -- 1 if it was shared before, else 0
