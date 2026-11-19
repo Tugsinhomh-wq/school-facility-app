@@ -78,3 +78,12 @@ test("the thread is shown when the ticket is sent or an old thread exists, and p
   assert.deepEqual(threadView(false, 3), { show: true, canPost: false });
   assert.deepEqual(threadView(false, 0), { show: false, canPost: false });
 });
+
+const SQL4 = readFileSync(new URL("../../supabase/budget_deputy_04_similar_tickets.sql", import.meta.url), "utf8");
+
+test("similar_open_tickets returns nothing to the budget deputy and keeps everything else as it was", () => {
+  assert.ok(SQL4.includes("CREATE OR REPLACE FUNCTION public.similar_open_tickets(p_building UUID)"));
+  assert.ok(SQL4.includes("NOT public.current_role_is('budget_deputy')"));
+  for (const kept of ["repair_tickets_live", "t.duplicate_of IS NULL", "status IN ('pending', 'in_progress')", "LIMIT 20"])
+    assert.ok(SQL4.includes(kept), kept);
+});
