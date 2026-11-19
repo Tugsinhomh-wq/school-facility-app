@@ -45,3 +45,24 @@ test("the SQL keeps the deputy out of cleaning staff's advisor lookup, like exec
   const policy = SQL.slice(SQL.indexOf('"profiles: cleaning staff read non-executives"'));
   assert.ok(policy.includes("'budget_deputy'::public.user_role"));
 });
+
+const SQL3 = readFileSync(new URL("../../supabase/budget_deputy_03_share.sql", import.meta.url), "utf8");
+
+test("the share SQL replaces the deputy's read-all ticket policy with a read-shared one", () => {
+  assert.ok(SQL3.includes('DROP POLICY IF EXISTS "tickets: budget deputy read all"'));
+  const created = SQL3.slice(SQL3.indexOf('CREATE POLICY "tickets: budget deputy read shared"'));
+  assert.ok(created.startsWith('CREATE POLICY "tickets: budget deputy read shared"'));
+  assert.ok(created.slice(0, 400).includes("repair_ticket_shares"));
+});
+
+test("the share SQL narrows the deputy's photo policy to shared tickets", () => {
+  const at = SQL3.indexOf('DROP POLICY IF EXISTS "repair images: budget deputy read"');
+  assert.ok(at >= 0);
+  assert.ok(SQL3.slice(at, at + 700).includes("image_urls"));
+});
+
+test("the share goes in with its first comment in one function", () => {
+  const fn = SQL3.slice(SQL3.indexOf("share_ticket_with_budget"));
+  assert.ok(fn.includes("INSERT INTO public.repair_ticket_shares"));
+  assert.ok(fn.includes("INSERT INTO public.repair_ticket_comments"));
+});
