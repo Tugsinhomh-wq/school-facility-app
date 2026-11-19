@@ -19,8 +19,7 @@ export default async function BacklogPage() {
   if (!session) redirect("/login");
   if (!canSeeBacklog(session.viewer.role)) redirect("/");
 
-  const unreadIds = await getUnreadTicketIds(session.supabase);
-  const tickets = await getBacklog(session.supabase, unreadIds);
+  const [tickets, unreadIds] = await Promise.all([getBacklog(session.supabase), getUnreadTicketIds(session.supabase)]);
   const result = tickets && groupBacklog(tickets, unreadIds, new Date().getTime());
 
   return (
