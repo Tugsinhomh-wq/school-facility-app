@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { createMemoFromTicket } from "@/app/(dashboard)/memos/actions";
 import { OverdueNote, placeOf } from "@/components/tickets/ticket-table";
+import { SharePanel } from "@/components/tickets/share-panel";
 import { TicketManageForm } from "@/components/tickets/ticket-manage-form";
 import { MarkRead } from "@/components/tickets/comment-form";
 import { TicketComments } from "@/components/tickets/ticket-comments";
@@ -13,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { MergePanel } from "@/components/tickets/merge-panel";
 import { TrashButton } from "@/components/tickets/trash-button";
 import { getTicketComments } from "@/lib/data/ticket-comments";
+import { getTicketShare } from "@/lib/data/ticket-shares";
 import { getDuplicateContext, getTicketDetail } from "@/lib/data/tickets";
 import { repairDuration } from "@/lib/ticket-events";
 import { formatBaht, formatDateTh } from "@/lib/ticket-meta";
@@ -52,6 +54,9 @@ export default async function TicketDetailPage({
   const dupCtx = isStaff ? await getDuplicateContext(ticket) : null;
   const session = canComment(viewer?.role) ? await getSession() : null;
   const comments = session ? await getTicketComments(session.supabase, ticket.id) : null;
+  const share = session && isStaff ? await getTicketShare(session.supabase, ticket.id) : null;
+  // The deputy only ever reaches shared tickets. Staff keep reading an old thread after taking the ticket back.
+  const shared = isDeputy || share !== null;
 
   return (
     <>
@@ -176,10 +181,10 @@ export default async function TicketDetailPage({
             </Field>
           </dl>
           <TicketTimeline createdAt={ticket.created_at} events={events} />
-          {comments && (
+          {comments && (shared || comments.length > 0) && (
             <>
               <MarkRead ticketId={ticket.id} />
-              <TicketComments ticketId={ticket.id} comments={comments} />
+              <TicketComments ticketId={ticket.id} comments={comments} canPost={shared} />
             </>
           )}
         </article>
@@ -188,6 +193,7 @@ export default async function TicketDetailPage({
           <aside className="h-fit rounded-xl border border-border p-5">
             <h2 className="mb-4 font-semibold">จัดการงานซ่อม</h2>
             <TicketManageForm ticket={ticket} staff={staffOptions} viewerId={viewerId} />
+            <SharePanel ticketId={ticket.id} share={share} />
             <form
               action={createMemoFromTicket}
               className="mt-4 border-t border-border pt-4"

@@ -2,8 +2,8 @@ import { CommentForm } from "@/components/tickets/comment-form";
 import type { TicketComment } from "@/lib/data/ticket-comments";
 import { formatDateTh } from "@/lib/ticket-meta";
 
-/** The thread between the budget deputy and the facility staff on one ticket, oldest first, with the box to add to it. */
-export function TicketComments({ ticketId, comments }: { ticketId: string; comments: TicketComment[] }) {
+/** The thread between the budget deputy and the facility staff on one ticket, oldest first, with the box to add to it (only while the ticket is sent to the deputy). */
+export function TicketComments({ ticketId, comments, canPost }: { ticketId: string; comments: TicketComment[]; canPost: boolean }) {
   return (
     <section aria-labelledby="comments-title" className="mt-8 border-t border-border pt-6">
       <h2 id="comments-title" className="font-semibold">
@@ -26,7 +26,7 @@ export function TicketComments({ ticketId, comments }: { ticketId: string; comme
           ))}
         </ol>
       )}
-      <CommentForm ticketId={ticketId} />
+      {canPost && <CommentForm ticketId={ticketId} />}
     </section>
   );
 }
