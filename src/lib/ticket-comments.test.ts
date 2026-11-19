@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
-import { canComment, cleanComment, COMMENT_MAX, COMMENT_ROLES } from "./ticket-comments.ts";
+import { canComment, cleanComment, COMMENT_MAX, COMMENT_ROLES, threadView } from "./ticket-comments.ts";
 import type { UserRole } from "../types/database.ts";
 
 const ALL_ROLES: UserRole[] = ["super_admin", "head", "staff", "room_staff", "cleaning_staff", "executive", "budget_deputy", "user"];
@@ -44,4 +44,46 @@ test("the SQL stamps the author name from the caller's profile, so it cannot be 
 test("the SQL keeps the deputy out of cleaning staff's advisor lookup, like executives", () => {
   const policy = SQL.slice(SQL.indexOf('"profiles: cleaning staff read non-executives"'));
   assert.ok(policy.includes("'budget_deputy'::public.user_role"));
+});
+
+const SQL3 = readFileSync(new URL("../../supabase/budget_deputy_03_share.sql", import.meta.url), "utf8");
+
+test("the share SQL replaces the deputy's read-all ticket policy with a read-shared one", () => {
+  assert.ok(SQL3.includes('DROP POLICY IF EXISTS "tickets: budget deputy read all"'));
+  const created = SQL3.slice(SQL3.indexOf('CREATE POLICY "tickets: budget deputy read shared"'));
+  assert.ok(created.startsWith('CREATE POLICY "tickets: budget deputy read shared"'));
+  assert.ok(created.slice(0, 400).includes("repair_ticket_shares"));
+});
+
+test("the share SQL narrows the deputy's photo policy to shared tickets", () => {
+  const at = SQL3.indexOf('DROP POLICY IF EXISTS "repair images: budget deputy read"');
+  assert.ok(at >= 0);
+  assert.ok(SQL3.slice(at, at + 700).includes("image_urls"));
+});
+
+test("the share goes in with its first comment in one function", () => {
+  const fn = SQL3.slice(SQL3.indexOf("share_ticket_with_budget"));
+  assert.ok(fn.includes("INSERT INTO public.repair_ticket_shares"));
+  assert.ok(fn.includes("INSERT INTO public.repair_ticket_comments"));
+});
+
+test("file 02 no longer creates the deputy's read-all ticket or photo policies, so running it again cannot undo file 03", () => {
+  assert.ok(!SQL.includes('CREATE POLICY "tickets: budget deputy read all"'));
+  assert.ok(!SQL.includes('CREATE POLICY "repair images: budget deputy read"'));
+});
+
+test("the thread is shown when the ticket is sent or an old thread exists, and posting needs the ticket to be sent", () => {
+  assert.deepEqual(threadView(true, 0), { show: true, canPost: true });
+  assert.deepEqual(threadView(true, 3), { show: true, canPost: true });
+  assert.deepEqual(threadView(false, 3), { show: true, canPost: false });
+  assert.deepEqual(threadView(false, 0), { show: false, canPost: false });
+});
+
+const SQL4 = readFileSync(new URL("../../supabase/budget_deputy_04_similar_tickets.sql", import.meta.url), "utf8");
+
+test("similar_open_tickets returns nothing to the budget deputy and keeps everything else as it was", () => {
+  assert.ok(SQL4.includes("CREATE OR REPLACE FUNCTION public.similar_open_tickets(p_building UUID)"));
+  assert.ok(SQL4.includes("NOT public.current_role_is('budget_deputy')"));
+  for (const kept of ["repair_tickets_live", "t.duplicate_of IS NULL", "status IN ('pending', 'in_progress')", "LIMIT 20"])
+    assert.ok(SQL4.includes(kept), kept);
 });

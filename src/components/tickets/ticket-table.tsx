@@ -56,6 +56,11 @@ export function DuplicateNote({ t }: { t: TicketRow }) {
   return null;
 }
 
+/** The ticket was sent to the budget deputy for their opinion. */
+export function SharedMark() {
+  return <span className="rounded-full border border-border bg-background px-2 py-0.5 text-xs font-medium">ส่งรองแล้ว</span>;
+}
+
 /** A comment from someone else on this ticket that the viewer has not read yet. */
 export function NewCommentMark() {
   return <span className="rounded-full bg-red-700 px-2 py-0.5 text-xs font-semibold text-white">ความเห็นใหม่</span>;
@@ -91,6 +96,7 @@ export function TicketTable({
   selectable = false,
   assigneeNames = {},
   unreadIds,
+  sharedIds,
 }: {
   tickets: TicketRow[];
   showReporter: boolean;
@@ -101,6 +107,8 @@ export function TicketTable({
   assigneeNames?: Record<string, string>;
   /** Staff only: tickets with a comment the viewer has not read yet. */
   unreadIds?: ReadonlySet<string>;
+  /** Staff only: tickets sent to the budget deputy. */
+  sharedIds?: ReadonlySet<string>;
 }) {
   const handler = (t: TicketRow) => (t.assignee_id ? (assigneeNames[t.assignee_id] ?? "-") : null);
   if (tickets.length === 0) {
@@ -144,6 +152,7 @@ export function TicketTable({
                   <OverdueNote t={t} />
                   <DuplicateNote t={t} />
                   {unreadIds?.has(t.id) && <NewCommentMark />}
+                  {sharedIds?.has(t.id) && <SharedMark />}
                   <span>{t.ticket_number}</span>
                   {t.image_urls?.length > 0 && (
                     <span className="inline-flex items-center gap-1">
@@ -217,6 +226,7 @@ export function TicketTable({
                     <OverdueNote t={t} />
                     <DuplicateNote t={t} />
                     {unreadIds?.has(t.id) && <NewCommentMark />}
+                    {sharedIds?.has(t.id) && <SharedMark />}
                     {t.image_urls?.length > 0 && (
                       <span
                         className="inline-flex items-center gap-1"

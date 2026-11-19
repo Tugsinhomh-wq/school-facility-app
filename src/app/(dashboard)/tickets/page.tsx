@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 
 import { getSession, guardExecutive, isStaffRole } from "@/lib/data/session";
 import { getUnreadTicketIds } from "@/lib/data/ticket-comments";
+import { getSharedTicketIds } from "@/lib/data/ticket-shares";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -40,6 +41,7 @@ export default async function TicketsPage({
   const isAdmin = list.viewer?.role === "super_admin";
   const session = isStaff ? await getSession() : null;
   const unreadIds = session ? await getUnreadTicketIds(session.supabase) : undefined;
+  const sharedIds = session ? await getSharedTicketIds(session.supabase) : undefined;
   const canReport = list.viewer !== null;
   const pages = Math.max(1, Math.ceil(list.total / PAGE_SIZE));
   const hasFilters = Boolean(filters.status || filters.urgency || filters.building || filters.q);
@@ -177,6 +179,7 @@ export default async function TicketsPage({
               showReporter
               assigneeNames={list.assigneeNames}
               unreadIds={unreadIds}
+              sharedIds={sharedIds}
               hasFilters={hasFilters}
             />
             {pager}

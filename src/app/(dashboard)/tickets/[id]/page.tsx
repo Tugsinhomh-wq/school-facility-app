@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { createMemoFromTicket } from "@/app/(dashboard)/memos/actions";
 import { OverdueNote, placeOf } from "@/components/tickets/ticket-table";
+import { SharePanel } from "@/components/tickets/share-panel";
 import { TicketManageForm } from "@/components/tickets/ticket-manage-form";
 import { MarkRead } from "@/components/tickets/comment-form";
 import { TicketComments } from "@/components/tickets/ticket-comments";
@@ -13,12 +14,13 @@ import { Button } from "@/components/ui/button";
 import { MergePanel } from "@/components/tickets/merge-panel";
 import { TrashButton } from "@/components/tickets/trash-button";
 import { getTicketComments } from "@/lib/data/ticket-comments";
+import { getTicketShare } from "@/lib/data/ticket-shares";
 import { getDuplicateContext, getTicketDetail } from "@/lib/data/tickets";
 import { repairDuration } from "@/lib/ticket-events";
 import { formatBaht, formatDateTh } from "@/lib/ticket-meta";
 
 import { getSession, guardExecutive, isStaffRole } from "@/lib/data/session";
-import { canComment } from "@/lib/ticket-comments";
+import { canComment, threadView } from "@/lib/ticket-comments";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +54,9 @@ export default async function TicketDetailPage({
   const dupCtx = isStaff ? await getDuplicateContext(ticket) : null;
   const session = canComment(viewer?.role) ? await getSession() : null;
   const comments = session ? await getTicketComments(session.supabase, ticket.id) : null;
+  // The deputy also reads tickets they reported themselves, so "sent to the deputy" comes from the share row for everyone.
+  const share = session ? await getTicketShare(session.supabase, ticket.id) : null;
+  const thread = threadView(share !== null, comments?.length ?? 0);
 
   return (
     <>
@@ -60,7 +65,7 @@ export default async function TicketDetailPage({
         className="mb-3 inline-flex min-h-11 items-center gap-1.5 text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         <ArrowLeft className="size-4" aria-hidden />
-        {isDeputy ? "งานซ่อมค้าง" : "รายการแจ้งซ่อม"}
+        {isDeputy ? "งานที่ขอความเห็น" : "รายการแจ้งซ่อม"}
       </Link>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
@@ -176,10 +181,10 @@ export default async function TicketDetailPage({
             </Field>
           </dl>
           <TicketTimeline createdAt={ticket.created_at} events={events} />
-          {comments && (
+          {comments && thread.show && (
             <>
               <MarkRead ticketId={ticket.id} />
-              <TicketComments ticketId={ticket.id} comments={comments} />
+              <TicketComments ticketId={ticket.id} comments={comments} canPost={thread.canPost} />
             </>
           )}
         </article>
@@ -188,6 +193,7 @@ export default async function TicketDetailPage({
           <aside className="h-fit rounded-xl border border-border p-5">
             <h2 className="mb-4 font-semibold">จัดการงานซ่อม</h2>
             <TicketManageForm ticket={ticket} staff={staffOptions} viewerId={viewerId} />
+            <SharePanel key={share ? "sent" : "open"} ticketId={ticket.id} share={share} />
             <form
               action={createMemoFromTicket}
               className="mt-4 border-t border-border pt-4"

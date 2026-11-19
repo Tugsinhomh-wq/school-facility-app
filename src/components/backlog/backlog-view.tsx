@@ -31,8 +31,9 @@ const LIST = "divide-y divide-border overflow-hidden rounded-xl border border-bo
 
 /** The open repairs by building: the tickets with a new comment first, then one fold per building. */
 export function BacklogView({ result }: { result: ReturnType<typeof groupBacklog> }) {
-  const { unread, groups } = result;
-  if (groups.length === 0) return <p className="rounded-xl border border-dashed border-border p-10 text-center text-muted-foreground">ไม่มีงานซ่อมค้าง</p>;
+  const { unread, groups, closed } = result;
+  if (groups.length === 0 && closed.length === 0 && unread.length === 0)
+    return <p className="rounded-xl border border-dashed border-border p-10 text-center text-muted-foreground">ยังไม่มีงานที่ขอความเห็น</p>;
   return (
     <div className="space-y-6">
       {unread.length > 0 && (
@@ -61,6 +62,19 @@ export function BacklogView({ result }: { result: ReturnType<typeof groupBacklog
           </ul>
         </details>
       ))}
+      {closed.length > 0 && (
+        <details className="group">
+          <summary className="mb-2 flex min-h-11 cursor-pointer list-none items-center gap-3 font-semibold outline-none focus-visible:ring-3 focus-visible:ring-ring/50 [&::-webkit-details-marker]:hidden">
+            <span>ปิดแล้ว</span>
+            <span className="text-sm font-normal text-muted-foreground">{closed.length} ใบ</span>
+          </summary>
+          <ul className={LIST}>
+            {closed.map((r) => (
+              <Row key={r.id} r={r} />
+            ))}
+          </ul>
+        </details>
+      )}
     </div>
   );
 }

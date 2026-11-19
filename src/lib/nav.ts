@@ -8,11 +8,11 @@ export type NavGroup = { heading: string | null; items: NavEntry[] };
 
 const HOME: NavEntry = { id: "home", label: "หน้าแรก", href: "/" };
 const SUMMARY: NavEntry = { id: "summary", label: "สรุปภาพรวม", href: "/summary" };
-const BACKLOG: NavEntry = { id: "backlog", label: "งานซ่อมค้าง", href: "/backlog" };
+const BACKLOG: NavEntry = { id: "backlog", label: "งานที่ขอความเห็น", href: "/backlog" };
 
 /**
  * The menu for a role, shared by the desktop sidebar and the phone bar. Executives get only the
- * summary (the budget deputy also gets the open repairs, with a count of unread comments); "จัดการ" holds the staff and administrator pages (memos for every role but teachers).
+ * summary (the budget deputy also gets the tickets sent for their opinion, with a count of unread comments); "จัดการ" holds the staff and administrator pages (memos for every role but teachers).
  */
 export function navGroups(role: UserRole | null, badges: { backlog?: number } = {}): NavGroup[] {
   if (role === "budget_deputy")
