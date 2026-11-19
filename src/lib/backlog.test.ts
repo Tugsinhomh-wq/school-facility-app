@@ -90,6 +90,18 @@ test("a merged duplicate is never counted in a building, even when it holds an u
   assert.deepEqual(result.groups, []);
 });
 
+test("a closed ticket goes to the closed list, newest first, and keeps its unread flag", () => {
+  const older = ticket({ status: "completed", created_at: hoursAgo(72) });
+  const newer = ticket({ status: "cancelled", created_at: hoursAgo(5) });
+  const { closed, groups } = groupBacklog([older, newer], new Set([older.id]), NOW);
+  assert.deepEqual(closed.map((r) => [r.id, r.unread]), [[newer.id, false], [older.id, true]]);
+  assert.deepEqual(groups, []);
+});
+
+test("an open ticket is never in the closed list", () => {
+  assert.deepEqual(groupBacklog([ticket()], none, NOW).closed, []);
+});
+
 test("an empty backlog gives no groups", () => {
-  assert.deepEqual(groupBacklog([], none, NOW), { unread: [], groups: [] });
+  assert.deepEqual(groupBacklog([], none, NOW), { unread: [], groups: [], closed: [] });
 });

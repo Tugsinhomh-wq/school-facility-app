@@ -60,7 +60,7 @@ export default async function TicketDetailPage({
         className="mb-3 inline-flex min-h-11 items-center gap-1.5 text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         <ArrowLeft className="size-4" aria-hidden />
-        {isDeputy ? "งานซ่อมค้าง" : "รายการแจ้งซ่อม"}
+        {isDeputy ? "งานที่ขอความเห็น" : "รายการแจ้งซ่อม"}
       </Link>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">

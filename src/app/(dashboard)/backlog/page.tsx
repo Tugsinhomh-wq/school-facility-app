@@ -10,10 +10,10 @@ import { bangkokYmd, formatDayLong } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
-  title: "งานซ่อมค้าง | สำนักงานออนไลน์ โรงเรียนละหานทรายรัชดาภิเษก",
+  title: "งานที่ขอความเห็น | สำนักงานออนไลน์ โรงเรียนละหานทรายรัชดาภิเษก",
 };
 
-/** The open repairs by building, for the budget deputy to talk through with the facility staff. */
+/** The tickets the facility staff sent to the budget deputy for their opinion, by building. */
 export default async function BacklogPage() {
   const session = await getSession();
   if (!session) redirect("/login");
@@ -27,10 +27,10 @@ export default async function BacklogPage() {
     <div className="space-y-6">
       <header>
         <p className="text-sm font-medium text-muted-foreground">{formatDayLong(bangkokYmd(new Date()))}</p>
-        <h1 className="mt-1 font-display text-3xl font-medium tracking-tight">งานซ่อมค้าง</h1>
-        <p className="mt-1 text-muted-foreground">งานที่รอดำเนินการและกำลังดำเนินการ แยกตามอาคาร</p>
+        <h1 className="mt-1 font-display text-3xl font-medium tracking-tight">งานที่ขอความเห็น</h1>
+        <p className="mt-1 text-muted-foreground">งานซ่อมที่เจ้าหน้าที่ขอความเห็นจากท่าน แยกตามอาคาร</p>
       </header>
-      {result ? <BacklogView result={result} /> : <LoadError what="งานซ่อมค้าง" retryHref="/backlog" />}
+      {result ? <BacklogView result={result} /> : <LoadError what="งานที่ขอความเห็น" retryHref="/backlog" />}
     </div>
   );
 }

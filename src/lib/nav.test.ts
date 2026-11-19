@@ -60,3 +60,7 @@ test("the backlog entry carries a count only when there is something unread", ()
   assert.equal(backlog({ backlog: 0 })?.badge, undefined);
   assert.equal(backlog()?.badge, undefined);
 });
+
+test("the deputy's page is named for what it holds: the tickets sent for their opinion", () => {
+  assert.equal(navGroups("budget_deputy")[0].items[1].label, "งานที่ขอความเห็น");
+});

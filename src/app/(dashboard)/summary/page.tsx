@@ -36,7 +36,7 @@ export default async function SummaryPage({
           role="status"
           className="mb-4 flex min-h-12 items-center rounded-lg border border-border bg-muted/50 px-4 text-sm font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
-          {unread} ใบมีความเห็นใหม่ ดูที่งานซ่อมค้าง
+          {unread} ใบมีความเห็นใหม่ ดูที่งานที่ขอความเห็น
         </Link>
       )}
       <SummaryView
