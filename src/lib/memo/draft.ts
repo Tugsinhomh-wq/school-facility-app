@@ -38,28 +38,53 @@ export const placeOfTicket = (t: {
 }) => [t.building?.name, t.room?.name ?? t.location_detail].filter(Boolean).join(" ") || "บริเวณโรงเรียน";
 
 /**
- * First draft of one repair memo that covers several tickets of the same building, to ask the director
- * to approve them together: an opening paragraph, the tickets as numbered items (oldest first) and a
- * total. No cost section. Staff edit the text before exporting.
+ * First draft of one repair memo that covers several tickets, from one building or several, to ask the
+ * director to approve them together: an opening paragraph, numbered items (oldest first) and a total.
+ * `groups` maps a ticket id to a group number; tickets of one group become a single item that lists each
+ * place. `orderedIds` is the ticket ids in item order, for the memo's attachments. No cost section.
+ * Staff edit the text before exporting.
  */
-export function draftFromTickets(tickets: TicketRow[]) {
+export function draftFromTickets(tickets: TicketRow[], groups: Record<string, number> = {}) {
   const sorted = [...tickets].sort((a, b) => a.created_at.localeCompare(b.created_at));
-  const building = sorted[0]?.building?.name ?? "บริเวณโรงเรียน";
   const n = sorted.length;
   const urgent = sorted.some((t) => t.urgency === "high" || t.urgency === "emergency");
+  const buildings = [...new Set(sorted.map((t) => t.building?.name).filter((x): x is string => !!x))];
+  const where = buildings.join(", ") || "บริเวณโรงเรียน";
 
-  const opening = `ด้วยงานอาคารสถานที่ได้รับแจ้งความชำรุดเสียหายของอาคารสถานที่ ณ ${building} รวม ${n} รายการ และได้ตรวจสอบสภาพความเสียหายแล้ว พบว่ามีความจำเป็นต้องดำเนินการซ่อมแซม${urgent ? "อย่างเร่งด่วน" : "โดยเร็ว"} เพื่อความปลอดภัยของนักเรียนและครูผู้สอน และไม่ให้เกิดความเสียหายลุกลาม ดังรายการต่อไปนี้`;
-  const items = sorted.map((t, i) => {
-    const damage = [t.title, t.description && t.description !== t.title ? t.description : ""].filter(Boolean).join(" ");
-    return `${i + 1}. ${placeOfTicket(t)}: ${damage} เลขที่งาน ${t.ticket_number} แจ้งเมื่อ ${formatThaiDate(t.created_at)}${t.technician_notes ? ` ${t.technician_notes}` : ""}`;
+  // An item per ungrouped ticket, one per group; items follow their first (oldest) ticket.
+  const items: TicketRow[][] = [];
+  const byGroup = new Map<number, TicketRow[]>();
+  for (const t of sorted) {
+    const g = groups[t.id];
+    if (g === undefined) {
+      items.push([t]);
+      continue;
+    }
+    let item = byGroup.get(g);
+    if (!item) {
+      item = [];
+      byGroup.set(g, item);
+      items.push(item);
+    }
+    item.push(t);
+  }
+
+  const damageOf = (t: TicketRow) => [t.title, t.description && t.description !== t.title ? t.description : ""].filter(Boolean).join(" ");
+  const when = (t: TicketRow) => `เลขที่งาน ${t.ticket_number} แจ้งเมื่อ ${formatThaiDate(t.created_at)}${t.technician_notes ? ` ${t.technician_notes}` : ""}`;
+  const lines = items.map((item, i) => {
+    if (item.length === 1) return `${i + 1}. ${placeOfTicket(item[0])}: ${damageOf(item[0])} ${when(item[0])}`;
+    return `${i + 1}. ${item[0].title} จำนวน ${item.length} จุด ได้แก่ ${item.map((t) => `${placeOfTicket(t)} ${when(t)}`).join("; ")}`;
   });
 
+  const opening = `ด้วยงานอาคารสถานที่ได้รับแจ้งความชำรุดเสียหายของอาคารสถานที่ ณ ${where} รวม ${n} รายการ และได้ตรวจสอบสภาพความเสียหายแล้ว พบว่ามีความจำเป็นต้องดำเนินการซ่อมแซม${urgent ? "อย่างเร่งด่วน" : "โดยเร็ว"} เพื่อความปลอดภัยของนักเรียนและครูผู้สอน และไม่ให้เกิดความเสียหายลุกลาม ดังรายการต่อไปนี้`;
+
   return {
-    subject: `ขออนุมัติซ่อมแซมอาคารสถานที่ ${building} จำนวน ${n} รายการ`,
+    subject: buildings.length > 1 ? `ขออนุมัติซ่อมแซมอาคารสถานที่ จำนวน ${n} รายการ` : `ขออนุมัติซ่อมแซมอาคารสถานที่ ${where} จำนวน ${n} รายการ`,
     recipient: `ผู้อำนวยการ${SCHOOL_NAME}`,
-    body_content: [opening, ...items, `รวมทั้งสิ้น ${n} รายการ`].join("\n"),
+    body_content: [opening, ...lines, `รวมทั้งสิ้น ${n} รายการ`].join("\n"),
     // The request itself is the fixed closing paragraph, so the free proposal field stays empty.
     proposal: "",
+    orderedIds: items.flat().map((t) => t.id),
   };
 }
 
