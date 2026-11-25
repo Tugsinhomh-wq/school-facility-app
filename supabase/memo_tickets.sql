@@ -1,4 +1,4 @@
--- บันทึกข้อความขอซ่อมแซมรวมหลายงาน (อาคารเดียวกัน) เสนอผู้อำนวยการครั้งเดียว
+-- บันทึกข้อความขอซ่อมแซมรวมหลายงาน (อาคารเดียวกันหรือต่างอาคารก็ได้) เสนอผู้อำนวยการครั้งเดียว
 -- ตาราง memo_tickets ผูกบันทึกหนึ่งฉบับกับหลายงานซ่อม และฟังก์ชัน create_combined_repair_memo
 -- สร้างบันทึก + ลิงก์ใน transaction เดียว ถ้าเงื่อนไขข้อใดไม่ผ่านจะไม่สร้างอะไรเลย
 -- บันทึกเดี่ยวเดิม (memorandums.reference_id) ไม่เปลี่ยน
@@ -27,7 +27,8 @@ CREATE POLICY "memo_tickets: staff create" ON public.memo_tickets FOR INSERT TO 
 
 GRANT SELECT, INSERT ON public.memo_tickets TO authenticated;
 
--- Creates one repair memo covering 2-20 open tickets of one building. Runs as the caller (SECURITY
+-- Creates one repair memo covering 2-20 open tickets, from one building or several. The links keep the order
+-- of p_ticket_ids (the order of the items in the draft), which the memo's photo attachments follow. Runs as the caller (SECURITY
 -- INVOKER), so row policies still apply: a ticket in the trash is hidden and counts as missing.
 -- Errors are the codes below; a clash with someone combining the same ticket at the same moment
 -- surfaces as unique_violation (23505) and rolls everything back.
@@ -39,7 +40,6 @@ DECLARE
   ids UUID[];
   n INT;
   found_n INT;
-  building_n INT;
   open_n INT;
   new_id UUID;
 BEGIN
@@ -47,17 +47,18 @@ BEGIN
     RAISE EXCEPTION 'not_staff' USING ERRCODE = '42501';
   END IF;
 
-  SELECT array_agg(DISTINCT x) INTO ids FROM unnest(p_ticket_ids) AS x;
+  -- distinct ids, kept in the order given
+  SELECT array_agg(x ORDER BY ord) INTO ids
+  FROM (SELECT x, min(ord) AS ord FROM unnest(p_ticket_ids) WITH ORDINALITY AS u(x, ord) GROUP BY x) d;
   n := COALESCE(cardinality(ids), 0);
   IF n < 2 OR n > 20 THEN
     RAISE EXCEPTION 'count_range';
   END IF;
 
-  SELECT count(*), count(DISTINCT building_id), count(*) FILTER (WHERE status IN ('pending', 'in_progress'))
-    INTO found_n, building_n, open_n
+  SELECT count(*), count(*) FILTER (WHERE status IN ('pending', 'in_progress'))
+    INTO found_n, open_n
   FROM repair_tickets WHERE id = ANY (ids);
   IF found_n <> n THEN RAISE EXCEPTION 'missing_ticket'; END IF;
-  IF building_n <> 1 THEN RAISE EXCEPTION 'mixed_buildings'; END IF;
   IF open_n <> n THEN RAISE EXCEPTION 'not_open'; END IF;
 
   IF EXISTS (SELECT 1 FROM memo_tickets WHERE ticket_id = ANY (ids))
@@ -71,7 +72,7 @@ BEGIN
   RETURNING id INTO new_id;
 
   INSERT INTO memo_tickets (memo_id, ticket_id, position)
-  SELECT new_id, t.id, (row_number() OVER (ORDER BY t.created_at, t.id))::INT
+  SELECT new_id, t.id, array_position(ids, t.id)
   FROM repair_tickets t WHERE t.id = ANY (ids);
 
   RETURN new_id;
@@ -84,11 +85,12 @@ GRANT EXECUTE ON FUNCTION public.create_combined_repair_memo(UUID[], TEXT, TEXT,
 -- CHECK BLOCK (ไม่ได้รันอัตโนมัติ) — รันใน SQL Editor ด้วยผู้ใช้เจ้าหน้าที่จริง หรือจำลองสิทธิ์:
 --   set local role authenticated;
 --   set local request.jwt.claims = '{"sub":"<uuid ของเจ้าหน้าที่>","role":"authenticated"}';
--- ใช้ id งานซ่อมจริง: A1, A2 = งานเปิดอยู่ในอาคารเดียวกัน; B1 = งานเปิดอยู่ในอาคารอื่น;
+-- ใช้ id งานซ่อมจริง: A1, A2 = งานเปิดอยู่ในอาคารเดียวกัน; B1 = งานเปิดอยู่ในอาคารอื่น (ใช้ทดสอบข้ามอาคาร);
 -- C1 = งานที่ completed/cancelled; D1 = งานที่มีบันทึกเดี่ยวอยู่แล้ว
 --
 -- 1) รวม 1 งาน               select create_combined_repair_memo(array['A1']::uuid[], 's','r','b','');  → error count_range
--- 2) รวมต่างอาคาร             ... array['A1','B1'] ...                                                     → error mixed_buildings
+-- 2) รวมต่างอาคาร             select create_combined_repair_memo(array['B1','A1']::uuid[], 's','r','b',''); → สำเร็จ (ไม่มี error mixed_buildings อีก)
+--      select ticket_id, position from memo_tickets where memo_id = '<uuid>' order by position;  → B1 position 1, A1 position 2 (ตามลำดับที่ส่ง)
 -- 3) รวมงานที่ปิดแล้ว          ... array['A1','C1'] ...                                                     → error not_open
 -- 4) รวมงานที่มีบันทึกเดี่ยว    ... array['A1','D1'] ...                                                     → error already_has_memo
 -- 5) id ที่ไม่มีอยู่/ในถังขยะ    ... array['A1', gen_random_uuid()] ...                                       → error missing_ticket

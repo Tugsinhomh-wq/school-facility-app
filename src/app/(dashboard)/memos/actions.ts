@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { fetchSummary } from "@/lib/data/summary";
-import { parseTicketIds } from "@/lib/memo/combine";
+import { parseGroups, parseTicketIds } from "@/lib/memo/combine";
 import { canDeleteMemo } from "@/lib/memo/delete-rule";
 import { draftFromTicket, draftFromTickets } from "@/lib/memo/draft";
 import { draftFromSummary } from "@/lib/memo/draft-summary";
@@ -94,14 +94,13 @@ export async function createMemoFromTicket(formData: FormData) {
 
 const COMBINE_ERROR: Record<string, string> = {
   not_staff: "บัญชีนี้ไม่ใช่เจ้าหน้าที่ จึงสร้างบันทึกรวมไม่ได้",
-  count_range: "เลือกงาน 2–20 งานในอาคารเดียวกันก่อน",
+  count_range: "เลือกงาน 2–20 งานก่อน",
   missing_ticket: "มีงานที่เลือกไม่พบแล้ว (อาจถูกลบ) รีเฟรชหน้าแล้วเลือกใหม่",
-  mixed_buildings: "รวมได้เฉพาะงานในอาคารเดียวกัน",
   not_open: "มีงานที่ปิดหรือยกเลิกไปแล้ว รีเฟรชหน้าแล้วเลือกใหม่",
   already_has_memo: "มีงานที่มีบันทึกแล้ว (อาจมีคนอื่นรวมไปก่อน) รีเฟรชหน้าแล้วเลือกใหม่",
 };
 
-/** Drafts one repair memo for several tickets of the same building, to ask the director to approve them together. */
+/** Drafts one repair memo for several tickets, from one building or several, to ask the director to approve them together. */
 export async function createCombinedMemo(formData: FormData) {
   const back = (message: string) =>
     redirect(`/memos?error=${encodeURIComponent(message)}`);
@@ -124,11 +123,12 @@ export async function createCombinedMemo(formData: FormData) {
   if (!tickets || tickets.length !== ids!.length)
     back(COMBINE_ERROR.missing_ticket);
 
-  const draft = draftFromTickets(tickets as unknown as TicketRow[]);
+  const groups = parseGroups(ids!, (name) => formData.get(name));
+  const draft = draftFromTickets(tickets as unknown as TicketRow[], groups);
   const { data: memoId, error } = await supabase.rpc(
     "create_combined_repair_memo",
     {
-      p_ticket_ids: ids,
+      p_ticket_ids: draft.orderedIds,
       p_subject: draft.subject,
       p_recipient: draft.recipient,
       p_body: draft.body_content,

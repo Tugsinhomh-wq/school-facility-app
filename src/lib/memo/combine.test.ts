@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { COMBINE_MAX, COMBINE_MIN, liveSelection, parseTicketIds, selectableTicket } from "./combine.ts";
+import { COMBINE_MAX, COMBINE_MIN, GROUP_MAX, groupFieldName, liveSelection, parseGroups, parseTicketIds } from "./combine.ts";
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const ids = (count: number) => Array.from({ length: count }, (_, i) => id(i + 1));
@@ -37,10 +37,35 @@ test("anything that is not a UUID string refuses the whole list", () => {
   assert.equal(parseTicketIds([id(1), id(2).toUpperCase().slice(0, 35)]), null);
 });
 
-test("selectableTicket allows any ticket until one is picked, then only the same building", () => {
-  assert.equal(selectableTicket(null, "b1"), true);
-  assert.equal(selectableTicket("b1", "b1"), true);
-  assert.equal(selectableTicket("b1", "b2"), false);
+test("groupFieldName is group_ plus the ticket id", () => {
+  assert.equal(groupFieldName(id(1)), `group_${id(1)}`);
+  assert.equal(GROUP_MAX, 9);
+});
+
+test("parseGroups keeps whole numbers 1 to 9 and drops everything else", () => {
+  const form: Record<string, unknown> = {
+    [groupFieldName(id(1))]: "1",
+    [groupFieldName(id(2))]: "9",
+    [groupFieldName(id(3))]: "0",
+    [groupFieldName(id(4))]: "10",
+    [groupFieldName(id(5))]: "abc",
+    [groupFieldName(id(6))]: "",
+    [groupFieldName(id(7))]: null,
+    [groupFieldName(id(8))]: new File([""], "x.txt"),
+    [groupFieldName(id(9))]: "1.5",
+  };
+  assert.deepEqual(parseGroups(ids(9), (n) => form[n]), { [id(1)]: 1, [id(2)]: 9 });
+});
+
+test("parseGroups reads only the fields of the listed ids", () => {
+  const asked: string[] = [];
+  const out = parseGroups([id(1)], (n) => {
+    asked.push(n);
+    return "2";
+  });
+  assert.deepEqual(asked, [groupFieldName(id(1))]);
+  assert.deepEqual(out, { [id(1)]: 2 });
+  assert.deepEqual(parseGroups(ids(2), () => undefined), {});
 });
 
 test("liveSelection drops picked ids that are no longer in the list, keeping the order", () => {
