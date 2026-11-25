@@ -2,7 +2,7 @@ import { getSession } from "@/lib/data/session";
 import type { MemoPhotoGroup } from "@/lib/memo/model";
 import { buildPhotoGroups, type PhotoTicket } from "@/lib/memo/photo-groups";
 
-const TICKET_COLUMNS = "title, location_detail, image_urls, building:buildings(name), room:rooms(name)";
+const TICKET_COLUMNS = "ticket_number, title, location_detail, image_urls, building:buildings(name), room:rooms(name)";
 
 /**
  * The before-repair photos behind a repair memo, one group per ticket, as signed links (the bucket is
@@ -16,7 +16,7 @@ export async function getMemoPhotos(memo: { id: string; origin_module: string; r
     const s = await getSession();
     if (!s) return [];
 
-    let entries: { position?: number; ticket: PhotoTicket }[];
+    let entries: { numbered?: boolean; ticket: PhotoTicket }[];
     if (memo.reference_id) {
       const { data, error } = await s.supabase.from("repair_tickets").select(TICKET_COLUMNS).eq("id", memo.reference_id).maybeSingle();
       if (error) throw error;
@@ -28,7 +28,7 @@ export async function getMemoPhotos(memo: { id: string; origin_module: string; r
         .eq("memo_id", memo.id)
         .order("position");
       if (error) throw error;
-      entries = ((data ?? []) as unknown as { position: number; ticket: PhotoTicket | null }[]).flatMap((r) => (r.ticket ? [{ position: r.position, ticket: r.ticket }] : []));
+      entries = ((data ?? []) as unknown as { position: number; ticket: PhotoTicket | null }[]).flatMap((r) => (r.ticket ? [{ numbered: true, ticket: r.ticket }] : []));
     }
 
     const paths = entries.flatMap((e) => e.ticket.image_urls ?? []);
