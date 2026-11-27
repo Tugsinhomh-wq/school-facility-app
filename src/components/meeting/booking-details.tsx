@@ -190,7 +190,7 @@ export function BookingDetails({
       <div className="grid gap-2">
         <div className="flex gap-2">
           <Button type="button" variant="outline" className="h-14 rounded-md px-5 text-base" onClick={onBack}>
-            ย้อนกลับ
+            เปลี่ยนห้อง
           </Button>
           <Button type="submit" disabled={pending || Boolean(conflict) || tooMany} className={cn(nextClass, "flex-1 rounded-md")}>
             {pending ? "กำลังส่ง..." : room.requires_approval ? "ส่งคำขอใช้ห้อง" : "จองห้อง"}

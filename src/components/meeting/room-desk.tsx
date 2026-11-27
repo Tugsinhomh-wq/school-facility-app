@@ -1,17 +1,16 @@
 "use client";
 
-import { ChevronDown, ChevronLeft, ChevronRight, Clock, Zap } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Clock, MousePointerClick, Users, Zap } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { BookingDetailDialog } from "@/components/meeting/booking-detail-dialog";
-import { BookingDetails, nextClass } from "@/components/meeting/booking-details";
+import { BookingDetails } from "@/components/meeting/booking-details";
 import { PendingQueue } from "@/components/meeting/pending-queue";
 import { useLiveRefresh, useNow } from "@/components/meeting/use-meeting-live";
-import { Button } from "@/components/ui/button";
 import type { Booking, RoomInfo } from "@/lib/data/rooms";
-import { DAY_END, DAY_START, STEP } from "@/lib/meeting";
-import { earliestFit, splitRooms, type Seg } from "@/lib/meeting-finder";
+import { DAY_END, DAY_START, latestEnd, STEP } from "@/lib/meeting";
+import { clashOf, earliestFit, splitRooms, type Seg } from "@/lib/meeting-finder";
 import { segOn, weekDays } from "@/lib/meeting-view";
 import { addDays, bangkokMinutes, bangkokYmd, formatDateShort, formatDayLong, formatDayShort, formatHm, mondayOf } from "@/lib/time";
 import { cn } from "@/lib/utils";
@@ -23,17 +22,24 @@ const LENGTHS = [
   { min: 180, label: "3 ชม." },
   { min: 240, label: "ครึ่งวัน" },
 ];
-const STEPS = ["เวลา", "ห้อง", "รายละเอียด"];
 /** Teachers rarely start at 07:00, so a future day opens on 08:00. */
 const DEFAULT_START = 8 * 60;
+const SPAN = DAY_END - DAY_START;
+const SLOTS = SPAN / STEP;
+const HOUR_MARKS = Array.from({ length: SPAN / 60 }, (_, i) => DAY_START + i * 60);
+const pct = (m: number) => ((m - DAY_START) / SPAN) * 100;
+const ROW_H = "h-14";
 
-const selectClass =
-  "h-12 w-full appearance-none rounded-md border border-input bg-card px-3.5 pr-10 text-base tabular-nums outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50";
+const focusRing = "outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+const selectClass = `h-11 w-full appearance-none rounded-md border border-input bg-card px-3.5 pr-10 text-base tabular-nums disabled:opacity-50 ${focusRing}`;
+
+type Active = { b: Booking; seg: { start: number; end: number } };
 
 /**
- * Booking in three steps, for everyone but the administrator: 1 when (day, start, length), 2 which room (only the
- * rooms that are free then), 3 what for. The week lives in the URL; everything else is local. Approvers also see the
- * requests waiting for a decision on step 1.
+ * One page for booking, on a phone and on a desktop. The day, the start and the length sit on top. Below them the
+ * rooms are shown against the day: a grid of rooms by half hours on a wide screen (click a free slot to choose room and
+ * start in one go), a list of rooms with a small timeline on a phone. The details form sits beside the grid, or under
+ * the list, once a room is chosen. The week lives in the URL; everything else is local.
  */
 export function RoomDesk({
   rooms,
@@ -49,7 +55,7 @@ export function RoomDesk({
   rooms: RoomInfo[];
   bookings: Booking[];
   weekStart: string;
-  /** Kept for the page's shared props: step 2 lists every room, so the URL's room is not used. */
+  /** Kept for the page's shared props: every room is on the page, so the URL's room is not used. */
   roomId?: string;
   userId: string | null;
   isManager: boolean;
@@ -66,25 +72,12 @@ export function RoomDesk({
   const thisWeek = today ? mondayOf(today) : weekStart;
   const href = (week: string) => `/meeting-rooms?week=${week}`;
 
-  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [picked, setPicked] = useState<string | null>(null);
   const [userStart, setUserStart] = useState<number | null>(null);
   const [length, setLength] = useState(60);
   const [roomId, setRoomId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [formKey, setFormKey] = useState(0);
-
-  // Each step opens at the top with its heading focused, so a screen reader and a thumb both start in the right place.
-  const heading = useRef<HTMLHeadingElement>(null);
-  const first = useRef(true);
-  useEffect(() => {
-    if (first.current) {
-      first.current = false;
-      return;
-    }
-    window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-    heading.current?.focus({ preventScroll: true });
-  }, [step]);
 
   const isPastDay = (ymd: string) => today !== null && ymd < today;
   const firstOpen = days.find((d) => !isPastDay(d)) ?? null;
@@ -95,18 +88,21 @@ export function RoomDesk({
   const latestStart = DAY_END - STEP;
   const dayClosed = earliest > latestStart || isPastDay(day);
   const start = Math.min(Math.max(userStart ?? DEFAULT_START, earliest), latestStart);
-  const len = Math.min(length, DAY_END - start);
+  // With a room chosen the booking cannot run into the next one, so the longest length is what is left before it.
+  const limit = roomId ? Math.max(latestEnd(bookings, roomId, day, start), start + STEP) : DAY_END;
+  const len = Math.max(STEP, Math.min(length, limit - start));
   const end = start + len;
 
-  const segs = useMemo<Seg[]>(() => {
-    const out: Seg[] = [];
+  const active = useMemo(() => {
+    const out: Active[] = [];
     for (const b of bookings) {
       if (b.status !== "pending" && b.status !== "approved") continue;
-      const s = segOn(b, day);
-      if (s) out.push({ id: b.id, roomId: b.room_id, start: s.start, end: s.end });
+      const seg = segOn(b, day);
+      if (seg && seg.end > DAY_START && seg.start < DAY_END) out.push({ b, seg });
     }
     return out;
   }, [bookings, day]);
+  const segs = useMemo<Seg[]>(() => active.map(({ b, seg }) => ({ id: b.id, roomId: b.room_id, start: seg.start, end: seg.end })), [active]);
 
   const { free, busy } = useMemo(
     () =>
@@ -120,17 +116,18 @@ export function RoomDesk({
     [rooms, segs, start, len],
   );
   const roomOf = (id: string) => rooms.find((r) => r.id === id) as RoomInfo;
-  // Rooms that can be booked on the spot come first.
-  const freeRooms = free.map(roomOf).sort((a, b) => Number(a.requires_approval) - Number(b.requires_approval));
-  const nearest = freeRooms.length === 0 ? earliestFit(busy) : null;
-  // A room somebody else just took drops out of the choice; step 3 keeps its room and reports the clash itself.
-  const chosen = roomId && (step === 3 || free.includes(roomId)) ? rooms.find((r) => r.id === roomId) : undefined;
+  const nearest = free.length === 0 ? earliestFit(busy) : null;
+  const chosen = roomId ? rooms.find((r) => r.id === roomId) : undefined;
   const detail = bookings.find((b) => b.id === detailId) ?? null;
-  const whenShort = `${formatDayShort(day)} · ${formatHm(start)} – ${formatHm(end)} น.`;
+  const busyOf = (id: string) => busy.find((x) => x.roomId === id);
 
   function pickDay(ymd: string) {
     setPicked(ymd);
     setUserStart(null);
+  }
+  function pickSlot(rid: string, minute: number) {
+    setRoomId(rid);
+    setUserStart(minute);
   }
   const reset = () => {
     setRoomId(null);
@@ -138,12 +135,20 @@ export function RoomDesk({
     setUserStart(null);
     setLength(60);
     setFormKey((n) => n + 1);
-    setStep(1);
   };
-  const stepNames = STEPS.map((name, i) => ({ name, n: i + 1 }));
+
+  // On a phone the form opens under the list: bring it into view when a room is chosen.
+  const panel = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!roomId || !window.matchMedia("(max-width: 1279px)").matches) return;
+    panel.current?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  }, [roomId]);
+
+  const nowPct = today === day && nowMin !== null && nowMin >= DAY_START && nowMin <= DAY_END ? pct(nowMin) : null;
+  const isPastSlot = (m: number) => today === day && nowMin !== null && m + STEP <= nowMin;
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
         <div>
           <p className="text-sm text-muted-foreground">
@@ -153,7 +158,7 @@ export function RoomDesk({
           <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">ขอใช้ห้องประชุม</h1>
         </div>
         {canManage && (
-          <Link href="/meeting-rooms/manage" className="inline-flex min-h-11 items-center text-sm text-primary underline-offset-4 hover:underline">
+          <Link href="/meeting-rooms/manage" className={cn("inline-flex min-h-11 items-center text-sm text-primary underline-offset-4 hover:underline", focusRing)}>
             จัดการห้อง
           </Link>
         )}
@@ -164,70 +169,56 @@ export function RoomDesk({
         </p>
       )}
 
-      <ol aria-label="ขั้นตอนการจอง" className="grid grid-cols-3 border-t-2 border-primary">
-        {stepNames.map(({ name, n }) => (
-          <li key={n} aria-current={n === step ? "step" : undefined} className={cn("flex items-baseline gap-2 pt-2.5 pr-2 text-sm", n === step ? "font-semibold text-primary" : n < step ? "text-foreground" : "text-muted-foreground")}>
-            <span className="tabular-nums">{n}</span>
-            {name}
-          </li>
-        ))}
-      </ol>
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_21rem]">
+        <div className="min-w-0 space-y-5">
+          {/* Day */}
+          <section aria-labelledby="h-day" className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-x-3">
+              <h2 id="h-day" className="font-display text-lg font-semibold">
+                วัน
+              </h2>
+              <nav aria-label="สัปดาห์" className="flex items-center text-sm">
+                <Link href={href(addDays(weekStart, -7))} aria-label="สัปดาห์ก่อนหน้า" className={cn("grid size-11 place-items-center rounded-md hover:bg-muted", focusRing)}>
+                  <ChevronLeft className="size-5" aria-hidden />
+                </Link>
+                <Link href={href(thisWeek)} className={cn("inline-flex min-h-11 items-center px-1 whitespace-nowrap tabular-nums text-muted-foreground hover:underline", focusRing)}>
+                  {formatDateShort(days[0]).replace(/ \d{4}$/, "")} – {formatDateShort(days[6]).replace(/ \d{4}$/, "")}
+                </Link>
+                <Link href={href(addDays(weekStart, 7))} aria-label="สัปดาห์ถัดไป" className={cn("grid size-11 place-items-center rounded-md hover:bg-muted", focusRing)}>
+                  <ChevronRight className="size-5" aria-hidden />
+                </Link>
+              </nav>
+            </div>
+            <div role="group" aria-label="เลือกวัน" className="grid grid-cols-7 gap-1.5">
+              {days.map((ymd) => {
+                const [dow, date] = formatDayShort(ymd).split(" ");
+                const on = ymd === day;
+                return (
+                  <button
+                    key={ymd}
+                    type="button"
+                    aria-pressed={on}
+                    disabled={isPastDay(ymd)}
+                    onClick={() => pickDay(ymd)}
+                    className={cn(
+                      "flex min-h-16 flex-col items-center justify-center rounded-lg border py-1.5 transition-colors disabled:opacity-40",
+                      focusRing,
+                      on ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card hover:bg-muted",
+                    )}
+                  >
+                    <span className={cn("text-xs leading-none", on ? "text-primary-foreground/80" : "text-muted-foreground")}>{dow}</span>
+                    <span className="mt-1 font-display text-xl leading-none font-semibold tabular-nums">{date}</span>
+                    <span className={cn("mt-1 min-h-[1em] text-xs leading-none", on ? "text-primary-foreground/80" : "text-primary")}>{ymd === today ? "วันนี้" : ""}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
 
-      {step > 1 && (
-        <div className="flex flex-wrap items-center justify-between gap-x-3 border-y border-border py-1.5">
-          <p className="font-semibold tabular-nums">{whenShort}</p>
-          <button type="button" onClick={() => setStep(1)} className="inline-flex min-h-11 items-center px-1 font-semibold text-primary underline underline-offset-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
-            แก้ไขเวลา
-          </button>
-        </div>
-      )}
-
-      {step === 1 && (
-        <section aria-labelledby="h-time" className="space-y-5">
-          <div className="flex flex-wrap items-center justify-between gap-x-3">
-            <h2 id="h-time" ref={heading} tabIndex={-1} className="font-display text-2xl font-semibold outline-none">
-              ต้องการใช้เมื่อไร
-            </h2>
-            <nav aria-label="สัปดาห์" className="flex items-center text-sm">
-              <Link href={href(addDays(weekStart, -7))} aria-label="สัปดาห์ก่อนหน้า" className="grid size-11 place-items-center rounded-md outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50">
-                <ChevronLeft className="size-5" aria-hidden />
-              </Link>
-              <Link href={href(thisWeek)} className="inline-flex min-h-11 items-center px-1 whitespace-nowrap text-muted-foreground outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50">
-                {formatDateShort(days[0]).replace(/ \d{4}$/, "")} – {formatDateShort(days[6]).replace(/ \d{4}$/, "")}
-              </Link>
-              <Link href={href(addDays(weekStart, 7))} aria-label="สัปดาห์ถัดไป" className="grid size-11 place-items-center rounded-md outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50">
-                <ChevronRight className="size-5" aria-hidden />
-              </Link>
-            </nav>
-          </div>
-
-          <div role="group" aria-label="วัน" className="grid grid-cols-7 border-t border-l border-input">
-            {days.map((ymd) => {
-              const [dow, date] = formatDayShort(ymd).split(" ");
-              const on = ymd === day;
-              return (
-                <button
-                  key={ymd}
-                  type="button"
-                  aria-pressed={on}
-                  disabled={isPastDay(ymd)}
-                  onClick={() => pickDay(ymd)}
-                  className={cn(
-                    "flex min-h-[4.25rem] flex-col items-start justify-center border-r border-b border-input py-1.5 pl-2 text-left outline-none focus-visible:z-10 focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-40",
-                    on ? "bg-primary text-primary-foreground" : "bg-card hover:bg-muted",
-                  )}
-                >
-                  <span className={cn("text-xs leading-none", on ? "text-primary-foreground/80" : "text-muted-foreground")}>{dow}</span>
-                  <span className="font-display text-xl leading-tight font-semibold tabular-nums">{date}</span>
-                  <span className={cn("min-h-[1em] text-[11px] leading-none", on ? "text-primary-foreground/80" : "text-muted-foreground")}>{ymd === today ? "วันนี้" : ""}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="grid gap-5 sm:grid-cols-[11rem_1fr]">
+          {/* Start and length */}
+          <section aria-label="เวลา" className="grid gap-4 sm:grid-cols-[10rem_1fr]">
             <div className="grid gap-2">
-              <label htmlFor="start-sel" className="font-medium">
+              <label htmlFor="start-sel" className="text-sm font-medium">
                 เริ่มเวลา
               </label>
               <div className="relative">
@@ -242,7 +233,7 @@ export function RoomDesk({
               </div>
             </div>
             <div className="grid gap-2">
-              <span id="len-l" className="font-medium">
+              <span id="len-l" className="text-sm font-medium">
                 ใช้นานแค่ไหน
               </span>
               <div role="group" aria-labelledby="len-l" className="flex flex-wrap gap-2">
@@ -250,12 +241,13 @@ export function RoomDesk({
                   <button
                     key={l.min}
                     type="button"
-                    aria-pressed={len === l.min}
-                    disabled={dayClosed || start + l.min > DAY_END}
+                    aria-pressed={length === l.min}
+                    disabled={dayClosed || start + l.min > limit}
                     onClick={() => setLength(l.min)}
                     className={cn(
-                      "min-h-11 rounded-md border px-3.5 text-sm outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-40",
-                      len === l.min ? "border-primary bg-primary text-primary-foreground" : "border-input bg-card hover:bg-muted",
+                      "min-h-11 rounded-md border px-3.5 text-sm transition-colors disabled:opacity-40",
+                      focusRing,
+                      length === l.min ? "border-primary bg-primary text-primary-foreground" : "border-input bg-card hover:bg-muted",
                     )}
                   >
                     {l.label}
@@ -263,137 +255,249 @@ export function RoomDesk({
                 ))}
               </div>
             </div>
-          </div>
+          </section>
 
-          <div role="status" className={cn("flex items-baseline gap-3 border border-l-4 border-input bg-card p-4", freeRooms.length > 0 ? "border-l-primary" : "border-l-amber-700")}>
-            {dayClosed ? (
-              <p className="text-muted-foreground">{isPastDay(day) ? "วันนี้ผ่านมาแล้ว จองย้อนหลังไม่ได้ เลือกวันอื่น" : "วันนี้เลยเวลาจองแล้ว เลือกวันอื่น"}</p>
-            ) : (
-              <>
-                <strong className={cn("font-display text-4xl leading-none tabular-nums", freeRooms.length > 0 ? "text-primary" : "text-amber-800")}>{freeRooms.length}</strong>
-                <span className="text-muted-foreground">{freeRooms.length > 0 ? `ห้องว่างในช่วง ${formatHm(start)} – ${formatHm(end)} น.` : "ไม่มีห้องว่างในช่วงนี้ ลองเปลี่ยนเวลาหรือวัน"}</span>
-              </>
-            )}
-          </div>
-
-          {nearest && !dayClosed && (
-            <button type="button" onClick={() => setUserStart(nearest.start)} className="inline-flex min-h-11 items-center rounded-md border border-input bg-card px-3.5 text-sm font-medium outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50">
-              ลองเริ่ม {formatHm(nearest.start)} น. (ว่าง {roomOf(nearest.roomId).name})
-            </button>
-          )}
-
-          <Button
-            type="button"
-            disabled={dayClosed || freeRooms.length === 0}
-            onClick={() => {
-              setRoomId(null);
-              setStep(2);
-            }}
-            className={cn(nextClass, "w-full rounded-md")}
-          >
-            {freeRooms.length > 0 && !dayClosed ? `ดูห้องว่าง ${freeRooms.length} ห้อง` : "ไม่มีห้องว่าง"}
-          </Button>
-
-          {isManager && <PendingQueue bookings={bookings} rooms={rooms} onOpen={setDetailId} tone="well" />}
-        </section>
-      )}
-
-      {step === 2 && (
-        <section aria-labelledby="h-room" className="space-y-5">
-          <h2 id="h-room" ref={heading} tabIndex={-1} className="font-display text-2xl font-semibold outline-none">
-            เลือกห้อง
-          </h2>
-          {freeRooms.length === 0 ? (
-            <div className="space-y-3 border border-dashed border-input p-5">
-              <p className="font-medium">ห้องว่างช่วงนี้ถูกจองไปแล้ว</p>
-              <Button type="button" variant="outline" className="h-12 rounded-md" onClick={() => setStep(1)}>
-                กลับไปเลือกเวลาใหม่
-              </Button>
+          {/* Rooms against the day */}
+          <section aria-labelledby="h-rooms" className="space-y-3">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+              <h2 id="h-rooms" className="font-display text-lg font-semibold">
+                ห้องว่าง
+              </h2>
+              <p role="status" className="text-sm text-muted-foreground tabular-nums">
+                {dayClosed
+                  ? isPastDay(day)
+                    ? "วันนี้ผ่านมาแล้ว จองย้อนหลังไม่ได้"
+                    : "วันนี้เลยเวลาจองแล้ว เลือกวันอื่น"
+                  : free.length > 0
+                    ? `ว่าง ${free.length} จาก ${rooms.length} ห้อง · ${formatHm(start)} – ${formatHm(end)} น.`
+                    : `ไม่มีห้องว่าง ${formatHm(start)} – ${formatHm(end)} น.`}
+              </p>
             </div>
-          ) : (
-            <fieldset>
-              <legend className="sr-only">ห้องที่ว่าง</legend>
-              <div className="border-t border-input">
-                {freeRooms.map((r) => (
-                  <label key={r.id} className="grid min-h-[4.75rem] cursor-pointer grid-cols-[1.75rem_1fr] items-center gap-x-3.5 gap-y-1 border-b border-input py-3 pr-2 hover:bg-primary/5 has-checked:bg-primary/10 has-focus-visible:ring-3 has-focus-visible:ring-ring/50 has-focus-visible:ring-inset">
-                    <input type="radio" name="room" value={r.id} checked={chosen?.id === r.id} onChange={() => setRoomId(r.id)} className="peer sr-only" />
-                    <span aria-hidden className="row-span-2 grid size-6 place-items-center rounded-full border-2 border-primary after:size-3 after:rounded-full after:bg-primary after:opacity-0 peer-checked:after:opacity-100" />
-                    <span className="font-display text-lg leading-snug font-semibold">{r.name}</span>
-                    <span
-                      className={cn(
-                        "inline-flex w-fit items-center gap-1.5 rounded-md px-2.5 py-1 text-sm font-medium",
-                        r.requires_approval ? "bg-amber-100 text-amber-900" : "bg-emerald-100 text-emerald-900",
-                      )}
+
+            {nearest && !dayClosed && (
+              <button type="button" onClick={() => setUserStart(nearest.start)} className={cn("inline-flex min-h-11 items-center rounded-md border border-input bg-card px-3.5 text-sm font-medium hover:bg-muted", focusRing)}>
+                ลองเริ่ม {formatHm(nearest.start)} น. (ว่าง {roomOf(nearest.roomId).name})
+              </button>
+            )}
+
+            {/* Wide screens: rooms by half hours */}
+            <div className="hidden overflow-x-auto rounded-xl border border-border bg-card lg:block">
+              <div className="flex min-w-[44rem]">
+                <div className="sticky left-0 z-20 w-40 shrink-0 border-r border-border bg-card">
+                  <div className="h-9 border-b border-border" />
+                  {rooms.map((r) => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => !dayClosed && pickSlot(r.id, start)}
+                      aria-pressed={roomId === r.id}
+                      disabled={dayClosed}
+                      className={cn("flex w-full flex-col justify-center border-b border-border px-3 text-left last:border-b-0 hover:bg-muted", ROW_H, focusRing, roomId === r.id && "bg-primary/5")}
                     >
-                      {r.requires_approval ? <Clock className="size-4" aria-hidden /> : <Zap className="size-4" aria-hidden />}
-                      {r.requires_approval ? "ต้องรอ ผอ. อนุมัติ" : "จองได้ทันที"}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-          )}
+                      <span className="truncate text-sm font-medium">{r.name}</span>
+                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        {r.requires_approval ? <Clock className="size-3.5" aria-hidden /> : <Zap className="size-3.5" aria-hidden />}
+                        {r.requires_approval ? "รอ ผอ. อนุมัติ" : "จองได้ทันที"}
+                        {r.capacity ? (
+                          <span className="ml-auto inline-flex items-center gap-1 tabular-nums">
+                            <Users className="size-3.5" aria-hidden />
+                            {r.capacity}
+                          </span>
+                        ) : null}
+                      </span>
+                    </button>
+                  ))}
+                </div>
 
-          <div className="flex gap-2">
-            <Button type="button" variant="outline" className="h-14 rounded-md px-5 text-base" onClick={() => setStep(1)}>
-              ย้อนกลับ
-            </Button>
-            <Button type="button" disabled={!chosen} aria-describedby={chosen ? undefined : "pick-hint"} onClick={() => setStep(3)} className={cn(nextClass, "flex-1 rounded-md")}>
-              ถัดไป: รายละเอียด
-            </Button>
-          </div>
-          {!chosen && freeRooms.length > 0 && (
-            <p id="pick-hint" className="-mt-2 text-center text-sm text-muted-foreground">
-              เลือกห้องก่อนจึงไปต่อได้
-            </p>
-          )}
-
-          {busy.length > 0 && (
-            <details open={freeRooms.length === 0} className="group border border-input bg-card">
-              <summary className="flex min-h-14 cursor-pointer list-none items-center gap-2 px-4 font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50 [&::-webkit-details-marker]:hidden">
-                ไม่ว่างในช่วงนี้
-                <span className="text-sm font-normal text-muted-foreground">{busy.length} ห้อง</span>
-                <ChevronDown className="ml-auto size-5 transition-transform group-open:rotate-180" aria-hidden />
-              </summary>
-              <ul className="divide-y divide-border px-4 pb-2">
-                {busy.map(({ roomId: rid, clash, fit }) => {
-                  const b = bookings.find((x) => x.id === clash.id);
-                  return (
-                    <li key={rid} className="grid gap-1 py-3">
-                      <p className="font-medium">{roomOf(rid).name}</p>
-                      <button type="button" onClick={() => setDetailId(clash.id)} className="w-fit rounded text-left text-sm text-muted-foreground underline decoration-border underline-offset-4 outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50">
-                        {b?.status === "pending" ? "มีคำขอที่รออนุมัติ" : "มีคนจองแล้ว"}: {b?.purpose} {formatHm(clash.start)} – {formatHm(clash.end)} น.
-                        {b && userId && b.applicant_id === userId ? " (ของฉัน)" : ""}
-                      </button>
-                      {fit !== null && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setUserStart(fit);
-                            setStep(1);
-                          }}
-                          className="mt-1 inline-flex min-h-11 w-fit items-center rounded-md border border-input px-3.5 text-sm outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+                <div className="relative min-w-0 flex-1">
+                  <div className="flex h-9 border-b border-border">
+                    {HOUR_MARKS.map((m) => (
+                      <div key={m} className="flex-1 border-l border-border pt-2 pl-1.5 text-xs leading-none text-muted-foreground tabular-nums first:border-l-0">
+                        {formatHm(m)}
+                      </div>
+                    ))}
+                  </div>
+                  {rooms.map((r) => (
+                    <div key={r.id} className={cn("relative border-b border-border last:border-b-0", ROW_H)}>
+                      <div className="absolute inset-0 flex">
+                        {Array.from({ length: SLOTS }, (_, i) => {
+                          const m = DAY_START + i * STEP;
+                          const taken = clashOf(segs, r.id, m, m + STEP);
+                          const disabled = dayClosed || isPastSlot(m) || Boolean(taken);
+                          return (
+                            <button
+                              key={m}
+                              type="button"
+                              tabIndex={-1}
+                              disabled={disabled}
+                              onClick={() => pickSlot(r.id, m)}
+                              aria-label={`${r.name} ${formatHm(m)} น. ${taken ? "ไม่ว่าง" : "ว่าง"}`}
+                              className={cn(
+                                "h-full flex-1 border-l transition-colors first:border-l-0 focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-inset",
+                                i % 2 === 0 ? "border-border" : "border-border/40",
+                                disabled ? "cursor-not-allowed bg-muted/50" : "bg-card hover:bg-primary/10",
+                              )}
+                            />
+                          );
+                        })}
+                      </div>
+                      {active
+                        .filter(({ b }) => b.room_id === r.id)
+                        .map(({ b, seg }) => {
+                          const mine = userId !== null && b.applicant_id === userId;
+                          const pending = b.status === "pending";
+                          return (
+                            <button
+                              key={b.id}
+                              type="button"
+                              onClick={() => setDetailId(b.id)}
+                              aria-label={`${pending ? "รออนุมัติ" : "จองแล้ว"}: ${b.purpose} ${formatHm(seg.start)} – ${formatHm(seg.end)} น.${mine ? " (ของฉัน)" : ""}`}
+                              style={{
+                                left: `${pct(Math.max(seg.start, DAY_START))}%`,
+                                width: `${pct(Math.min(seg.end, DAY_END)) - pct(Math.max(seg.start, DAY_START))}%`,
+                                ...(pending ? { backgroundImage: "repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in oklch, var(--color-primary) 10%, transparent) 6px 8px)" } : null),
+                              }}
+                              className={cn(
+                                "absolute inset-y-1 z-10 flex flex-col justify-center overflow-hidden rounded-md border px-2 text-left text-xs leading-tight transition-colors",
+                                focusRing,
+                                pending ? "border-dashed border-primary/50 bg-card text-foreground" : "border-primary/30 bg-primary/15 text-primary hover:bg-primary/25",
+                                mine && "ring-2 ring-primary ring-inset",
+                              )}
+                            >
+                              <span className="truncate font-medium">{b.purpose}</span>
+                              <span className="truncate tabular-nums opacity-80">
+                                {pending ? "รออนุมัติ" : mine ? "ของฉัน" : b.applicant_name ?? "จองแล้ว"}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      {chosen?.id === r.id && !dayClosed && (
+                        <div
+                          aria-hidden
+                          style={{ left: `${pct(start)}%`, width: `${pct(end) - pct(start)}%` }}
+                          className="pointer-events-none absolute inset-y-1 z-20 flex items-center justify-center overflow-hidden rounded-md bg-primary text-xs font-medium text-primary-foreground tabular-nums shadow-sm"
                         >
-                          ห้องนี้ว่าง ลองเริ่ม {formatHm(fit)} น.
-                        </button>
+                          {formatHm(start)} – {formatHm(end)}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {nowPct !== null && (
+                    <div aria-hidden className="pointer-events-none absolute top-0 bottom-0 z-30 w-px bg-destructive" style={{ left: `${nowPct}%` }}>
+                      <span className="absolute bottom-1 left-1 rounded-sm bg-destructive px-1 py-0.5 text-[11px] leading-none text-white tabular-nums">{nowMin !== null && formatHm(nowMin)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <ul aria-label="สัญลักษณ์" className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-border px-3 py-2 text-xs text-muted-foreground">
+                <li className="flex items-center gap-1.5">
+                  <span className="size-3 rounded-sm border border-border bg-card" aria-hidden />
+                  ว่าง
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <span className="size-3 rounded-sm border border-primary/30 bg-primary/15" aria-hidden />
+                  จองแล้ว
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <span className="size-3 rounded-sm border border-dashed border-primary/50 bg-card" aria-hidden />
+                  รออนุมัติ
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <span className="size-3 rounded-sm bg-primary" aria-hidden />
+                  ช่วงที่เลือก
+                </li>
+                <li className="ml-auto flex items-center gap-1.5">
+                  <MousePointerClick className="size-3.5" aria-hidden />
+                  กดช่องว่างเพื่อเลือกห้องและเวลาเริ่ม
+                </li>
+              </ul>
+            </div>
+
+            {/* Phones: one card per room with a small timeline */}
+            <ul className="grid gap-2 lg:hidden">
+              {rooms
+                .slice()
+                .sort((a, b) => Number(free.includes(b.id)) - Number(free.includes(a.id)) || Number(a.requires_approval) - Number(b.requires_approval))
+                .map((r) => {
+                  const isFree = free.includes(r.id) && !dayClosed;
+                  const clash = busyOf(r.id);
+                  const clashBooking = clash ? bookings.find((x) => x.id === clash.clash.id) : undefined;
+                  const on = roomId === r.id;
+                  return (
+                    <li key={r.id} className={cn("rounded-xl border bg-card", on ? "border-primary ring-2 ring-primary/20" : "border-border")}>
+                      <button
+                        type="button"
+                        disabled={!isFree}
+                        aria-pressed={on}
+                        onClick={() => pickSlot(r.id, start)}
+                        className={cn("grid w-full gap-2 rounded-xl p-3.5 text-left", focusRing, isFree ? "hover:bg-muted/50" : "cursor-default")}
+                      >
+                        <span className="flex items-baseline justify-between gap-3">
+                          <span className="font-display text-base leading-snug font-semibold">{r.name}</span>
+                          <span className={cn("shrink-0 text-sm font-medium", isFree ? "text-emerald-800" : "text-muted-foreground")}>{isFree ? "ว่าง" : "ไม่ว่าง"}</span>
+                        </span>
+                        <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          {r.requires_approval ? <Clock className="size-4" aria-hidden /> : <Zap className="size-4" aria-hidden />}
+                          {r.requires_approval ? "ต้องรอ ผอ. อนุมัติ" : "จองได้ทันที"}
+                          {r.capacity ? <span className="ml-auto tabular-nums">{r.capacity} คน</span> : null}
+                        </span>
+                        <span aria-hidden className="relative block h-2 overflow-hidden rounded-full bg-muted">
+                          {active
+                            .filter(({ b }) => b.room_id === r.id)
+                            .map(({ b, seg }) => (
+                              <span
+                                key={b.id}
+                                className={cn("absolute inset-y-0 bg-primary/40", b.status === "pending" && "bg-primary/20")}
+                                style={{ left: `${pct(Math.max(seg.start, DAY_START))}%`, width: `${pct(Math.min(seg.end, DAY_END)) - pct(Math.max(seg.start, DAY_START))}%` }}
+                              />
+                            ))}
+                          {!dayClosed && <span className="absolute inset-y-0 bg-primary" style={{ left: `${pct(start)}%`, width: `${pct(end) - pct(start)}%` }} />}
+                        </span>
+                        <span aria-hidden className="flex justify-between text-xs text-muted-foreground tabular-nums">
+                          <span>{formatHm(DAY_START)}</span>
+                          <span>{formatHm(13 * 60)}</span>
+                          <span>{formatHm(DAY_END)}</span>
+                        </span>
+                      </button>
+                      {clash && !dayClosed && (
+                        <div className="grid gap-1 border-t border-border px-3.5 py-2.5">
+                          <button type="button" onClick={() => setDetailId(clash.clash.id)} className={cn("w-fit rounded text-left text-sm text-muted-foreground underline decoration-border underline-offset-4 hover:text-foreground", focusRing)}>
+                            {clashBooking?.status === "pending" ? "รออนุมัติ" : "มีคนจองแล้ว"}: {clashBooking?.purpose} {formatHm(clash.clash.start)} – {formatHm(clash.clash.end)} น.
+                            {clashBooking && userId && clashBooking.applicant_id === userId ? " (ของฉัน)" : ""}
+                          </button>
+                          {clash.fit !== null && (
+                            <button type="button" onClick={() => setUserStart(clash.fit)} className={cn("inline-flex min-h-11 w-fit items-center rounded-md border border-input px-3.5 text-sm hover:bg-muted", focusRing)}>
+                              ห้องนี้ว่าง ลองเริ่ม {formatHm(clash.fit)} น.
+                            </button>
+                          )}
+                        </div>
                       )}
                     </li>
                   );
                 })}
-              </ul>
-            </details>
-          )}
-        </section>
-      )}
+            </ul>
+          </section>
 
-      {step === 3 && chosen && (
-        <section aria-labelledby="h-details" className="space-y-5">
-          <h2 id="h-details" ref={heading} tabIndex={-1} className="font-display text-2xl font-semibold outline-none">
-            รายละเอียด
-          </h2>
-          <BookingDetails key={`${chosen.id}|${day}|${start}|${end}|${formKey}`} room={chosen} bookings={bookings} ymd={day} start={start} end={end} onBack={() => setStep(2)} onAgain={reset} />
-        </section>
-      )}
+          {isManager && <PendingQueue bookings={bookings} rooms={rooms} onOpen={setDetailId} tone="well" />}
+        </div>
+
+        {/* Details */}
+        <div ref={panel} className="scroll-mt-4 xl:sticky xl:top-6">
+          {chosen ? (
+            <section aria-labelledby="h-details" className="rounded-xl border border-border bg-card p-4 sm:p-5">
+              <h2 id="h-details" className="mb-4 font-display text-lg font-semibold">
+                รายละเอียดการจอง
+              </h2>
+              <BookingDetails key={formKey} room={chosen} bookings={bookings} ymd={day} start={start} end={end} onBack={() => setRoomId(null)} onAgain={reset} />
+            </section>
+          ) : (
+            <div className="hidden rounded-xl border border-dashed border-input p-6 text-center xl:block">
+              <p className="font-medium">ยังไม่ได้เลือกห้อง</p>
+              <p className="mt-1 text-sm text-muted-foreground">กดช่องว่างในตารางเพื่อเลือกห้องและเวลาเริ่ม แล้วกรอกรายละเอียดตรงนี้</p>
+            </div>
+          )}
+        </div>
+      </div>
 
       <BookingDetailDialog
         booking={detail}
