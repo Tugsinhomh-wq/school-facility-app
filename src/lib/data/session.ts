@@ -20,6 +20,11 @@ export const isFacilityOfficer = (role?: UserRole | null) => isStaffRole(role);
 export const isRoomManager = (role?: UserRole | null) =>
   isStaffRole(role) || role === "room_staff";
 
+/** Who decides on vehicle requests: the director and the administrator. */
+export const isVehicleApprover = (role?: UserRole | null) => role === "executive" || role === "super_admin";
+/** Who may book a vehicle: everyone signed in except the summary-only roles (executives, the budget deputy). */
+export const canBookVehicle = (role?: UserRole | null) => !isExecutive(role);
+
 /** The executive summary page: executives, the budget deputy and the system administrator only. */
 export const canSeeSummary = (role?: UserRole | null) =>
   isExecutive(role) || role === "super_admin";

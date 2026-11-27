@@ -29,6 +29,13 @@ export const MODULES: AppModule[] = [
     group: "facility",
   },
   {
+    id: "vehicles",
+    label: "จองรถ",
+    href: "/vehicles",
+    roles: "all",
+    group: "facility",
+  },
+  {
     id: "cleaning",
     label: "เขตทำความสะอาด",
     href: "/cleaning",

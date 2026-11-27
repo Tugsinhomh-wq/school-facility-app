@@ -21,7 +21,7 @@ export function useNow() {
  * Real-time: any booking change anywhere re-fetches the week, so conflicts show up immediately. The connection is
  * dropped while the tab is hidden, so idle phones do not hold a slot open.
  */
-export function useLiveRefresh(live: boolean) {
+export function useLiveRefresh(live: boolean, table = "facility_reservations") {
   const router = useRouter();
   const refreshTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => {
@@ -31,8 +31,8 @@ export function useLiveRefresh(live: boolean) {
     const connect = () => {
       if (channel) return;
       channel = supabase
-        .channel("facility-reservations")
-        .on("postgres_changes", { event: "*", schema: "public", table: "facility_reservations" }, () => {
+        .channel(`live-${table}`)
+        .on("postgres_changes", { event: "*", schema: "public", table }, () => {
           clearTimeout(refreshTimer.current);
           refreshTimer.current = setTimeout(() => router.refresh(), 300);
         })
@@ -57,5 +57,5 @@ export function useLiveRefresh(live: boolean) {
       document.removeEventListener("visibilitychange", onVisibility);
       disconnect();
     };
-  }, [live, router]);
+  }, [live, router, table]);
 }
