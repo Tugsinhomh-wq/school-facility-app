@@ -11,11 +11,11 @@ test("the budget deputy sees no modules", () => {
   assert.deepEqual(visibleModules("budget_deputy"), []);
 });
 
-test("teachers see all five, every one built: census opens /census, control opens /control", () => {
+test("teachers see all six, every one built: census opens /census, control opens /control", () => {
   const mods = visibleModules("user");
   assert.deepEqual(
     mods.map((m) => m.id),
-    ["repair", "rooms", "cleaning", "census", "control"],
+    ["repair", "rooms", "vehicles", "cleaning", "census", "control"],
   );
   for (const m of mods) assert.ok(m.href && !m.soon);
   assert.equal(mods.find((m) => m.id === "census")?.href, "/census");
@@ -26,14 +26,14 @@ test("teachers see all five, every one built: census opens /census, control open
 
 test("signed-out visitors see the open modules, never the roster or control", () => {
   const ids = visibleModules(null).map((m) => m.id);
-  assert.deepEqual(ids, ["repair", "rooms", "cleaning"]);
+  assert.deepEqual(ids, ["repair", "rooms", "vehicles", "cleaning"]);
   assert.ok(!ids.includes("census") && !ids.includes("control"));
 });
 
-test("staff roles see the same five, census and control included", () => {
+test("staff roles see the same six, census and control included", () => {
   for (const role of ["staff", "head", "room_staff", "cleaning_staff", "super_admin"] as const) {
     const mods = visibleModules(role);
-    assert.equal(mods.length, 5);
+    assert.equal(mods.length, 6);
     assert.equal(mods.find((m) => m.id === "census")?.href, "/census");
     assert.equal(mods.find((m) => m.id === "control")?.href, "/control");
   }
@@ -45,6 +45,7 @@ test("modules are grouped: facility work first, the rest under other", () => {
   assert.deepEqual(groups("user"), [
     "repair:facility",
     "rooms:facility",
+    "vehicles:facility",
     "cleaning:facility",
     "census:other",
     "control:other",

@@ -1,4 +1,5 @@
 import {
+  Car,
   ChartColumn,
   ClipboardList,
   DoorOpen,
@@ -20,6 +21,7 @@ export const NAV_ICONS: Record<string, LucideIcon> = {
   home: House,
   repair: Wrench,
   rooms: DoorOpen,
+  vehicles: Car,
   cleaning: Sparkles,
   census: Users,
   control: ShieldCheck,

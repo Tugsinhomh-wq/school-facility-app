@@ -8,16 +8,18 @@ export type NavGroup = { heading: string | null; items: NavEntry[] };
 
 const HOME: NavEntry = { id: "home", label: "หน้าแรก", href: "/" };
 const SUMMARY: NavEntry = { id: "summary", label: "สรุปภาพรวม", href: "/summary" };
+const VEHICLES: NavEntry = { id: "vehicles", label: "จองรถ", href: "/vehicles" };
 const BACKLOG: NavEntry = { id: "backlog", label: "งานที่ขอความเห็น", href: "/backlog" };
 
 /**
  * The menu for a role, shared by the desktop sidebar and the phone bar. Executives get only the
- * summary (the budget deputy also gets the tickets sent for their opinion, with a count of unread comments); "จัดการ" holds the staff and administrator pages (memos for every role but teachers).
+ * summary (the director also gets the vehicle page to approve trips; the budget deputy also gets the tickets sent for their opinion, with a count of unread comments); "จัดการ" holds the staff and administrator pages (memos for every role but teachers).
  */
 export function navGroups(role: UserRole | null, badges: { backlog?: number } = {}): NavGroup[] {
   if (role === "budget_deputy")
     return [{ heading: null, items: [SUMMARY, badges.backlog ? { ...BACKLOG, badge: badges.backlog } : BACKLOG] }];
-  if (isExecutive(role)) return [{ heading: null, items: [SUMMARY] }];
+  // The director decides on vehicle requests, so that one executive role also gets the vehicle page.
+  if (isExecutive(role)) return [{ heading: null, items: role === "executive" ? [SUMMARY, VEHICLES] : [SUMMARY] }];
   const byGroup = (g: "facility" | "other") =>
     visibleModules(role)
       .filter((m) => m.group === g)

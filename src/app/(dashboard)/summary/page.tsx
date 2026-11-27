@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 
 import { SummaryView } from "@/components/summary/summary-view";
 import { fetchSummary } from "@/lib/data/summary";
-import { canSeeSummary, getSession } from "@/lib/data/session";
+import { countPendingVehicleRequests } from "@/lib/data/vehicles";
+import { canSeeSummary, getSession, isVehicleApprover } from "@/lib/data/session";
 import { getUnreadTicketIds } from "@/lib/data/ticket-comments";
 import { resolvePeriod } from "@/lib/summary-period";
 
@@ -28,8 +29,19 @@ export default async function SummaryPage({
   const data = await fetchSummary(session.supabase, period);
   const unread = session.viewer.role === "budget_deputy" ? (await getUnreadTicketIds(session.supabase)).size : 0;
 
+  const vehiclesWaiting = isVehicleApprover(session.viewer.role) ? await countPendingVehicleRequests(session.supabase) : 0;
+
   return (
     <>
+      {vehiclesWaiting > 0 && (
+        <Link
+          href="/vehicles"
+          role="status"
+          className="mb-4 flex min-h-12 items-center rounded-lg border border-border bg-muted/50 px-4 text-sm font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          {vehiclesWaiting} คำขอใช้รถรออนุมัติ ดูที่หน้าจองรถ
+        </Link>
+      )}
       {unread > 0 && (
         <Link
           href="/backlog"

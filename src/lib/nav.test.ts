@@ -7,8 +7,8 @@ const headings = (role: Parameters<typeof navGroups>[0]) => navGroups(role).map(
 const hrefs = (role: Parameters<typeof navGroups>[0]) =>
   navGroups(role).flatMap((g) => g.items.map((i) => i.href));
 
-test("executives see only the summary", () => {
-  assert.deepEqual(hrefs("executive"), ["/summary"]);
+test("the director sees the summary and the vehicle page, to approve trips", () => {
+  assert.deepEqual(hrefs("executive"), ["/summary", "/vehicles"]);
 });
 
 test("teachers have no manage group; signed-out visitors have no งานอื่น either", () => {
@@ -48,7 +48,7 @@ test("the cleaning-zone officer gets the cleaning module, but no memos and no ad
 
 test("the budget deputy sees the summary and the open-repairs page, nobody else sees /backlog", () => {
   assert.deepEqual(hrefs("budget_deputy"), ["/summary", "/backlog"]);
-  assert.deepEqual(hrefs("executive"), ["/summary"]);
+  assert.deepEqual(hrefs("executive"), ["/summary", "/vehicles"]);
   for (const role of ["user", "staff", "head", "room_staff", "cleaning_staff", "super_admin", null] as const)
     assert.ok(!hrefs(role).includes("/backlog"), String(role));
 });

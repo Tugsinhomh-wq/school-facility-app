@@ -15,6 +15,8 @@ export const BACKUP_TABLES = [
   "repair_ticket_comments",
   "repair_ticket_shares",
   "facility_reservations",
+  "vehicles",
+  "vehicle_reservations",
   "memorandums",
   "memo_tickets",
   "approval_records",
