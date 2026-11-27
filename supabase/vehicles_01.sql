@@ -165,7 +165,7 @@ WHERE NOT EXISTS (SELECT 1 FROM public.vehicles);
 
 -- =====================================================================
 -- Check block: run after the file. Expect 3 vehicles, both tables with RLS on, the exclusion constraint,
--- both triggers, and 8 policies on vehicle_reservations plus 2 on vehicles.
+-- both triggers, 6 policies on vehicle_reservations and 2 on vehicles.
 -- =====================================================================
 -- SELECT count(*) AS vehicles FROM public.vehicles;
 -- SELECT relname, relrowsecurity FROM pg_class WHERE relname IN ('vehicles', 'vehicle_reservations');
