@@ -215,39 +215,56 @@ export function RoomDesk({
             </div>
           </section>
 
-          {/* Start and length */}
-          <section aria-label="เวลา" className="grid gap-4 sm:grid-cols-[10rem_1fr]">
-            <div className="grid gap-2">
-              <label htmlFor="start-sel" className="text-sm font-medium">
-                เริ่มเวลา
-              </label>
-              <div className="relative">
-                <select id="start-sel" value={start} disabled={dayClosed} onChange={(e) => setUserStart(Number(e.target.value))} className={selectClass}>
-                  {Array.from({ length: Math.max(0, (latestStart - earliest) / STEP + 1) }, (_, i) => earliest + i * STEP).map((m) => (
-                    <option key={m} value={m}>
-                      {formatHm(m)} น.
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          {/* Start, end and length */}
+          <section aria-label="เวลา" className="space-y-3">
+            <div className="grid grid-cols-2 gap-3 sm:max-w-md">
+              <div className="grid gap-2">
+                <label htmlFor="start-sel" className="text-sm font-medium">
+                  เริ่มเวลา
+                </label>
+                <div className="relative">
+                  <select id="start-sel" value={start} disabled={dayClosed} onChange={(e) => setUserStart(Number(e.target.value))} className={selectClass}>
+                    {Array.from({ length: Math.max(0, (latestStart - earliest) / STEP + 1) }, (_, i) => earliest + i * STEP).map((m) => (
+                      <option key={m} value={m}>
+                        {formatHm(m)} น.
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <label htmlFor="end-sel" className="text-sm font-medium">
+                  เลิกเวลา
+                </label>
+                <div className="relative">
+                  <select id="end-sel" value={end} disabled={dayClosed} onChange={(e) => setLength(Number(e.target.value) - start)} className={selectClass}>
+                    {Array.from({ length: Math.max(1, (limit - start) / STEP) }, (_, i) => start + (i + 1) * STEP).map((m) => (
+                      <option key={m} value={m}>
+                        {formatHm(m)} น.
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+                </div>
               </div>
             </div>
-            <div className="grid gap-2">
-              <span id="len-l" className="text-sm font-medium">
-                ใช้นานแค่ไหน
+            <div className="flex flex-wrap items-center gap-2">
+              <span id="len-l" className="mr-1 text-sm text-muted-foreground">
+                เลือกเร็ว
               </span>
               <div role="group" aria-labelledby="len-l" className="flex flex-wrap gap-2">
                 {LENGTHS.map((l) => (
                   <button
                     key={l.min}
                     type="button"
-                    aria-pressed={length === l.min}
+                    aria-pressed={len === l.min}
                     disabled={dayClosed || start + l.min > limit}
                     onClick={() => setLength(l.min)}
                     className={cn(
                       "min-h-11 rounded-md border px-3.5 text-sm transition-colors disabled:opacity-40",
                       focusRing,
-                      length === l.min ? "border-primary bg-primary text-primary-foreground" : "border-input bg-card hover:bg-muted",
+                      len === l.min ? "border-primary bg-primary text-primary-foreground" : "border-input bg-card hover:bg-muted",
                     )}
                   >
                     {l.label}
